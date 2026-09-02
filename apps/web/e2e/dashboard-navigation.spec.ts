@@ -376,6 +376,51 @@ test.describe("role-aware dashboard navigation", () => {
     });
   }
 
+  test("Admin can review field visibility policy metadata", async ({ page, request }) => {
+    const account = await registerClient(request, 160);
+    const adminScenario = scenarios.find((scenario) => scenario.name === "Admin");
+    if (!adminScenario) {
+      throw new Error("Admin navigation scenario is missing");
+    }
+
+    try {
+      promoteAccount(account, adminScenario);
+      await logIn(page, account);
+      await page.goto("/dashboard/operations");
+
+      await expect(page.getByRole("heading", { name: "Operational records", exact: true })).toBeVisible();
+      const fieldVisibilityTab = page.getByRole("tab", { name: "Field visibility" });
+      await expect(fieldVisibilityTab).toBeVisible();
+      const policyResponsePromise = page.waitForResponse(
+        (response) =>
+          response.request().method() === "GET" &&
+          new URL(response.url()).pathname ===
+            "/api/v1/admin/operations/field-visibility-config",
+      );
+      await fieldVisibilityTab.click();
+      const policyResponse = await policyResponsePromise;
+      expect(policyResponse.status()).toBe(200);
+      expect(policyResponse.headers()["cache-control"]).toBe("private, no-store");
+
+      const policyPage = (await policyResponse.json()) as {
+        configs: Array<{ field_key: string; [key: string]: unknown }>;
+        total: number;
+      };
+      expect(policyPage.configs).toHaveLength(Math.min(policyPage.total, 25));
+      expect(policyPage.configs.every((config) => !("updated_by_uuid" in config))).toBe(true);
+      if (policyPage.configs.length === 0) {
+        await expect(page.getByText("No persisted field visibility overrides.")).toBeVisible();
+      } else {
+        await expect(
+          page.getByText(policyPage.configs[0].field_key, { exact: true }).first(),
+        ).toBeVisible();
+      }
+      await expect(page.getByRole("button", { name: /edit/i })).toHaveCount(0);
+    } finally {
+      await deleteAccount(request, account);
+    }
+  });
+
   test("Sub Admin retains supported authoring routes and retires duplicate pages", async ({ page, request }) => {
     const account = await registerClient(request, 200);
     try {

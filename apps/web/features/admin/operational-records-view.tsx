@@ -17,12 +17,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   listAdminAuthEvents,
   listAdminEnquiries,
+  listAdminFieldVisibilityConfigs,
   listAdminLeadActivities,
   listAdminLoanTransactionHistory,
   listAdminSiteVisits,
   listAdminTransactions,
   type AdminAuthEvent,
   type AdminEnquiry,
+  type AdminFieldVisibilityConfig,
   type AdminLeadActivity,
   type AdminLoanTransactionHistory,
   type AdminSiteVisit,
@@ -37,6 +39,7 @@ const PAGE_SIZE = 25;
 const OPERATION_TABS = [
   { key: "auth-events", label: "Security events" },
   { key: "enquiries", label: "Enquiries" },
+  { key: "field-visibility", label: "Field visibility" },
   { key: "lead-activities", label: "Lead activity" },
   { key: "loan-history", label: "Loan terms" },
   { key: "site-visits", label: "Site visits" },
@@ -64,6 +67,7 @@ function initialState(): Record<OperationKind, ViewState> {
   return {
     "auth-events": empty(),
     enquiries: empty(),
+    "field-visibility": empty(),
     "lead-activities": empty(),
     "loan-history": empty(),
     "site-visits": empty(),
@@ -140,6 +144,21 @@ function enquiryRecord(row: AdminEnquiry): OperationalRecord {
       { label: "Property reference", value: row.property_ref },
       { label: "Client account", value: row.user_uuid },
       { label: "Created", value: formatWhen(row.created_at) },
+      { label: "Last updated", value: formatWhen(row.updated_at) },
+    ],
+  };
+}
+
+export function fieldVisibilityConfigRecord(
+  row: AdminFieldVisibilityConfig,
+): OperationalRecord {
+  return {
+    id: row.id,
+    title: `${humanize(row.entity)} ${humanize(row.field_key)}`,
+    subtitle: `${humanize(row.target_role)} / ${humanize(row.entity)} policy`,
+    status: humanize(row.mode),
+    fields: [
+      { label: "Field key", value: row.field_key },
       { label: "Last updated", value: formatWhen(row.updated_at) },
     ],
   };
@@ -234,6 +253,11 @@ async function fetchOperationalPage(
     case "enquiries":
       return normalize(await listAdminEnquiries(page), (data) => ({
         records: data.enquiries.map(enquiryRecord),
+        total: data.total,
+      }));
+    case "field-visibility":
+      return normalize(await listAdminFieldVisibilityConfigs(page), (data) => ({
+        records: data.configs.map(fieldVisibilityConfigRecord),
         total: data.total,
       }));
     case "lead-activities":
@@ -342,6 +366,16 @@ export function OperationalRecordsView() {
     () => filterOperationalRecords(state.records, search, statusFilter),
     [search, state.records, statusFilter],
   );
+  const emptyCopy =
+    active === "field-visibility"
+      ? {
+          title: "No persisted field visibility overrides.",
+          description: "Role responses currently use the server-owned visibility defaults.",
+        }
+      : {
+          title: "No records in this category yet.",
+          description: "New operational activity will appear here in newest-first order.",
+        };
   React.useEffect(() => {
     if (!state.loaded && !state.loading) void load(active, 0);
   }, [active, load, state.loaded, state.loading]);
@@ -352,7 +386,8 @@ export function OperationalRecordsView() {
         <h1 className="text-2xl font-semibold text-text-primary">Operational records</h1>
         <p className="mt-1 max-w-3xl text-sm text-text-secondary">
           Read-only, platform-wide workflow and security context. Contact details, messages,
-          authentication metadata, pickup locations, and reusable financial references are omitted.
+          authentication metadata, pickup locations, updater identities, and reusable financial
+          references are omitted.
         </p>
       </div>
 
@@ -393,10 +428,8 @@ export function OperationalRecordsView() {
           ) : state.records.length === 0 ? (
             <div className="flex flex-col items-center rounded-2xl border border-border bg-card p-12 text-center">
               <Database className="h-8 w-8 text-text-secondary" aria-hidden="true" />
-              <p className="mt-3 font-medium text-text-primary">No records in this category yet.</p>
-              <p className="mt-1 text-sm text-text-secondary">
-                New operational activity will appear here in newest-first order.
-              </p>
+              <p className="mt-3 font-medium text-text-primary">{emptyCopy.title}</p>
+              <p className="mt-1 text-sm text-text-secondary">{emptyCopy.description}</p>
             </div>
           ) : (
             <div className="space-y-4">

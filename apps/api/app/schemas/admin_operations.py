@@ -13,6 +13,7 @@ from app.models.enquiry import EnquiryStatus
 from app.models.lead_activity import CallDisposition, InterestLevel
 from app.models.site_visit import SiteVisitStatus, SiteVisitTimeSlot
 from app.models.transaction import TransactionStatus, TransactionType
+from app.schemas.field_visibility import FieldTargetRoleLiteral, FieldVisibilityModeLiteral
 
 
 class AdminAuthEventRead(BaseModel):
@@ -42,6 +43,20 @@ class AdminEnquiryRead(BaseModel):
 
 class AdminEnquiryListResponse(BaseModel):
     enquiries: list[AdminEnquiryRead]
+    total: int
+
+
+class AdminFieldVisibilityConfigRead(BaseModel):
+    id: UUID
+    target_role: FieldTargetRoleLiteral
+    entity: str
+    field_key: str
+    mode: FieldVisibilityModeLiteral
+    updated_at: datetime
+
+
+class AdminFieldVisibilityConfigListResponse(BaseModel):
+    configs: list[AdminFieldVisibilityConfigRead]
     total: int
 
 

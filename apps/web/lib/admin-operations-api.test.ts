@@ -5,6 +5,7 @@ import { registerBusinessLineGetter, registerTokenGetter } from "@/lib/api/clien
 import {
   listAdminAuthEvents,
   listAdminEnquiries,
+  listAdminFieldVisibilityConfigs,
   listAdminLeadActivities,
   listAdminLoanTransactionHistory,
   listAdminSiteVisits,
@@ -26,7 +27,7 @@ afterEach(() => {
 });
 
 describe("Admin operational-record API", () => {
-  it("uses the six dedicated paginated Admin routes", async () => {
+  it("uses the seven dedicated paginated Admin routes", async () => {
     registerTokenGetter(() => "admin-token");
     const fetchMock = vi.fn(async (_url: string, _options?: RequestInit) => fakeResponse());
     vi.stubGlobal("fetch", fetchMock);
@@ -34,6 +35,7 @@ describe("Admin operational-record API", () => {
 
     await listAdminAuthEvents(page);
     await listAdminEnquiries(page);
+    await listAdminFieldVisibilityConfigs(page);
     await listAdminLeadActivities(page);
     await listAdminLoanTransactionHistory(page);
     await listAdminSiteVisits(page);
@@ -42,6 +44,7 @@ describe("Admin operational-record API", () => {
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
       "http://localhost:8000/api/v1/admin/operations/auth-events?limit=10&offset=20",
       "http://localhost:8000/api/v1/admin/operations/enquiries?limit=10&offset=20",
+      "http://localhost:8000/api/v1/admin/operations/field-visibility-config?limit=10&offset=20",
       "http://localhost:8000/api/v1/admin/operations/lead-activities?limit=10&offset=20",
       "http://localhost:8000/api/v1/admin/operations/loan-transaction-history?limit=10&offset=20",
       "http://localhost:8000/api/v1/admin/operations/site-visits?limit=10&offset=20",
