@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "drill_id": "replace-with-opaque-drill-id",
+  "candidate_sha": "0000000000000000000000000000000000000000",
+  "environment": "replace-with-production",
+  "targets": {
+    "rpo_minutes": 15,
+    "rto_minutes": 60,
+    "max_component_skew_minutes": 5
+  },
+  "timing": {
+    "drill_started_at": "2026-09-02T12:15:00Z",
+    "database_recovery_point_at": "2026-09-02T12:05:00Z",
+    "object_recovery_point_at": "2026-09-02T12:07:00Z",
+    "verified_at": "2026-09-02T12:40:00Z"
+  },
+  "database": {
+    "artifact_id": "replace-with-provider-database-backup-id",
+    "artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "integrity_check_passed": false,
+    "required_roles_recreated": false,
+    "expected": {
+      "alembic_heads": [
+        "replace_head"
+      ],
+      "table_count": 1,
+      "total_row_count": 1,
+      "schema_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "row_count_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "critical_record_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "grant_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "rls_policy_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "rls_policy_count": 1,
+      "rls_enabled_relation_count": 1
+    },
+    "restored": {
+      "alembic_heads": [
+        "replace_head"
+      ],
+      "table_count": 1,
+      "total_row_count": 1,
+      "schema_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "row_count_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "critical_record_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "grant_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "rls_policy_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "rls_policy_count": 1,
+      "rls_enabled_relation_count": 1
+    }
+  },
+  "objects": {
+    "artifact_id": "replace-with-provider-object-backup-id",
+    "backup_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "integrity_check_passed": false,
+    "expected": {
+      "object_count": 0,
+      "total_bytes": 0,
+      "content_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "content_type_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "database_reference_count": 0,
+      "missing_database_reference_count": 0
+    },
+    "restored": {
+      "object_count": 0,
+      "total_bytes": 0,
+      "content_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "content_type_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "database_reference_count": 0,
+      "missing_database_reference_count": 0
+    }
+  },
+  "controls": {
+    "backup_identity_separate": false,
+    "restore_identity_separate": false,
+    "restore_isolated": false,
+    "production_writes_blocked": false,
+    "external_side_effects_blocked": false,
+    "restored_objects_private": false,
+    "database_encrypted": false,
+    "objects_encrypted": false,
+    "restore_access_audited": false,
+    "retention_configured": false,
+    "deletion_protection_enabled": false,
+    "off_host_copy": false,
+    "off_account_or_region_copy": false
+  },
+  "evidence": {
+    "recovery_policy": "replace-with-approved-recovery-policy-id",
+    "database_backup_job": "replace-with-provider-database-job-id",
+    "object_backup_job": "replace-with-provider-object-job-id",
+    "restore_run": "replace-with-restore-run-id",
+    "access_audit": "replace-with-access-audit-id",
+    "protection_control_audit": "replace-with-protection-control-audit-id",
+    "reconciliation_report": "replace-with-reconciliation-report-id"
+  }
+}

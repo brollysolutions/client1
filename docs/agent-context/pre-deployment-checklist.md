@@ -247,6 +247,12 @@ in code” is not the same as “verified at this release.”
 
 ## 6. Database, storage, recovery, and operations
 
+Use the provider-neutral
+[`production recovery drill`](../../infra/recovery/README.md) and its
+fail-closed evidence checker for the database/object drill below. The checked-in
+example is intentionally NO-GO; tooling, configuration, a backup job, or a PR
+merge does not check either recovery box without named production evidence.
+
 - [ ] Create separate service identities for API, migrations, scheduler,
   backup, and humans. Grant only required database/schema/table/sequence rights;
   application roles must not own tables, bypass RLS, or create extensions.
