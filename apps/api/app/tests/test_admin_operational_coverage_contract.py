@@ -79,10 +79,8 @@ def test_original_fr_2_2_correction_and_audit_gaps_are_closed() -> None:
     assert properties.audit_coverage is CoverageState.COVERED
 
 
-def test_newer_out_of_scope_gaps_remain_explicit() -> None:
-    assert confirmed_gap_tables() == frozenset(
-        {"field_visibility_config", "financial_service_enquiries"}
-    )
+def test_no_confirmed_fr_2_2_coverage_gap_remains() -> None:
+    assert confirmed_gap_tables() == frozenset()
 
 
 def test_field_visibility_read_gap_closes_without_reinstating_policy_writes() -> None:
@@ -93,7 +91,19 @@ def test_field_visibility_read_gap_closes_without_reinstating_policy_writes() ->
     assert entry.api_surfaces == ("/api/v1/admin/operations/field-visibility-config",)
     assert entry.ui_surfaces == ("/dashboard/operations",)
     assert entry.update_mode is AdminUpdateMode.SERVICE_MANAGED
-    assert entry.update_coverage is CoverageState.GAP
+    assert entry.update_coverage is CoverageState.PROTECTED
+    assert entry.audit_coverage is CoverageState.COVERED
+
+
+def test_financial_service_enquiry_read_gap_closes_with_a_minimized_surface() -> None:
+    entry = ADMIN_OPERATIONAL_COVERAGE["financial_service_enquiries"]
+
+    assert entry.view_mode is AdminViewMode.MINIMIZED
+    assert entry.view_coverage is CoverageState.COVERED
+    assert entry.api_surfaces == ("/api/v1/admin/operations/financial-service-enquiries",)
+    assert entry.ui_surfaces == ("/dashboard/operations",)
+    assert entry.update_mode is AdminUpdateMode.IMMUTABLE
+    assert entry.update_coverage is CoverageState.PROTECTED
     assert entry.audit_coverage is CoverageState.COVERED
 
 

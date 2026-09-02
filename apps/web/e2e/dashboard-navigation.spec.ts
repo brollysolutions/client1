@@ -421,6 +421,72 @@ test.describe("role-aware dashboard navigation", () => {
     }
   });
 
+  test("Admin can review minimized card and insurance enquiries", async ({ page, request }) => {
+    const account = await registerClient(request, 170);
+    const adminScenario = scenarios.find((scenario) => scenario.name === "Admin");
+    if (!adminScenario) {
+      throw new Error("Admin navigation scenario is missing");
+    }
+
+    try {
+      promoteAccount(account, adminScenario);
+      await logIn(page, account);
+      await page.goto("/dashboard/operations");
+
+      await expect(
+        page.getByRole("heading", { name: "Operational records", exact: true }),
+      ).toBeVisible();
+      const financialEnquiriesTab = page.getByRole("tab", { name: "Card & insurance" });
+      await expect(financialEnquiriesTab).toBeVisible();
+      const enquiryResponsePromise = page.waitForResponse(
+        (response) =>
+          response.request().method() === "GET" &&
+          new URL(response.url()).pathname ===
+            "/api/v1/admin/operations/financial-service-enquiries",
+      );
+      await financialEnquiriesTab.click();
+      const enquiryResponse = await enquiryResponsePromise;
+      expect(enquiryResponse.status()).toBe(200);
+      expect(enquiryResponse.headers()["cache-control"]).toBe("private, no-store");
+
+      const enquiryPage = (await enquiryResponse.json()) as {
+        enquiries: Array<{
+          id: string;
+          product_label: string;
+          [key: string]: unknown;
+        }>;
+        total: number;
+      };
+      expect(enquiryPage.enquiries).toHaveLength(Math.min(enquiryPage.total, 25));
+      const safeFields = [
+        "form_version",
+        "id",
+        "product_category",
+        "product_label",
+        "status",
+        "submitted_at",
+      ];
+      for (const enquiry of enquiryPage.enquiries) {
+        expect(Object.keys(enquiry).sort()).toEqual(safeFields);
+      }
+      if (enquiryPage.enquiries.length === 0) {
+        await expect(page.getByText("No card or insurance enquiries yet.")).toBeVisible();
+      } else {
+        await expect(
+          page.getByText(enquiryPage.enquiries[0].product_label, { exact: true }).first(),
+        ).toBeVisible();
+      }
+      await expect(page.getByRole("button", { name: /edit/i })).toHaveCount(0);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(financialEnquiriesTab).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+    } finally {
+      await deleteAccount(request, account);
+    }
+  });
+
   test("Sub Admin retains supported authoring routes and retires duplicate pages", async ({ page, request }) => {
     const account = await registerClient(request, 200);
     try {

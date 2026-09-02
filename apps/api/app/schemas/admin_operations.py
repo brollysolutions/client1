@@ -46,6 +46,20 @@ class AdminEnquiryListResponse(BaseModel):
     total: int
 
 
+class AdminFinancialServiceEnquiryRead(BaseModel):
+    id: UUID
+    product_label: str
+    product_category: Literal["credit_card", "insurance"]
+    status: Literal["submitted"]
+    form_version: int
+    submitted_at: datetime
+
+
+class AdminFinancialServiceEnquiryListResponse(BaseModel):
+    enquiries: list[AdminFinancialServiceEnquiryRead]
+    total: int
+
+
 class AdminFieldVisibilityConfigRead(BaseModel):
     id: UUID
     target_role: FieldTargetRoleLiteral

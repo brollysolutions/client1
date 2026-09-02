@@ -4,9 +4,46 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-09-02**
 
-Evidence baseline: `921858e` (`upstream/main`), plus the read-only Admin
-field-visibility oversight delivery in
-[PR #286](https://github.com/brollysolutions/client1/pull/286).
+Evidence baseline: `8c31b82` (`upstream/main`, including
+[PR #286](https://github.com/brollysolutions/client1/pull/286)), plus the
+PII-minimized Admin financial-service enquiry oversight delivery on
+`feat/admin-financial-enquiry-visibility` ([PR TBD](https://github.com/brollysolutions/client1/pulls)).
+
+**Admin financial-service enquiry oversight is complete — [PR TBD](https://github.com/brollysolutions/client1/pulls):**
+platform Admin can inspect submitted credit-card and insurance requests in a
+read-only Card & insurance tab within Operational records. The paginated API
+query selects only enquiry id, public product label/category, immutable status,
+form version, and submission time. It never loads or serializes Client, lead, or
+profile identifiers; form answers or schema snapshots; provider-offer references
+or snapshots; contact data; or applicant financial facts. The response remains
+`private, no-store`, generated-contract-backed, and guarded by both the
+platform-Admin dependency and request-scoped PostgreSQL RLS. Unauthenticated,
+Client, Sub Admin, and line-scoped Admin denials are covered. No mutation,
+migration, export, workflow transition, field-policy writer, or Client/staff
+read behavior changed.
+
+Fresh evidence passes 12 coverage-contract tests, 10 PostgreSQL-backed
+operational/RLS tests, web projection/client tests, API Ruff/format, one Alembic
+head, byte-stable generated contracts, 7 feature-tracking and 11 migration/RLS
+tracking tests, web lint/typecheck and all 95 files / 610 unit tests, an
+authenticated desktop and 390x844 Admin Playwright journey with no horizontal
+overflow, and a strict Linux production image that builds and exports all 94
+routes. The native Windows build compiles, typechecks, and generates 94/94
+routes before the established standalone-symlink `EPERM`.
+
+The full container API run completes 1,946 passes / 4 failures in 1h39m. An
+exact four-test rerun makes the transient Docker DNS and IST reporting failures
+pass; the two unchanged baselines reproduce: the media-isolation test expects a
+different environment configuration, and the long-lived shared catalogue has
+286 rows where the test assumes 16. All changed and adjacent Admin/RLS tests are
+green. Security, design/accessibility, and final maintainer review find no
+remaining change-owned issue. Together with PR #286, this closes the final
+FR-2.2 registry visibility gap: all 79 active requirements are Complete, for
+100% evidence-based implementation coverage. Launch readiness remains
+separately gated by external operator evidence and qualified sign-off.
+The next planned PR is approved registry publication, immutable re-pull, rescan,
+and manifest evidence; it cannot proceed without a qualified operator and the
+approved external registry.
 
 **Admin field-visibility oversight is complete — [PR #286](https://github.com/brollysolutions/client1/pull/286):**
 platform Admin can inspect persisted `field_visibility_config` overrides in a
@@ -27,9 +64,8 @@ standalone-symlink `EPERM`. The aggregate API run completes with three failures
 outside the changed surfaces; a last-failed rerun leaves the existing
 media-isolation environment expectation and shared-database catalogue-count
 failure while the notification case passes. Security, design/accessibility,
-and final diff review find no change-owned issue. `financial_service_enquiries`
-is now the sole registry read gap, so FR-2.2 remains Partial and the completion
-snapshot stays 78 Complete / 1 Partial / 99.4%.
+and final diff review find no change-owned issue. The companion minimized
+financial-service enquiry delivery now closes the remaining registry read gap.
 
 **1 September exact-candidate rehearsal complete — NO-GO — [PR #285](https://github.com/brollysolutions/client1/pull/285):**
 merged PR #284 is frozen exactly at
@@ -612,10 +648,9 @@ have explicit registry and regression coverage. Audit detail records operation,
 status transitions, changed field names, identifiers, and the required correction
 reason without copying customer, financial, or protected field values.
 
-The exhaustive registry identified two newer read-only visibility gaps. The
-current read-only Operational records delivery closes `field_visibility_config`;
-`financial_service_enquiries` remains, so FR-2.2 stays Partial rather than being
-overstated as globally complete. Protected
+The exhaustive registry identified two newer read-only visibility gaps. The two
+read-only Operational records deliveries now close `field_visibility_config`
+and `financial_service_enquiries`, so FR-2.2 is Complete. Protected
 secrets, locations, private media/documents, immutable ledgers, payouts,
 ownership, RLS, and business-line boundaries are unchanged. The frozen-release
 rehearsal and human launch sign-offs remain separate next phases.
@@ -3292,13 +3327,13 @@ live-provider configuration are assessed separately.
 
 | Measure | Result |
 | --- | ---: |
-| Complete requirements | 78 / 79 (98.7%) |
-| Partial requirements | 1 / 79 (1.3%) |
+| Complete requirements | 79 / 79 (100%) |
+| Partial requirements | 0 / 79 (0%) |
 | Not-started requirements | 0 / 79 (0%) |
-| Weighted implementation coverage | **99.4%** |
+| Weighted implementation coverage | **100.0%** |
 
 Weighted coverage gives each Complete item 1 point and each Partial item 0.5
-points: `(78 + 1 x 0.5) / 79 = 99.37%`, rounded to **99.4%**. The weighting is a planning aid, not
+points: `79 / 79 = 100%`, reported as **100.0%**. The weighting is a planning aid, not
 an estimate of calendar time: a single security-sensitive gap can require more
 work than several completed UI requirements.
 
@@ -3970,14 +4005,25 @@ baseline across the mapped tables and all current platform-scope RLS policies.
 The original visibility-remediation slice closed its eight confirmed read gaps,
 and the controlled-correction slice closed one typed approved-listing correction
 plus seven append-only audit-event families. Read-only platform-Admin oversight
-now closes the newer `field_visibility_config` registry gap. FR-2.2 remains
-Partial until `financial_service_enquiries` has an explicit safe Admin surface.
+now closes both newer registry gaps: `field_visibility_config` metadata and a
+PII-minimized `financial_service_enquiries` projection. FR-2.2 is Complete.
 Payout controls,
 private-document access, secret/location minimization, immutable ledgers, and
 business-line segregation remain non-negotiable compatibility constraints.
 
 ## Delivered implementation
 
+- **Admin financial-service enquiry oversight** (FR-2.2) is delivered locally
+  on `feat/admin-financial-enquiry-visibility`
+  ([PR TBD](https://github.com/brollysolutions/client1/pulls)). The existing
+  Operational records workspace gains a generated-contract-backed Card &
+  insurance tab. Its explicit-column query returns only record id, public
+  product metadata, immutable status/version, and submission time; applicant
+  identifiers, answers, schemas, provider snapshots/references, contact data,
+  and financial facts remain outside the query and response. Platform-Admin
+  dependencies, request-scoped RLS, `private, no-store`, negative-role tests,
+  pagination, and accessible loading/error/empty states remain authoritative.
+  No mutation or migration is added.
 - **Admin field-visibility oversight** (FR-2.2) is delivered locally in
   [PR #286](https://github.com/brollysolutions/client1/pull/286). The existing
   Operational records workspace gains a paginated Field visibility tab backed
@@ -4313,7 +4359,7 @@ business-line segregation remain non-negotiable compatibility constraints.
 | Feature area | Complete | Partial | Not started | Coverage notes |
 | --- | ---: | ---: | ---: | --- |
 | Platform and segregation (FR-1.x) | 5 | 0 | 0 | Every mapped table and managed-media purpose has an explicit classification mode; database checks and provenance triggers enforce concrete operational lines while preserving reviewed global/identity exceptions. |
-| Roles and access (FR-2.x) | 8 | 1 | 0 | Six role surfaces, server/RLS guards, Admin-managed field visibility, and provenance-based lead-detail ownership exist; only the exhaustive Admin operational coverage audit remains partial. |
+| Roles and access (FR-2.x) | 9 | 0 | 0 | Six role surfaces, server/RLS guards, Admin-managed field visibility, provenance-based lead-detail ownership, and the exhaustive Admin operational coverage audit are complete. |
 | Authentication (FR-3.x) | 5 | 0 | 0 | OTP/password/session flows, dual-line client identity, support-assisted mobile change, and mobile-first registration with optional verified email recovery exist. |
 | Leads (FR-4.x) | 6 | 0 | 0 | Explicit per-line intent, deterministic per-line round-robin assignment/retry, OTP account binding, Admin fallback, ownership, fixed Agent expiry, and Agent/Telecaller workflows are implemented. |
 | Agent registration (FR-5.x) | 4 | 0 | 0 | OTP-verified application, KYC, Admin review, Agent ID, and owned-lead contact access exist. |
@@ -4330,16 +4376,17 @@ business-line segregation remain non-negotiable compatibility constraints.
 | Analytics (FR-16.x) | 3 | 0 | 0 | **Complete** in [PR #156](https://github.com/brollysolutions/client1/pull/156): Linux PostgreSQL/Redis verification passed 30 reporting service/API/RLS tests with one Alembic head; web lint, strict typecheck, 294 unit tests, and the 92-page production build passed. |
 | Profile/account (FR-17.x) | 4 | 0 | 0 | Profile/settings, optional demographic/income/location details, transactions/support, deletion, retention, and Admin removal exist. |
 | Location (FR-18.x) | 1 | 0 | 0 | Explicit nested opt-in stores only the latest two-decimal point for 30 days and erases it on revocation, personalization disable, or account deletion; CS-010 removes FR-18.2 Map/GMB integration from scope. |
-| **Total** | **78** | **1** | **0** | **79 active requirements** |
+| **Total** | **79** | **0** | **0** | **79 active requirements** |
 
 ## Done
 
 The following requirements are complete on the evidence baseline:
 
-- Platform and access: FR-1.1 through FR-1.5; FR-2.1; FR-2.3 through
-  FR-2.9. Evidence includes `app/core/deps.py`, profile models, RLS
-  migrations, role dashboards, Admin field-visibility APIs/UI, server-side
-  response projection, policy audit, and cross-role/cross-line tests.
+- Platform and access: FR-1.1 through FR-1.5 and FR-2.1 through FR-2.9.
+  Evidence includes `app/core/deps.py`, profile models, RLS migrations, role
+  dashboards, minimized Admin operational projections, field-visibility
+  oversight, controlled correction, append-only audits, policy inventories,
+  and cross-role/cross-line tests.
 - Authentication: FR-3.1 through FR-3.5 as amended by CS-001 and CS-005.
   Evidence includes mobile-first OTP/password/session flows, skippable optional
   email capture, verified-email-only recovery, dual profiles, replacement-number
@@ -4455,7 +4502,7 @@ The following requirements are complete on the evidence baseline:
 | Requirement | Status | Implemented slice | Remaining work |
 | --- | --- | --- | --- |
 | FR-1.1 | Complete | Every mapped table and managed-media purpose is inventoried; operational rows require one immutable Loans/Real Estate tag, parent/source copies must match, and only reviewed staged/global/identity exceptions remain nullable or allow `both`. | Preserve the exhaustive ledger and migration/negative tests for every future table, relation, content audience, and media purpose. |
-| FR-2.2 | Partial | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, reports, and a paginated Operational records workspace. The exhaustive contract classifies every mapped table and current platform-scope policy. The original eight view gaps are closed with minimized generated contracts, soft-deleted contact redaction, per-line Client profile context, `private, no-store`, accessible UI, and platform-Admin/negative-role PostgreSQL evidence. A new read-only Field visibility tab safely projects persisted `field_visibility_config` policy metadata without updater or customer data. The approved-property correction is a typed, platform-Admin-only, reason-required staged command that preserves the live listing and approved media until re-review. All seven named operational mutation families have append-only, same-transaction, value-minimized audit coverage: `banners`, `content_blocks`, `loan_applications`, `offers`, `property_deals`, `referral_bonus_config`, and `tasks`. | Add safe read-only Admin visibility for the remaining `financial_service_enquiries` registry gap. Preserve protected secrets/location/media, immutable ledgers, command-bound updates, RLS, and safe audit details. |
+| FR-2.2 | Complete | Admin dashboards cover users, leads, tasks, agents, loans, deals, payouts, content, audit, reports, and a paginated Operational records workspace. The exhaustive contract classifies every mapped table and current platform-scope policy. The original eight view gaps are closed with minimized generated contracts, soft-deleted contact redaction, per-line Client profile context, `private, no-store`, accessible UI, and platform-Admin/negative-role PostgreSQL evidence. Read-only Field visibility and Card & insurance tabs safely project persisted policy metadata and submitted workflow metadata without updater, applicant, contact, form-answer, provider-snapshot, or financial-fact data. The approved-property correction is a typed, platform-Admin-only, reason-required staged command that preserves the live listing and approved media until re-review. All seven named operational mutation families have append-only, same-transaction, value-minimized audit coverage: `banners`, `content_blocks`, `loan_applications`, `offers`, `property_deals`, `referral_bonus_config`, and `tasks`. | Preserve protected secrets/location/media, immutable ledgers, command-bound updates, explicit least-data projections, request-scoped RLS, and safe audit details as new tables and workflows are added. |
 | FR-2.8 | Complete | Lead name and journey notes carry immutable creator descriptors; Agent and Client edits follow explicit lifecycle cutoffs, Admin corrections preserve ownership and require an audited reason, and Telecaller notes remain append-only activities. Service checks, row locks, command-specific RLS, and a database trigger deny cross-owner, cross-role, cross-line, lifecycle, allowed-column, and descriptor-planting bypasses. | Preserve the ownership initializer/backfill, least-data no-store response, audit-value minimization, and direct SQL denial tests when adding future editable lead-detail paths. |
 | FR-4.2 | Complete | Agent-introduced leads are atomically attributed and assigned through a durable, active-only same-line round-robin cursor, queued for bounded retry without capacity, and bound to a same-mobile Client only after OTP-proven registration. | Preserve global Agent ownership, expiry deadlines, generic-link authority boundaries, stable Telecaller order, cursor isolation, and concurrency tests as the workflow evolves. |
 | FR-4.3 | Complete | Registration captures explicit one/both-line intent while retaining both Client profiles; each requested journey is independently bound and assigned through its line's separate round-robin cursor without cross-line leakage. | Preserve explicit intent, per-line uniqueness, deterministic assignment ordering, and account-deletion closure. |
