@@ -8,8 +8,9 @@ Current exact candidate: `9b9e763fa0255114ab2c1d33a66e252dd8c0f8fd`
 Latest merged engineering source: `a6778a6d1affec4561b4b37f126375df9e6bd0b6`
 ([merged PR #289](https://github.com/brollysolutions/client1/pull/289)). Its
 merge-result production Node audit failed on Browserslist `4.28.4`; the bounded
-repair is complete locally on `security/browserslist-4-28-7` (PR pending). This
-later source is not an exact release candidate.
+repair is complete locally on `security/browserslist-4-28-7`
+([PR #290](https://github.com/brollysolutions/client1/pull/290)). This later
+source is not an exact release candidate.
 
 Latest registry-publication source baseline:
 `8c29ad35b5dd901c76dbd0a3304f227b0dca67a0`
@@ -54,8 +55,9 @@ becoming the next exact candidate even though the independent main-to-`prod`
 branch synchronization passed; synchronization is not deployment or release
 approval.
 
-The bounded repair on `security/browserslist-4-28-7` uses the web workspace's
-existing pnpm override mechanism to force exactly `4.28.7`. Its required browser
+The bounded repair in [PR #290](https://github.com/brollysolutions/client1/pull/290)
+uses the web workspace's existing pnpm override mechanism to force exactly
+`4.28.7`. Its required browser
 compatibility data packages update with the patched manifest; Rollup, Next.js,
 and application dependencies do not change. Fresh frozen installation resolves
 one Browserslist version, passes the repository supply-chain policy, and the

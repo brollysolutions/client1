@@ -6,7 +6,8 @@ As of: **2026-09-02**
 
 Evidence baseline: `a6778a6` (`upstream/main`, including merged
 [PR #289](https://github.com/brollysolutions/client1/pull/289)), plus the
-Browserslist audit repair on `security/browserslist-4-28-7` (PR pending).
+Browserslist audit repair on `security/browserslist-4-28-7`
+([PR #290](https://github.com/brollysolutions/client1/pull/290)).
 
 ## Outcome
 
@@ -79,7 +80,7 @@ retain their contemporaneous implementation-branch status and evidence.
 **Completed on `fix/private-registry-evidence` — [PR #289](https://github.com/brollysolutions/client1/pull/289):**
 the private-registry evidence is corrected without package mutation or deployment.
 
-**Completed locally on `security/browserslist-4-28-7` — PR pending:** the
+**Completed locally on `security/browserslist-4-28-7` — [PR #290](https://github.com/brollysolutions/client1/pull/290):** the
 merge-result production web audit is repaired by enforcing patched transitive
 Browserslist `4.28.7` through the existing pnpm override mechanism. Both High
 advisories clear; frozen installation, the supply-chain policy, lint, strict

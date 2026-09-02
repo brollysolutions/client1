@@ -6,10 +6,11 @@ As of: **2026-09-02**
 
 Evidence baseline: `a6778a6` (`upstream/main`, including merged
 [PR #289](https://github.com/brollysolutions/client1/pull/289)), plus the
-Browserslist audit repair on `security/browserslist-4-28-7` (PR pending).
+Browserslist audit repair on `security/browserslist-4-28-7`
+([PR #290](https://github.com/brollysolutions/client1/pull/290)).
 
 **Merge-result Browserslist audit repair is complete locally on
-`security/browserslist-4-28-7` — PR pending:** after PR #289 merged at
+`security/browserslist-4-28-7` — [PR #290](https://github.com/brollysolutions/client1/pull/290):** after PR #289 merged at
 `a6778a6`, [Security run 33613946967](https://github.com/brollysolutions/client1/actions/runs/33613946967)
 failed only its Node production-audit step on two new High Browserslist
 advisories. `GHSA-c83g-rgw3-j3cx` permits unbounded cache growth and
