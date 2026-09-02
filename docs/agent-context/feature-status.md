@@ -4,10 +4,44 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-09-02**
 
-Evidence baseline: `8c31b82` (`upstream/main`, including
-[PR #286](https://github.com/brollysolutions/client1/pull/286)), plus the
-PII-minimized Admin financial-service enquiry oversight delivery on
-`feat/admin-financial-enquiry-visibility` ([PR #287](https://github.com/brollysolutions/client1/pull/287)).
+Evidence baseline: `8c29ad35` (`upstream/main`, including merged
+[PR #287](https://github.com/brollysolutions/client1/pull/287)), plus the blocked
+registry-evidence and nginx-CVE repair on
+`chore/registry-publication-evidence` (PR pending).
+
+**Approved registry publication evidence is blocked after a fail-closed
+attempt:** the merged source baseline is
+`8c29ad35b5dd901c76dbd0a3304f227b0dca67a0`. Pre-publication scanning stopped
+nginx on two High `libexpat` findings before any push; a dedicated nginx wrapper
+now pins fixed `libexpat=2.8.4-r0`, retains the reviewed OpenSSL pins, and passes
+its structural regression plus `nginx -t`. All six rebuilt `linux/amd64` images
+then passed 0 High / 0 Critical / 0 secret scans, were published to
+`ghcr.io/dhanadhara`, resolved and re-pulled by immutable OCI-index digest, and
+passed the same post-publication gate with CycloneDX inventories. The evidence
+is not acceptable private-registry proof: an empty credential directory fetched
+all six manifests anonymously, proving that the organization created the
+packages as public. GitHub cannot change public packages back to private. The
+user has confirmed that future organization package creation is now
+private-only, but a second empty-credential check still fetched all six existing
+tags; an organization owner must delete only those six public packages and
+authorize private republication. The retained reports
+contain no secret finding, and no customer data or production state entered any
+image or report. The supplied 2-vCPU / 4-GB Ubuntu 24.04 `linux/amd64` droplet
+also lacks capacity proof against 9.125 GiB of configured service maxima, with
+ClamAV alone allowed 4 GiB. No `brollysolutions` package, deployment, provider
+transfer, live payout, human/environment approval, or 79-requirement result
+changed. Release remains NO-GO.
+
+Fresh bounded verification for this runtime-only change passes 11 production
+runtime contract tests, 7 feature-tracking tests, 11 migration/RLS tracking
+tests, API Ruff/format, one Alembic head, web lint/typecheck, and 95 files / 610
+web tests. The native web build compiles, typechecks, and generates 94/94 routes
+before the established Windows standalone-symlink `EPERM`. The full repository
+wrapper was attempted twice; its host API aggregate reached a repeated
+error cluster at 25% and was stopped before a terminal traceback rather than
+representing hundreds of identical errors as fresh application evidence. Its
+cause is untriaged and the aggregate is not claimed as passing. No API or web
+application code changed in this slice.
 
 **Admin financial-service enquiry oversight is complete — [PR #287](https://github.com/brollysolutions/client1/pull/287):**
 platform Admin can inspect submitted credit-card and insurance requests in a
