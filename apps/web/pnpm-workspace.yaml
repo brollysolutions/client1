@@ -11,3 +11,6 @@ overrides:
   # postcss <8.5.10 (GHSA-qx2v-qp2m-jg93) pulled in transitively through next.
   # Patch-level bump, safe for the Tailwind v4 postcss pipeline.
   postcss: '>=8.5.10'
+  # browserslist <=4.28.6 is vulnerable to unbounded cache growth and malformed
+  # stats crashes (GHSA-c83g-rgw3-j3cx, GHSA-73wf-gq98-2v4g) through next/Babel.
+  browserslist: '4.28.7'

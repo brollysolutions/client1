@@ -5,6 +5,13 @@ Status: **NO-GO**
 Current exact candidate: `9b9e763fa0255114ab2c1d33a66e252dd8c0f8fd`
 ([merged PR #284](https://github.com/brollysolutions/client1/pull/284))
 
+Latest merged engineering source: `a6778a6d1affec4561b4b37f126375df9e6bd0b6`
+([merged PR #289](https://github.com/brollysolutions/client1/pull/289)). Its
+merge-result production Node audit failed on Browserslist `4.28.4`; the bounded
+repair is complete locally on `security/browserslist-4-28-7`
+([PR #290](https://github.com/brollysolutions/client1/pull/290)). This later
+source is not an exact release candidate.
+
 Latest registry-publication source baseline:
 `8c29ad35b5dd901c76dbd0a3304f227b0dca67a0`
 ([merged PR #287](https://github.com/brollysolutions/client1/pull/287)), with the
@@ -34,6 +41,39 @@ This record reports what was actually exercised. It is not production approval,
 does not check any human-owned box in
 [`pre-deployment-checklist.md`](pre-deployment-checklist.md), and contains no
 production secret, customer data, database dump, or object.
+
+## 2 September merge-result dependency-audit regression and repair
+
+Merged PR #289 produced exact source `a6778a6d1affec4561b4b37f126375df9e6bd0b6`.
+[Security run 33613946967](https://github.com/brollysolutions/client1/actions/runs/33613946967)
+passed the Python audit and secret scan but failed the Node production audit on
+two High advisories newly reported against locked Browserslist `4.28.4`:
+`GHSA-c83g-rgw3-j3cx` / `CVE-2026-73089` (unbounded cache growth) and
+`GHSA-73wf-gq98-2v4g` / `CVE-2026-73088` (malformed-statistics crash). Both are
+fixed in Browserslist `4.28.7`. The failed main run prevents that source from
+becoming the next exact candidate even though the independent main-to-`prod`
+branch synchronization passed; synchronization is not deployment or release
+approval.
+
+The bounded repair in [PR #290](https://github.com/brollysolutions/client1/pull/290)
+uses the web workspace's existing pnpm override mechanism to force exactly
+`4.28.7`. Its required browser
+compatibility data packages update with the patched manifest; Rollup, Next.js,
+and application dependencies do not change. Fresh frozen installation resolves
+one Browserslist version, passes the repository supply-chain policy, and the
+exact production audit reports no known vulnerability. Web lint, strict
+typecheck, 95 files / 610 tests, and 45 workflow tests with one expected Windows
+POSIX skip pass. A strict Linux builder image `f12ae345008a…` compiles,
+typechecks, generates 94/94 routes, completes standalone tracing, and exports.
+The native build reaches 94/94 routes before the established Windows
+standalone-symlink `EPERM`.
+
+No application/API code, contract, schema, authentication/RLS, business-line,
+PII/KYC, money flow, private GHCR package, image publication, deployment,
+production system, or human approval changed. Release remains **NO-GO**. After
+the repair merges and its merge-result CI and Security runs pass, freeze that
+new exact SHA and rerun the complete exact-candidate rehearsal; do not promote
+evidence from `a6778a6` or this unmerged branch.
 
 ## 2 September registry publication — private package evidence verified
 
