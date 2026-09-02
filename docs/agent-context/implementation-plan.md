@@ -2,10 +2,11 @@
 
 Status: **Derived, actively maintained plan**
 
-As of: **2026-09-02**
+As of: **2026-09-03**
 
-Evidence baseline: `75e1031` (`upstream/main`, including merged
-[PR #290](https://github.com/brollysolutions/client1/pull/290)).
+Evidence baseline: `742449a` (`upstream/main`, including merged
+[PR #291](https://github.com/brollysolutions/client1/pull/291)). The frozen
+release candidate remains merged PR #290 SHA `75e1031`.
 
 ## Outcome
 
@@ -75,6 +76,22 @@ rebased and merged PRs: [#246](https://github.com/brollysolutions/client1/pull/2
 [#254](https://github.com/brollysolutions/client1/pull/254). The phase rows below
 retain their contemporaneous implementation-branch status and evidence.
 
+**Complete locally in [PR #292](https://github.com/brollysolutions/client1/pull/292):**
+the provider-neutral,
+fail-closed evidence contract and operator runbook cover a timed production
+database/object recovery drill. The tooling calculates RPO/RTO, requires exact
+database and object reconciliation, rejects sensitive evidence fields, binds
+independently supplied candidate/migration identities and provider jobs, and
+preserves the NO-GO state until a named operator executes the drill against an
+approved off-droplet backup destination. No production access, backup-provider
+selection, deployment, schema/API change, or approval is part of this
+engineering slice. Fresh local evidence passes 18 focused tests, all 63 script
+tests with one expected Windows skip, API Ruff/format over 504 files, one
+Alembic head, web lint/typecheck, and 95 files / 610 web tests. The native build
+reaches 94/94 routes before the known Windows symlink `EPERM`; Docker stopped
+responding before the isolated Linux API and web build obtained terminal
+results, so hosted PR verification remains required.
+
 **Completed in [PR #291](https://github.com/brollysolutions/client1/pull/291):**
 merged PR #290 SHA `75e1031de0e3a7d16246bda294a0bc3b0757e78f` is frozen and the
 complete exact-candidate release rehearsal has terminal evidence. Exact hosted
@@ -99,6 +116,7 @@ application, API, registry package, deployment, or release approval changes.
 
 | Priority | Feature / requirements | Why now | Planning model / effort | Implementation model / effort | Exit criteria |
 | ---: | --- | --- | --- | --- | --- |
+| 0 | Production database/object recovery readiness and evidence gate (release blocker; no requirement expansion) | **Complete locally in [PR #292](https://github.com/brollysolutions/client1/pull/292).** The provider-neutral gate and runbook are implemented and reviewed; 18 focused tests and the 63-test repository script aggregate pass. The last exact-candidate rehearsal proved only bounded synthetic restores, so production backup configuration, an off-droplet destination, achieved RPO/RTO, and cross-store reconciliation remain unproved. | `gpt-5.6-sol` / Extra High (`xhigh`) | `gpt-5.6-sol` / Extra High (`xhigh`) | `scripts/check_recovery_evidence.py` accepts only a closed privacy-minimized JSON record, binds independently supplied candidate/Alembic identities, matching provider-job/artifact IDs, and durable protection/reconciliation evidence IDs, emits a SHA-256 only for passing records, calculates RPO/RTO/component skew, and returns nonzero for mismatched database schema/grant/RLS/row or object summaries, missing object references, placeholders, duplicate/unknown/sensitive fields, or any unproved encryption/isolation/external-side-effect/retention/off-host/access control. [`../../infra/recovery/README.md`](../../infra/recovery/README.md) documents separate identities, coordinated recovery points, required cluster roles, isolated restore, full-content/object-type and DB-reference reconciliation, restricted evidence retention, and safe cleanup. Tests cover positive and negative paths and the checked-in example remains NO-GO. The release gate itself stays open until a named operator supplies approved targets/destination, executes the real production drill, and links durable restricted evidence. |
 | 0 | Exact-candidate rehearsal after private registry publication and Browserslist repair (release blocker; no requirement expansion) | **Rehearsed — NO-GO — [PR #291](https://github.com/brollysolutions/client1/pull/291)** at exact merged PR #290 candidate `75e1031de0e3a7d16246bda294a0bc3b0757e78f`. [CI 33617891197](https://github.com/brollysolutions/client1/actions/runs/33617891197), [Security 33617891196](https://github.com/brollysolutions/client1/actions/runs/33617891196), and [sync 33617891389](https://github.com/brollysolutions/client1/actions/runs/33617891389) are green at the exact SHA; sync is branch movement, not deployment. Every locally obtainable gate has a terminal result and invalid harness/setup attempts are identified rather than promoted. | `gpt-5.6-sol` / Extra High (`xhigh`) | `gpt-5.6-sol` / Extra High (`xhigh`) | [`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md) records 1,950 hosted API tests, 610 web tests, the 94-route Linux build, 4/4 standalone browser journeys, contract drift, frozen dependency/full-history secret checks, exact API/web builds, authenticated immutable re-pulls of six private runtime packages, eight zero-High/Critical/secret scans with SBOMs, exact web/API/media probes, and matching cold synthetic database/object restores. Release remains blocked by representative capacity evidence for the 4-GB target, approved-provider/live-payout evidence, production recovery/edge/secrets/monitoring proof, and all nine open qualified decisions. Next priority is operator-owned measured capacity or an approved larger/tuned topology, then completion of the canonical production and human evidence register; engineering should implement only a newly evidenced defect or approved hardening requirement. |
 | 0 | Approved registry publication, immutable re-pull, rescan, and manifest evidence (release blocker; no requirement expansion) | **Private runtime publication verified after merged [PR #288](https://github.com/brollysolutions/client1/pull/288); corrected in [PR #289](https://github.com/brollysolutions/client1/pull/289).** The publication source is merged PR #287 commit `8c29ad35b5dd901c76dbd0a3304f227b0dca67a0` plus PR #288's nginx repair. The initial fail-closed scan stopped nginx on `CVE-2026-66046` and `CVE-2026-76641`; the merged wrapper pins fixed `libexpat=2.8.4-r0`, retains exact OpenSSL pins, and passes `nginx -t`. All six `linux/amd64` runtime images passed 0 High / 0 Critical / 0 secret scans, were published to `ghcr.io/dhanadhara`, resolved and re-pulled by immutable OCI-index digest, passed the post-publication gate, and have CycloneDX inventories. Fresh authenticated pulls return the same six digests. The earlier empty-Docker-config test did not isolate all local Docker credential state and was invalid as an anonymous probe. Corrected raw GHCR token requests without an `Authorization` header return HTTP 401 for all six pull scopes and HTTP 200 for a known-public control, proving anonymous denial. No deletion or republication is needed. No `brollysolutions` package, deployment, production system, provider transfer, live payout, or human approval changed. The 2-vCPU / 4-GB Ubuntu 24.04 `linux/amd64` target remains an independent capacity blocker because configured service maxima total 9.125 GiB and ClamAV alone is allowed 4 GiB. | `gpt-5.6-sol` / Extra High (`xhigh`) | `gpt-5.6-sol` / Extra High (`xhigh`) | The exact-candidate rehearsal above completes this row's registry-dependent technical rerun and preserves all six private digests, scans, inventories, and machine evidence. Separately validate measured peak/steady memory and OS reserve on the target host or approve a larger/tuned topology; then obtain the still-open production and qualified-human evidence without inferring approval from the technical pass. |
 | 0 | Exact-candidate frozen-release rehearsal after hosted browser recovery (release blocker; no requirement expansion) | **Rehearsed — NO-GO — [PR #285](https://github.com/brollysolutions/client1/pull/285)** on `chore/exact-candidate-rehearsal-2026-09-01` at exact merged PR #284 candidate `9b9e763fa0255114ab2c1d33a66e252dd8c0f8fd`. Merge-result [CI 33501907655](https://github.com/brollysolutions/client1/actions/runs/33501907655), [Security 33501907605](https://github.com/brollysolutions/client1/actions/runs/33501907605), and [sync 33501907627](https://github.com/brollysolutions/client1/actions/runs/33501907627) are green. Every locally obtainable gate has a terminal result; missing registry, production, provider, and human evidence is not waived. | `gpt-5.6-sol` / Extra High (`xhigh`) | `gpt-5.6-sol` / Extra High (`xhigh`) | [`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md) records 1,948 hosted API tests, 608 web tests, the 94-route exact Linux build, 4/4 standalone browser journeys, contract drift, frozen dependency/full-history secret checks, eight exact local images at 0 High/Critical with SBOMs, exact API/web/media probes, and matching timed synthetic database/object restores. Docker's recorded HTTP 500 recovered without losing completed evidence. Release remains blocked by absent approved registry publish/re-pull, external-provider/live-payout evidence, production recovery/edge/secrets/monitoring proof, and all nine open qualified sign-offs. No production secret/data, deployment, publication, live payout, risk acceptance, or inferred approval occurred. Next priority is operator-owned registry/production evidence and qualified sign-off; engineering should only implement a newly evidenced defect or approved hardening requirement. |
@@ -1346,24 +1364,22 @@ The PR #148 evidence below is historical. Migration `e4b5c6d7e8f9` and the
 
 ## Delivery sequence
 
-The API and isolated media-runtime High/Critical remediation is complete locally
-on `security/container-cve-remediation`; after it is reviewed and merged, the
-next active item is a **new exact-candidate frozen-release rehearsal** in
-[`pre-deployment-checklist.md`](pre-deployment-checklist.md). Re-run full local
-CI, secret/dependency/container scans, the production build and artifact browser
-gate, plus fresh security-header/CORS, authentication, upload, webhook, backup,
-and restore evidence against the merged remediation commit. Publish, re-pull,
-and scan the final registry references before relying on local image identities.
-Unavailable paid GitHub execution remains explicitly unverified rather than
-waived. After that evidence is assembled, obtain human sign-off for trademark,
-legal entity, Terms, privacy/data inventory, processors, DNS/TLS, secrets,
-monitoring, and incident ownership. The original FR-2.2 correction plus seven
-audit gaps are implemented; read-only Operational records projections now also
-close the newer `field_visibility_config` and `financial_service_enquiries`
-registry gaps. No consent banner is appropriate while the
-product uses only essential authentication storage; Accept/Reject controls are
-required before enabling analytics, advertising, replay, attribution, chat, or
-other non-essential storage.
+FR-2.2 Admin visibility, private runtime publication, and the subsequent exact
+candidate rehearsal are complete through merged PR #291; release remains
+NO-GO. The current engineering item prepares the production database/object
+recovery gate without substituting synthetic evidence for an operator drill.
+Per the user's 2 September sequencing decision, the remaining order is:
+production recovery execution and reconciliation; production DNS/TLS, secrets,
+monitoring, and delivered-alert evidence; all nine qualified sign-off rows;
+approved-provider transfer and bounded live-payout validation; then a final
+exact-candidate verification and named GO/NO-GO. Provider work is deferred, not
+waived, and must finish before the final decision. Any defect discovered by an
+evidence step gets its own repair PR and invalidated downstream evidence is
+rerun. The 4-GB target capacity/topology decision remains an independent
+blocker. No consent banner is appropriate while the product uses only essential
+authentication storage; Accept/Reject controls are required before enabling
+analytics, advertising, replay, attribution, chat, or other non-essential
+storage.
 Provenance-based edit ownership (FR-2.8) is delivered in
 [PR #169](https://github.com/brollysolutions/client1/pull/169).
 
