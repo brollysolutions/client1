@@ -1,33 +1,36 @@
-# Frozen-release rehearsals — 30 August–1 September 2026
+# Frozen-release rehearsals — 30 August–2 September 2026
 
 Status: **NO-GO**
 
-Current exact candidate: `9b9e763fa0255114ab2c1d33a66e252dd8c0f8fd`
-([merged PR #284](https://github.com/brollysolutions/client1/pull/284))
+Current exact candidate: `75e1031de0e3a7d16246bda294a0bc3b0757e78f`
+([merged PR #290](https://github.com/brollysolutions/client1/pull/290))
 
-Latest merged engineering source: `a6778a6d1affec4561b4b37f126375df9e6bd0b6`
-([merged PR #289](https://github.com/brollysolutions/client1/pull/289)). Its
-merge-result production Node audit failed on Browserslist `4.28.4`; the bounded
-repair is complete locally on `security/browserslist-4-28-7`
-([PR #290](https://github.com/brollysolutions/client1/pull/290)). This later
-source is not an exact release candidate.
+Latest merged engineering source: `75e1031de0e3a7d16246bda294a0bc3b0757e78f`
+([merged PR #290](https://github.com/brollysolutions/client1/pull/290)). It is the
+frozen candidate above.
 
 Latest registry-publication source baseline:
 `8c29ad35b5dd901c76dbd0a3304f227b0dca67a0`
 ([merged PR #287](https://github.com/brollysolutions/client1/pull/287)), with the
 nginx-CVE repair merged in
 [PR #288](https://github.com/brollysolutions/client1/pull/288) at
-`b02ac25ee9ffab215f500695606f62e72a608e8a`. This later source has not yet been
-frozen and rehearsed as the next exact release candidate.
+`b02ac25ee9ffab215f500695606f62e72a608e8a`. The six private runtime-package
+digests below remain byte-identical inputs to the current candidate; only web
+dependency and release-document files changed between `b02ac25` and `75e1031`.
 
-Previous exact candidate: `eefc61d06708635f79055fe0187ede4fed3185cf`
+Previous exact candidate: `9b9e763fa0255114ab2c1d33a66e252dd8c0f8fd`
+([merged PR #284](https://github.com/brollysolutions/client1/pull/284))
+
+Earlier exact candidate: `eefc61d06708635f79055fe0187ede4fed3185cf`
 ([merged PR #277](https://github.com/brollysolutions/client1/pull/277))
 
 Initial candidate: `3cc6bc07d98554b32924423e2f535b54fb21bb72`
 ([merged PR #267](https://github.com/brollysolutions/client1/pull/267))
 
-Current rehearsal branch: `chore/exact-candidate-rehearsal-2026-09-01`.
+Current rehearsal branch: `chore/exact-candidate-rehearsal-2026-09-02`.
 The current rerun is delivered in
+[PR #291](https://github.com/brollysolutions/client1/pull/291). The preceding
+rerun was delivered in
 [PR #285](https://github.com/brollysolutions/client1/pull/285).
 The post-CVE rerun was delivered in
 [PR #278](https://github.com/brollysolutions/client1/pull/278).
@@ -41,6 +44,85 @@ This record reports what was actually exercised. It is not production approval,
 does not check any human-owned box in
 [`pre-deployment-checklist.md`](pre-deployment-checklist.md), and contains no
 production secret, customer data, database dump, or object.
+
+## 2 September exact-candidate rerun after registry and dependency repairs
+
+This is the current technical decision record. It freezes merged PR #290 at
+`75e1031de0e3a7d16246bda294a0bc3b0757e78f`; no pass from an earlier candidate
+is promoted into this ledger. All local identities, credentials, rows, objects,
+origins, and authentication probes were synthetic. No production configuration,
+secret, or data was accessed, and no package/image was published, visibility was
+changed, deployment occurred, external-provider transfer or live payout ran, or
+human-owned gate was approved.
+
+The exact candidate remains **NO-GO**:
+
+1. Exact-SHA GitHub CI and Security are green. Main-to-`prod` synchronization is
+   also green, but it updates a branch and is not deployment evidence.
+2. Fresh authenticated pulls resolve the six private runtime packages to their
+   already-published immutable digests. Fresh Trivy 0.74.0 scans report **0 High
+   / 0 Critical / 0 secrets** for those six packages and for the two exact
+   first-party images built from `75e1031`.
+3. The hosted Gitleaks step again logged zero scanned commits. A separate
+   Gitleaks 8.30.1 run scanned all 539 local-history commits with zero findings,
+   so the hosted badge is not misrepresented as full-history evidence.
+4. Corrected production-image runtime probes, a real isolated media transcode,
+   a cold synthetic database restore, and a destroyed-source object restore all
+   match their expected source state. These local exercises do not prove
+   production scheduling, encryption, retention, off-account copies, achieved
+   RPO/RTO, cross-store reconciliation, or operator access.
+5. The supplied 2-vCPU / 4-GB / 80-GB Ubuntu 24.04 `linux/amd64` droplet still
+   has no representative load or reserve evidence against 9.125 GiB of
+   configured service maxima. Real DNS/TLS, secret-manager, backup, monitoring,
+   incident, legal/privacy/trademark/processor evidence and all nine qualified
+   sign-offs remain open.
+
+### 2 September exact-candidate verification ledger
+
+| Gate | Result | Exact-candidate evidence |
+| --- | --- | --- |
+| Candidate identity | Pass | `upstream/main`, merged PR #290, the task base, and all hosted runs resolve to `75e1031de0e3a7d16246bda294a0bc3b0757e78f`. `git diff b02ac25..75e1031` contains only the web lock/workspace dependency repair and release documents, so the six immutable private runtime-package inputs are unchanged. |
+| Hosted workflows | Pass with boundary | [CI 33617891197](https://github.com/brollysolutions/client1/actions/runs/33617891197) passes at the exact SHA, including 1,950 API tests in 19:10, 95 files / 610 web tests, the 94/94-route Linux production build, four zero-retry standalone browser journeys in 24.6 seconds, and contract drift. [Security 33617891196](https://github.com/brollysolutions/client1/actions/runs/33617891196) passes the frozen Python and production Node audits plus its limited-range secret step. [Sync 33617891389](https://github.com/brollysolutions/client1/actions/runs/33617891389) passes branch synchronization only. |
+| Structural gates | Pass with one platform skip | The 45-test repository script suite completes with one expected Windows POSIX-resource skip. All 504 API files pass Ruff and format checks; Alembic reports the single head `d9f1a3b5c7e0`. |
+| API aggregate and contracts | Pass hosted | The exact Linux run passes 1,950/1,950 tests without retries and committed OpenAPI/TypeScript outputs pass contract drift. The local rehearsal does not substitute a second aggregate for this exact hosted result. |
+| Web unit/build/browser | Pass | Local lint, strict typecheck, and all 95 files / 610 tests pass. The exact local production build exports runnable OCI identity `58c51df66a53…`; the independent exact hosted build compiles, typechecks, generates 94/94 routes, and passes all four zero-retry browser journeys. |
+| Secrets and dependencies | Pass with hosted-range note | Frozen `pip-audit==2.10.1` inventories 84 production Python packages with zero known vulnerabilities; production `pnpm audit` is clean. Gitleaks 8.30.1 scans 539 full-history commits with zero findings; its empty JSON report has SHA-256 `37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570`. The API image secret report also has zero findings. Hosted Gitleaks is not counted as full-history evidence because it reports zero scanned commits. |
+| Image vulnerabilities and SBOMs | Pass | Trivy 0.74.0 database version 2, updated `2026-09-02T13:02:59Z` and downloaded `2026-09-02T15:52:37Z`, reports 0 High / 0 Critical / 0 secret findings for every image below. CycloneDX inventories and machine reports remain outside Git at `D:\release-evidence-75e1031`. |
+| Private registry | Pass for the six approved runtime packages | Authenticated pulls of all six exact `ghcr.io/dhanadhara` digests succeed and report up-to-date immutable content. The earlier raw no-authorization token checks and publication records remain valid because the digests are unchanged. API and web remain local exact-candidate identities; publishing or deploying them was not authorized. |
+| Web headers/runtime | Pass locally | The exact image runs as `nextjs` with a read-only root, all capabilities dropped, no-new-privileges, 1 GiB memory and 256 PIDs. `/` returns 200 with CSP, one-year HSTS, `nosniff`, `DENY`, strict referrer policy, Permissions Policy and COOP, and no `Set-Cookie`. |
+| API health/CORS/auth denial | Pass locally after setup corrections | The exact image runs as `app` with the same read-only/capability/no-new-privileges/1-GiB/256-PID boundary. Through exact PgBouncer to migrated PostgreSQL and exact Redis, health reports both checks `ok`; the configured synthetic origin receives the five-method closed CORS policy, an arbitrary origin receives 400 without ACAO, TRACE receives 405, and malformed Bearer plus a validly encoded unknown login receive 401. Tested mobile/password/token values do not appear in logs. An initial Windows-shell `ALLOWED_ORIGINS` quoting failure and one malformed curl body returning 422 were invalid harness inputs and are not counted. |
+| Auth/upload/webhook behavior | Pass in aggregate; external block | The exact 1,950-test aggregate retains authentication/session/role/RLS/business-line, bounded upload, webhook signature/idempotency, payout-state, and privacy coverage. No approved-provider transfer or live payout ran. |
+| Isolated media runtime | Pass locally | The private digest is healthy as UID/GID 10001 with a read-only root, 64-MiB noexec tmpfs, all capabilities dropped, no-new-privileges, one CPU, 768 MiB, 64 PIDs and an internal-only network. A real three-second 640x360 H.264/AAC input returns HTTP 200, protocol 1 and 66,592 canonical bytes in 2.862 seconds; FFprobe confirms H.264/AAC, 640x360, and 3.018005 seconds. Health is `ok` before and after, and no secret/data-service environment name is present. |
+| Synthetic database restore | Pass locally after runbook correction | A custom-format `pg_dump` was streamed directly into `pg_restore` on a freshly recreated target volume in 10.614 seconds. Source and target match at head `d9f1a3b5c7e0`, 56 public tables including the synthetic probe, three probe rows with digest `d80f79b4ee1548058ad33ca2d141a664`, 111 RLS policies, 54 RLS-enabled relations, and the non-login/non-superuser `api_user` role. The first target attempt failed 114 grants because cluster roles are not in a database dump; that target volume was destroyed, `api_user` was provisioned as the runbook prerequisite, and the clean rerun passed. The repository safety hook correctly prevented persisting even a synthetic database archive to disk, so no durable archive hash is claimed. |
+| Synthetic object restore | Pass locally | A 216,576-byte tar archive (`c9d971e545a59638e2ba569ee657007e29a6a076be448e9f08f731ade0441e34`) of six public synthetic artwork/icon objects was created in 1.456 seconds inside a task-owned backup volume. After the source volume was destroyed, restore to a separate target completed in 1.490 seconds and matched manifest `4302d3aeb0233033ec66a15651d18cf369fa6ffb24b7aecaab8ee9c63f4c4d66`. |
+| Human/environment gates | **Blocked** | All nine canonical register rows remain `Open`; no accountable name, approval, date, durable production evidence, or risk acceptance was supplied. The target host also lacks representative capacity evidence. |
+
+### 2 September exact image and SBOM evidence
+
+First-party identities were built with `--pull` from the exact candidate. The
+six runtime-package rows are authenticated re-pulls of the immutable private
+OCI-index digests already approved for publication. Component counts exclude the
+CycloneDX metadata component.
+
+| Artifact | Exact local OCI/image ID or private index digest | Size (bytes) | High / critical / secrets | Components | Scan SHA-256 | SBOM SHA-256 |
+| --- | --- | ---: | ---: | ---: | --- | --- |
+| API | `06b0f645a92382b85a7822180c73ff33c69bdac73733dea772735b8bfaedcf56` | 87,409,652 | 0 / 0 / 0 | 123 | `5d9eaf937d278af79a34ddd9ae1807e7b3983360d31fb943584508e393bd8332` | `3bb645876d79f8eae79e183504fa58b56c308943a4e0f36f4b12e208c0d03343` |
+| Web | `58c51df66a53195204e149876a2d557aca4888c384c3bf682b3fa3ea5ed2ddf2` | 135,245,601 | 0 / 0 / 0 | 46 | `956f369785224b79df23d67b0069e5105b8742b03587f3cc6d97055cf76fd157` | `95e0e6feab0500e97c505cadac262c187e3f2d40c6ac7418b64e34e675545b28` |
+| PostgreSQL | `93ae1f58d3ada03b2b44cd33c6b99ee55032956e3ce1971a473268a2d60694e6` | 122,556,449 | 0 / 0 / 0 | 54 | `942bb75b5396c2f5b15f68f41e7ff5dda18e4885958b411b6551481fcc3c9be3` | `227f9c79644dd489cc27250dbd5afac83dd0cad69c1d894e96cf9ffcaacf5217` |
+| Redis | `3c3a87a3c6edf90fc5ab9288fc4f522fcd9eaff6a3a8de5a18ae2a3137f92bcf` | 41,513,154 | 0 / 0 / 0 | 23 | `e255d19612750ec4fa2a027c44a18f260177ca9e957ef5a424ba512ed08c3392` | `e59e2183e80bdc7f4a4e23142c32b796b0e831702aa2ac24c84b52429bfa3342` |
+| ClamAV | `9dfd42155b32c8f255d3a522261c0bd9247c5e34ff74d668a77464852e817bf4` | 155,180,423 | 0 / 0 / 0 | 42 | `ace0fe4d1c6ffd4e068680c770d0ac4c7f0e5ac6ae0d6d9d7e03c447becc2ee9` | `37d9c6bc51d0dd470ecbbb8d603c34127fc750b6dead0fccb2e7025633f14e03` |
+| PgBouncer | `40e7044a95974e1bce86e154dbace58a18d0ae86cdcfe9eecbfc59c7e9b66879` | 11,561,706 | 0 / 0 / 0 | 26 | `2fbd2278bf30efc9017687e95d6fbdfa1c9af75c5d1591524a5fcd9ec74b2a14` | `801bd1eec2e90a3851858d8c93aac20acbd3ae16f8585e0cafe113f27f271571` |
+| nginx | `243777dab5fe5094e6d7b9d55211a13847b3cb116e7f726cc8e70094213e482b` | 28,743,109 | 0 / 0 / 0 | 72 | `71450bb178a643a5b3719b6736e41c769126bdc0d755ddfae3a0a199c4dbf719` | `58819e1546729ec1a299859697a6f527d52234699e2235d5e3f880fc52fb4549` |
+| Media runtime | `6eba9751614636f7451764a30140d8c12e7a905a562aa957f23a55d881ea8c6b` | 71,076,995 | 0 / 0 / 0 | 132 | `54092fd2fd9cbdb46fd1b0a57d49353972174dd74f31bb2fb9161c2c80ed7883` | `de87d9429458044388543dd54d824c3888541ae1c2a180cc9de6e595de8a6cce` |
+
+The API secret-only report has SHA-256
+`3c7694880821bfd2b4754d7af20ae1a709f000d970933a0452e1c6ab8b536194`.
+All task-created containers, networks, and synthetic source/target/archive
+volumes named `client1-rehearsal-75e1031-*` were removed after terminal evidence
+was captured. The destroyed synthetic volumes are not recoverable. The exact API
+and web images, authenticated runtime images, generated media samples, scan/SBOM
+reports and scanner cache remain outside Git at `D:\release-evidence-75e1031`.
+No global Docker prune ran.
 
 ## 2 September merge-result dependency-audit regression and repair
 
@@ -70,10 +152,10 @@ standalone-symlink `EPERM`.
 
 No application/API code, contract, schema, authentication/RLS, business-line,
 PII/KYC, money flow, private GHCR package, image publication, deployment,
-production system, or human approval changed. Release remains **NO-GO**. After
-the repair merges and its merge-result CI and Security runs pass, freeze that
-new exact SHA and rerun the complete exact-candidate rehearsal; do not promote
-evidence from `a6778a6` or this unmerged branch.
+production system, or human approval changed. Release remains **NO-GO**. PR
+#290 subsequently merged and its exact merge-result CI and Security runs pass;
+the current exact-candidate rehearsal above supersedes this section's pending
+rerun instruction without promoting evidence from `a6778a6`.
 
 ## 2 September registry publication — private package evidence verified
 
@@ -162,7 +244,7 @@ remains **NO-GO**.
 
 ## Exact-candidate rerun after hosted browser recovery
 
-This is the current technical decision record. It freezes merged PR #284 at
+This is a historical technical decision record. It freezes merged PR #284 at
 `9b9e763fa0255114ab2c1d33a66e252dd8c0f8fd`; no evidence from an earlier
 candidate is promoted into this ledger. All local identities, credentials,
 rows, objects, origins, and authentication probes were synthetic. No production
@@ -242,7 +324,7 @@ retained. No global Docker prune ran.
 
 ## Post-CVE exact-candidate rerun after merged PR #277
 
-This is the current technical decision record. It freezes merged PR #277
+This is a historical technical decision record. It freezes merged PR #277
 exactly at `eefc61d06708635f79055fe0187ede4fed3185cf` and supersedes the prior
 candidate's local image, dependency, API, browser, runtime, and recovery result
 rows. Earlier defect history remains historical evidence. Every identity,
