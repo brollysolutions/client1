@@ -4,34 +4,42 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-09-02**
 
-Evidence baseline: `8c29ad35` (`upstream/main`, including merged
-[PR #287](https://github.com/brollysolutions/client1/pull/287)), plus the blocked
-registry-evidence and nginx-CVE repair on
-`chore/registry-publication-evidence`
-([PR #288](https://github.com/brollysolutions/client1/pull/288)).
+Evidence baseline: `b02ac25` (`upstream/main`, including merged
+[PR #288](https://github.com/brollysolutions/client1/pull/288)), plus the
+private-registry evidence correction on `fix/private-registry-evidence`
+(corrective PR pending).
 
-**Approved registry publication evidence is blocked after a fail-closed
-attempt:** the merged source baseline is
+**Approved private registry publication evidence is complete for the six runtime
+packages after correcting an invalid anonymous-access test:** the publication
+source baseline is
 `8c29ad35b5dd901c76dbd0a3304f227b0dca67a0`. Pre-publication scanning stopped
 nginx on two High `libexpat` findings before any push; a dedicated nginx wrapper
 now pins fixed `libexpat=2.8.4-r0`, retains the reviewed OpenSSL pins, and passes
 its structural regression plus `nginx -t`. All six rebuilt `linux/amd64` images
 then passed 0 High / 0 Critical / 0 secret scans, were published to
 `ghcr.io/dhanadhara`, resolved and re-pulled by immutable OCI-index digest, and
-passed the same post-publication gate with CycloneDX inventories. The evidence
-is not acceptable private-registry proof: an empty credential directory fetched
-all six manifests anonymously, proving that the organization created the
-packages as public. GitHub cannot change public packages back to private. The
-user has confirmed that future organization package creation is now
-private-only, but a second empty-credential check still fetched all six existing
-tags; an organization owner must delete only those six public packages and
-authorize private republication. The retained reports
-contain no secret finding, and no customer data or production state entered any
-image or report. The supplied 2-vCPU / 4-GB Ubuntu 24.04 `linux/amd64` droplet
-also lacks capacity proof against 9.125 GiB of configured service maxima, with
-ClamAV alone allowed 4 GiB. No `brollysolutions` package, deployment, provider
-transfer, live payout, human/environment approval, or 79-requirement result
-changed. Release remains NO-GO.
+passed the same post-publication gate with CycloneDX inventories. Fresh
+authenticated pulls return the six recorded immutable digests. Raw GHCR token
+requests with no `Authorization` header return HTTP 401 for every corresponding
+pull scope, while the same probe returns HTTP 200 for a known-public control.
+The packages therefore exist and deny anonymous pulls; no deletion or
+republication is required. The earlier empty-Docker-config probe did not isolate
+all local Docker credential state and cannot support a public-visibility
+claim. The retained reports contain no secret finding, and no customer data or
+production state entered any image or report. The supplied 2-vCPU / 4-GB Ubuntu
+24.04 `linux/amd64` droplet still lacks capacity proof against 9.125 GiB of
+configured service maxima, with ClamAV alone allowed 4 GiB. A new exact candidate
+including merged PRs #286-#288 must still be frozen and rehearsed. No
+`brollysolutions` package, deployment, provider transfer, live payout,
+human/environment approval, or 79-requirement result changed. Release remains
+NO-GO.
+
+Correction evidence includes six raw HTTP 401 denials and an HTTP 200
+known-public control, six authenticated pulls resolving the recorded immutable
+digests, retained report hashes and zero High/Critical/secret findings matching
+the publication ledger, matching CycloneDX component counts, and 45 repository
+script tests passing with one expected Windows POSIX-resource skip. No package,
+application code, generated contract, schema, or authorization behavior changed.
 
 Fresh bounded verification for this runtime-only change passes 11 production
 runtime contract tests, 7 feature-tracking tests, 11 migration/RLS tracking
@@ -76,9 +84,11 @@ remaining change-owned issue. Together with PR #286, this closes the final
 FR-2.2 registry visibility gap: all 79 active requirements are Complete, for
 100% evidence-based implementation coverage. Launch readiness remains
 separately gated by external operator evidence and qualified sign-off.
-The next planned PR is approved registry publication, immutable re-pull, rescan,
-and manifest evidence; it cannot proceed without a qualified operator and the
-approved external registry.
+The six private runtime packages now have approved publication, immutable
+re-pull, rescan, inventory, digest-render, and corrected anonymous-denial
+evidence. The next engineering step is to freeze and rehearse a new exact
+candidate containing merged PRs #286-#288; target-host capacity and the external
+provider, production-environment, and qualified-human gates remain separate.
 
 **Admin field-visibility oversight is complete — [PR #286](https://github.com/brollysolutions/client1/pull/286):**
 platform Admin can inspect persisted `field_visibility_config` overrides in a
