@@ -8,8 +8,9 @@ Current exact candidate: `9b9e763fa0255114ab2c1d33a66e252dd8c0f8fd`
 Latest registry-attempt source baseline:
 `8c29ad35b5dd901c76dbd0a3304f227b0dca67a0`
 ([merged PR #287](https://github.com/brollysolutions/client1/pull/287)); the
-nginx-CVE repair on `chore/registry-publication-evidence` is not yet a merged
-exact release candidate.
+nginx-CVE repair on `chore/registry-publication-evidence`
+([PR #288](https://github.com/brollysolutions/client1/pull/288)) is not yet a
+merged exact release candidate.
 
 Previous exact candidate: `eefc61d06708635f79055fe0187ede4fed3185cf`
 ([merged PR #277](https://github.com/brollysolutions/client1/pull/277))

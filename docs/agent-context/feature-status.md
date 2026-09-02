@@ -7,7 +7,8 @@ As of: **2026-09-02**
 Evidence baseline: `8c29ad35` (`upstream/main`, including merged
 [PR #287](https://github.com/brollysolutions/client1/pull/287)), plus the blocked
 registry-evidence and nginx-CVE repair on
-`chore/registry-publication-evidence` (PR pending).
+`chore/registry-publication-evidence`
+([PR #288](https://github.com/brollysolutions/client1/pull/288)).
 
 **Approved registry publication evidence is blocked after a fail-closed
 attempt:** the merged source baseline is
