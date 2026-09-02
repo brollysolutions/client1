@@ -18,6 +18,8 @@ from app.schemas.admin_operations import (
     AdminAuthEventRead,
     AdminEnquiryListResponse,
     AdminEnquiryRead,
+    AdminFieldVisibilityConfigListResponse,
+    AdminFieldVisibilityConfigRead,
     AdminLeadActivityListResponse,
     AdminLeadActivityRead,
     AdminLoanTransactionHistoryListResponse,
@@ -68,6 +70,26 @@ async def list_enquiries(
     rows, total = await admin_operations.list_enquiries(db, limit=limit, offset=offset)
     return AdminEnquiryListResponse(
         enquiries=[AdminEnquiryRead.model_validate(row, from_attributes=True) for row in rows],
+        total=total,
+    )
+
+
+@router.get(
+    "/field-visibility-config",
+    response_model=AdminFieldVisibilityConfigListResponse,
+)
+async def list_field_visibility_configs(
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+) -> AdminFieldVisibilityConfigListResponse:
+    rows, total = await admin_operations.list_field_visibility_configs(
+        db, limit=limit, offset=offset
+    )
+    return AdminFieldVisibilityConfigListResponse(
+        configs=[
+            AdminFieldVisibilityConfigRead.model_validate(row, from_attributes=True) for row in rows
+        ],
         total=total,
     )
 

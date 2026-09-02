@@ -131,13 +131,17 @@ New enums: `field_target_role` (`agent`/`telecaller`/`employee`), `media_type` (
 
 > The historical **masking** toggle was one row of this matrix (`target_role=telecaller`, `field_key=mobile`). With telephony removed, masking is moot (Telecaller doc §1.1) — the matrix still governs other fields.
 
-> **No Admin surface as of 2026-08-28.** The `/dashboard/access-control` page and
-> the `GET`/`PUT /api/v1/admin/field-visibility` routes were withdrawn at the
-> user's request. The table, service, migration, audit action, and every runtime
-> consumer (`agent`, `telecaller`, `employee`, contact share-links) are unchanged
-> and still project through this policy — it is simply frozen at the server-owned
-> defaults until a write surface is reinstated. Tracked as an explicit gap in
-> `app/core/admin_operational_coverage.py`.
+> **No Admin configuration surface as of 2026-09-02.** The
+> `/dashboard/access-control` page and the `GET`/`PUT
+> `/api/v1/admin/field-visibility` routes remain withdrawn at the user's request.
+> Platform Admin now has read-only operational oversight of persisted override
+> metadata through `/dashboard/operations` and `GET
+> /api/v1/admin/operations/field-visibility-config`; the projection omits updater
+> identity and exposes no policy mutation. The table, service, migration, audit
+> action, and every runtime consumer (`agent`, `telecaller`, `employee`, contact
+> share-links) are unchanged, so policy remains frozen at server-owned defaults
+> except for any persisted historical overrides. The remaining write-surface gap
+> stays explicit in `app/core/admin_operational_coverage.py`.
 
 ### 5.5 `media_assets` — separate galleries (FR-13.1)
 
