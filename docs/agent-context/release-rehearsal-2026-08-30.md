@@ -5,12 +5,13 @@ Status: **NO-GO**
 Current exact candidate: `9b9e763fa0255114ab2c1d33a66e252dd8c0f8fd`
 ([merged PR #284](https://github.com/brollysolutions/client1/pull/284))
 
-Latest registry-attempt source baseline:
+Latest registry-publication source baseline:
 `8c29ad35b5dd901c76dbd0a3304f227b0dca67a0`
-([merged PR #287](https://github.com/brollysolutions/client1/pull/287)); the
-nginx-CVE repair on `chore/registry-publication-evidence`
-([PR #288](https://github.com/brollysolutions/client1/pull/288)) is not yet a
-merged exact release candidate.
+([merged PR #287](https://github.com/brollysolutions/client1/pull/287)), with the
+nginx-CVE repair merged in
+[PR #288](https://github.com/brollysolutions/client1/pull/288) at
+`b02ac25ee9ffab215f500695606f62e72a608e8a`. This later source has not yet been
+frozen and rehearsed as the next exact release candidate.
 
 Previous exact candidate: `eefc61d06708635f79055fe0187ede4fed3185cf`
 ([merged PR #277](https://github.com/brollysolutions/client1/pull/277))
@@ -34,7 +35,7 @@ does not check any human-owned box in
 [`pre-deployment-checklist.md`](pre-deployment-checklist.md), and contains no
 production secret, customer data, database dump, or object.
 
-## 2 September registry publication attempt — blocked
+## 2 September registry publication — private package evidence verified
 
 The user approved private publication of the six reviewed runtime images to the
 new company-controlled `ghcr.io/dhanadhara` namespace and reported a successful
@@ -68,18 +69,35 @@ component. Machine reports remain outside Git at
 | nginx | `243777dab5fe5094e6d7b9d55211a13847b3cb116e7f726cc8e70094213e482b` | 0 / 0 / 0 | 72 | `3ae6dd4510eab876dce60a54b039f28f5d76c2df26b96ffe0cbe8ac00fbc9e44` | `84cb7a8c164cf1b618555c288b303c28a5b519d496abcbc17f8b71f5b588b9a3` |
 | Media runtime | `6eba9751614636f7451764a30140d8c12e7a905a562aa957f23a55d881ea8c6b` | 0 / 0 / 0 | 132 | `2719f9d154fa7dbca5a02de812aacc81a6b9f498defa54b80de55bb9f3f16c63` | `49deb79f7b0a362f589f2518b8073a265a862d0ffe55acb7de424ca8ea92bb13` |
 
-The publication does **not** satisfy the registry gate. A second Docker client
-using an empty credential directory successfully fetched every tag manifest,
-proving that all six organization packages were created as public. That
-violates the approved private-only boundary. GitHub documents that a public
-package cannot be made private again. The user subsequently confirmed that
-future organization package creation is private-only, but a second
-empty-credential check still fetched all six existing tags. An organization
-owner must explicitly delete only these six public packages before the retained
-clean artifacts can be republished and anonymous denial retested.
-The zero-secret reports reduce the exposure impact but do not make public
-visibility acceptable. These public package references must not be promoted to
-production configuration.
+The original visibility conclusion was incorrect. Pointing the Docker CLI at an
+empty configuration directory did not isolate all local Docker credential state,
+so its successful manifest resolution was not valid public-access evidence. A
+corrected probe made raw
+requests to GHCR's token endpoint without an `Authorization` header. Token
+issuance returned HTTP 401 for each of the six
+`repository:dhanadhara/<package>:pull` scopes, while the identical probe returned
+HTTP 200 for the known-public `actions/actions-runner` control. GHCR therefore
+issued no bearer token that an anonymous client could use to fetch any of the
+six manifests.
+
+Fresh authenticated pulls of all six exact tags succeeded and returned the same
+OCI-index digests recorded above. Together, the positive authenticated pulls
+and controlled no-credential denials prove that the packages exist and are
+private. An unauthenticated organization package page may consequently report
+zero packages; it is not evidence that the private registry objects are absent.
+No package deletion, visibility change, or republication is required. The approved
+private publication, immutable re-pull, post-publication scans, inventories, and
+Compose digest render are complete for these six runtime packages. This corrects
+only the visibility interpretation; it does not authorize deployment or turn
+the later source into an exact release candidate.
+
+Corrective verification on `fix/private-registry-evidence` includes the six raw
+HTTP 401 denials and HTTP 200 public control, authenticated pulls resolving all
+six recorded digests, byte-matching SHA-256 values and zero High/Critical/secret
+rows across the retained post-publication reports, matching CycloneDX component
+counts, and all 45 repository script tests passing with one expected Windows
+POSIX-resource skip. No registry object or application code changed during the
+correction.
 
 Fresh bounded repository verification passes 11 production-runtime contract
 tests, 7 feature-tracking tests, 11 migration/RLS tracking tests, API Ruff and
