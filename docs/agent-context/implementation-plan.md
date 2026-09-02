@@ -4,10 +4,9 @@ Status: **Derived, actively maintained plan**
 
 As of: **2026-09-02**
 
-Evidence baseline: `b02ac25` (`upstream/main`, including merged
-[PR #288](https://github.com/brollysolutions/client1/pull/288)), plus the
-private-registry evidence correction on `fix/private-registry-evidence`
-([PR #289](https://github.com/brollysolutions/client1/pull/289)).
+Evidence baseline: `a6778a6` (`upstream/main`, including merged
+[PR #289](https://github.com/brollysolutions/client1/pull/289)), plus the
+Browserslist audit repair on `security/browserslist-4-28-7` (PR pending).
 
 ## Outcome
 
@@ -79,6 +78,15 @@ retain their contemporaneous implementation-branch status and evidence.
 
 **Completed on `fix/private-registry-evidence` — [PR #289](https://github.com/brollysolutions/client1/pull/289):**
 the private-registry evidence is corrected without package mutation or deployment.
+
+**Completed locally on `security/browserslist-4-28-7` — PR pending:** the
+merge-result production web audit is repaired by enforcing patched transitive
+Browserslist `4.28.7` through the existing pnpm override mechanism. Both High
+advisories clear; frozen installation, the supply-chain policy, lint, strict
+typecheck, 95 files / 610 web tests, 45 workflow tests with one expected Windows
+skip, and a strict Linux 94-route builder image pass. The native build reaches
+94/94 routes before the established Windows standalone-symlink `EPERM`. No
+application, API, registry package, deployment, or release approval changes.
 
 | Priority | Feature / requirements | Why now | Planning model / effort | Implementation model / effort | Exit criteria |
 | ---: | --- | --- | --- | --- | --- |

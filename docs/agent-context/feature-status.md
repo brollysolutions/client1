@@ -4,10 +4,32 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-09-02**
 
-Evidence baseline: `b02ac25` (`upstream/main`, including merged
-[PR #288](https://github.com/brollysolutions/client1/pull/288)), plus the
-private-registry evidence correction on `fix/private-registry-evidence`
-([PR #289](https://github.com/brollysolutions/client1/pull/289)).
+Evidence baseline: `a6778a6` (`upstream/main`, including merged
+[PR #289](https://github.com/brollysolutions/client1/pull/289)), plus the
+Browserslist audit repair on `security/browserslist-4-28-7` (PR pending).
+
+**Merge-result Browserslist audit repair is complete locally on
+`security/browserslist-4-28-7` — PR pending:** after PR #289 merged at
+`a6778a6`, [Security run 33613946967](https://github.com/brollysolutions/client1/actions/runs/33613946967)
+failed only its Node production-audit step on two new High Browserslist
+advisories. `GHSA-c83g-rgw3-j3cx` permits unbounded cache growth and
+`GHSA-73wf-gq98-2v4g` permits malformed statistics to crash the process; both
+affect the locked `4.28.4` and are patched in `4.28.7`. The web workspace now
+enforces exactly `4.28.7` through its established transitive-override mechanism.
+The associated baseline-browser, Can I Use, Chromium-mapping, and Node-release
+data move only to versions required by Browserslist's patched manifest.
+
+Fresh frozen installation resolves one Browserslist version and passes the
+repository supply-chain policy. The same production audit now reports no known
+vulnerability. Web lint, strict typecheck, all 95 files / 610 tests, and all 45
+workflow tests with one expected Windows POSIX skip pass. A strict Linux builder
+image (`f12ae345008a…`) compiles, typechecks, generates 94/94 routes, completes
+standalone tracing, and exports successfully. The native build reaches the same
+94/94 route boundary before the established Windows standalone-symlink `EPERM`.
+No application/API code, contract, schema, auth/RLS, business-line, PII/KYC,
+money flow, runtime package, GHCR object, deployment, or approval changed. The
+79-requirement implementation result stays 100%; release stays NO-GO, and a new
+exact candidate must include the merged repair before rehearsal.
 
 **Approved private registry publication evidence is complete for the six runtime
 packages after correcting an invalid anonymous-access test:** the publication
