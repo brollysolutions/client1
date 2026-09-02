@@ -4,13 +4,53 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-09-02**
 
-Evidence baseline: `a6778a6` (`upstream/main`, including merged
-[PR #289](https://github.com/brollysolutions/client1/pull/289)), plus the
-Browserslist audit repair on `security/browserslist-4-28-7`
-([PR #290](https://github.com/brollysolutions/client1/pull/290)).
+Evidence baseline: `75e1031` (`upstream/main`, including merged
+[PR #290](https://github.com/brollysolutions/client1/pull/290)).
 
-**Merge-result Browserslist audit repair is complete locally on
-`security/browserslist-4-28-7` — [PR #290](https://github.com/brollysolutions/client1/pull/290):** after PR #289 merged at
+**2 September exact-candidate rehearsal is complete — NO-GO — in
+[PR #291](https://github.com/brollysolutions/client1/pull/291):** merged PR #290 is frozen at
+`75e1031de0e3a7d16246bda294a0bc3b0757e78f`; the terminal record is
+[`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). Exact-SHA
+[CI 33617891197](https://github.com/brollysolutions/client1/actions/runs/33617891197)
+passes 1,950 API tests, 95 files / 610 web tests, the 94-route Linux production
+build, four zero-retry standalone browser journeys, and contract drift.
+[Security 33617891196](https://github.com/brollysolutions/client1/actions/runs/33617891196)
+passes frozen Python/Node audits; because its Gitleaks range reports zero
+commits, Gitleaks 8.30.1 separately scans all 539 local-history commits with no
+finding. [Sync 33617891389](https://github.com/brollysolutions/client1/actions/runs/33617891389)
+passes branch synchronization only, not deployment.
+
+Fresh local evidence completes the 45-test script suite with one expected
+Windows skip, API Ruff/format, one Alembic head, web lint/typecheck and all 610
+tests, and both production dependency audits. Exact API/web images build from
+the frozen SHA; authenticated pulls resolve the six private runtime packages to
+their approved immutable `ghcr.io/dhanadhara` digests. Trivy 0.74.0 reports 0
+High / 0 Critical / 0 secret findings across all eight artifacts, with fresh
+CycloneDX inventories retained outside Git at `D:\release-evidence-75e1031`.
+Exact web headers, API health/CORS/auth denial, and a resource-bounded private
+media-runtime transcode pass.
+
+A clean streamed database restore matches head `d9f1a3b5c7e0`, tables, RLS
+policies, RLS-enabled relations, the pre-provisioned `api_user` cluster role,
+and synthetic rows. Its first discarded target proves that global roles are a
+restore-runbook prerequisite because database dumps do not contain them. A
+216,576-byte object archive restores after source-volume destruction with all
+six files matching. All task-created runtime/recovery resources were removed;
+no production data, secret, host, provider, payout, registry mutation, or
+deployment was accessed.
+
+Launch remains NO-GO. The 2-vCPU / 4-GB target lacks representative capacity
+and OS-reserve evidence against 9.125 GiB of configured service maxima, while
+production recovery/DNS/TLS/secrets/monitoring evidence and all nine qualified
+human/environment decisions remain `Open`. The 79-requirement implementation
+result stays 100%; no application behavior, contract, schema, authorization/RLS,
+business-line, PII/KYC, money-flow, or cookie decision changed. Next priority is
+operator-owned capacity/topology evidence and completion of the canonical
+sign-off register; engineering should implement only a newly evidenced defect
+or approved hardening requirement.
+
+**Merge-result Browserslist audit repair is merged in
+[PR #290](https://github.com/brollysolutions/client1/pull/290):** after PR #289 merged at
 `a6778a6`, [Security run 33613946967](https://github.com/brollysolutions/client1/actions/runs/33613946967)
 failed only its Node production-audit step on two new High Browserslist
 advisories. `GHSA-c83g-rgw3-j3cx` permits unbounded cache growth and
@@ -29,8 +69,8 @@ standalone tracing, and exports successfully. The native build reaches the same
 94/94 route boundary before the established Windows standalone-symlink `EPERM`.
 No application/API code, contract, schema, auth/RLS, business-line, PII/KYC,
 money flow, runtime package, GHCR object, deployment, or approval changed. The
-79-requirement implementation result stays 100%; release stays NO-GO, and a new
-exact candidate must include the merged repair before rehearsal.
+79-requirement implementation result stays 100%; release stays NO-GO. The exact
+candidate rehearsal above includes and verifies the merged repair.
 
 **Approved private registry publication evidence is complete for the six runtime
 packages after correcting an invalid anonymous-access test:** the publication
@@ -51,8 +91,8 @@ all local Docker credential state and cannot support a public-visibility
 claim. The retained reports contain no secret finding, and no customer data or
 production state entered any image or report. The supplied 2-vCPU / 4-GB Ubuntu
 24.04 `linux/amd64` droplet still lacks capacity proof against 9.125 GiB of
-configured service maxima, with ClamAV alone allowed 4 GiB. A new exact candidate
-including merged PRs #286-#288 must still be frozen and rehearsed. No
+configured service maxima, with ClamAV alone allowed 4 GiB. The current exact
+candidate above incorporates these merges and completes that technical rerun. No
 `brollysolutions` package, deployment, provider transfer, live payout,
 human/environment approval, or 79-requirement result changed. Release remains
 NO-GO.
