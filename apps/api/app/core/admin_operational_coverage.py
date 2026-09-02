@@ -377,14 +377,10 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         view_mode=AdminViewMode.MINIMIZED,
         view_coverage=CoverageState.COVERED,
         update_mode=AdminUpdateMode.SERVICE_MANAGED,
-        update_coverage=CoverageState.GAP,
+        update_coverage=CoverageState.PROTECTED,
         audit_coverage=CoverageState.COVERED,
         api_surfaces=("/api/v1/admin/operations/field-visibility-config",),
         ui_surfaces=("/dashboard/operations",),
-        gap=(
-            "Gap: the Admin configuration write surface remains withdrawn; policy "
-            "metadata is read-only and runtime defaults stay server-owned."
-        ),
         rls_expectation=(
             "Only platform Admin may list persisted override metadata through the "
             "dedicated projection; existing role reads and platform-Admin write policy remain unchanged."
@@ -393,7 +389,8 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         rationale=(
             "The Operational records workspace exposes persisted role, entity, field, "
             "mode, and update-time metadata without restoring policy mutation or "
-            "returning the updater identity."
+            "returning the updater identity. The withdrawn writer is an intentional "
+            "protected non-surface, not an incomplete Admin workflow."
         ),
     ),
     "financial_product_provider_offers": _entry(
@@ -463,14 +460,20 @@ ADMIN_OPERATIONAL_COVERAGE: dict[str, AdminCoverageEntry] = {
         domain="Credit-card and insurance enquiries",
         sensitivity=(DataSensitivity.FINANCIAL, DataSensitivity.IDENTITY_PII),
         view_mode=AdminViewMode.MINIMIZED,
-        view_coverage=CoverageState.GAP,
+        view_coverage=CoverageState.COVERED,
         update_mode=AdminUpdateMode.IMMUTABLE,
         update_coverage=CoverageState.PROTECTED,
         audit_coverage=CoverageState.COVERED,
+        api_surfaces=("/api/v1/admin/operations/financial-service-enquiries",),
+        ui_surfaces=("/dashboard/operations",),
         rls_expectation="Platform Admin may read both-line enquiries; Clients and assigned staff remain owner/assignment scoped.",
         audit_expectation="The immutable submitted enquiry and versioned form snapshot are the source record.",
-        rationale="Card and insurance requests stay outside loan sanction and disbursal commands.",
-        gap="Gap: no purpose-built Admin operational projection or UI currently exposes submitted card and insurance enquiries.",
+        rationale=(
+            "The operational projection selects only record identity, public product "
+            "metadata, immutable status/version, and submission time. Applicant "
+            "identifiers, answers, schema and provider snapshots, and offer references "
+            "remain outside the Admin surface."
+        ),
     ),
     "loan_applications": _entry(
         domain="Loan application progression",

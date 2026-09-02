@@ -21,6 +21,7 @@ OPERATION_PATHS = (
     "/api/v1/admin/operations/loan-transaction-history",
     "/api/v1/admin/operations/site-visits",
     "/api/v1/admin/operations/transactions",
+    "/api/v1/admin/operations/financial-service-enquiries",
 )
 
 
@@ -61,7 +62,13 @@ async def _seed_operational_records(client: AsyncClient) -> tuple[str, dict[str,
     )
     from app.models.lead import Lead, LeadOrigin, LeadStatus
     from app.models.lead_activity import CallDisposition, InterestLevel, LeadActivity
-    from app.models.loan import Bank, LoanApplication, LoanTxnHistory, LoanType
+    from app.models.loan import (
+        Bank,
+        FinancialServiceEnquiry,
+        LoanApplication,
+        LoanTxnHistory,
+        LoanType,
+    )
     from app.models.profile import (
         ClientProfile,
         ProfileScope,
@@ -103,8 +110,13 @@ async def _seed_operational_records(client: AsyncClient) -> tuple[str, dict[str,
             status=ProfileStatus.ACTIVE,
         )
         loan_type = LoanType(name=f"ops-{uuid.uuid4().hex[:8]}", label="Operations loan")
+        service_product = LoanType(
+            name=f"ops-card-{uuid.uuid4().hex[:8]}",
+            label="Operations credit card",
+            category="credit_card",
+        )
         bank = Bank(name=f"Operations Bank {uuid.uuid4().hex[:8]}")
-        db.add_all([telecaller, loan_type, bank])
+        db.add_all([telecaller, loan_type, service_product, bank])
         await db.flush()
 
         lead = Lead(
@@ -207,6 +219,31 @@ async def _seed_operational_records(client: AsyncClient) -> tuple[str, dict[str,
             reference="external-secret-reference",
             retained_ref="internal-retained-reference",
         )
+        financial_service_enquiry = FinancialServiceEnquiry(
+            lead_uuid=lead.id,
+            client_profile_uuid=loans_profile.id,
+            business_line="loans",
+            product_id=service_product.id,
+            product_category="credit_card",
+            status="submitted",
+            form_version=7,
+            form_schema_snapshot={
+                "sections": [
+                    {
+                        "title": "Sensitive application facts",
+                        "fields": [{"key": "annual_income"}],
+                    }
+                ]
+            },
+            form_answers={
+                "registered_mobile": client_mobile,
+                "annual_income": 1_234_567,
+            },
+            provider_offer_snapshot={
+                "provider_name": "Sensitive Provider",
+                "annual_fee": "4999",
+            },
+        )
         db.add_all(
             [
                 auth_event,
@@ -215,10 +252,12 @@ async def _seed_operational_records(client: AsyncClient) -> tuple[str, dict[str,
                 loan_history,
                 visit,
                 transaction,
+                financial_service_enquiry,
             ]
         )
         await db.flush()
         record_ids = {
+            "client_mobile": client_mobile,
             "auth_event": str(auth_event.id),
             "enquiry": str(enquiry.id),
             "visibility_config": str(visibility_config.id),
@@ -227,6 +266,7 @@ async def _seed_operational_records(client: AsyncClient) -> tuple[str, dict[str,
             "loan_history": str(loan_history.id),
             "visit": str(visit.id),
             "transaction": str(transaction.id),
+            "financial_service_enquiry": str(financial_service_enquiry.id),
         }
         await db.commit()
 
@@ -345,6 +385,37 @@ async def test_platform_admin_lists_only_minimized_operational_fields(client: As
         "description",
         "created_at",
     }
+
+    financial_service_enquiry_response = responses[OPERATION_PATHS[7]]
+    financial_service_enquiry = _find(
+        financial_service_enquiry_response.json()["enquiries"],
+        record_ids["financial_service_enquiry"],
+    )
+    assert set(financial_service_enquiry) == {
+        "id",
+        "product_label",
+        "product_category",
+        "status",
+        "form_version",
+        "submitted_at",
+    }
+    assert financial_service_enquiry["product_label"] == "Operations credit card"
+    assert financial_service_enquiry["product_category"] == "credit_card"
+    assert financial_service_enquiry["status"] == "submitted"
+    assert financial_service_enquiry["form_version"] == 7
+    serialized_enquiries = financial_service_enquiry_response.text
+    assert record_ids["client_mobile"] not in serialized_enquiries
+    assert "Sensitive application facts" not in serialized_enquiries
+    assert "Sensitive Provider" not in serialized_enquiries
+    for protected_field in {
+        "lead_uuid",
+        "client_profile_uuid",
+        "form_schema_snapshot",
+        "form_answers",
+        "preferred_provider_offer_id",
+        "provider_offer_snapshot",
+    }:
+        assert protected_field not in serialized_enquiries
 
     users_response = await client.get("/api/v1/admin/users", params={"limit": 200}, headers=headers)
     assert users_response.status_code == 200, users_response.text
