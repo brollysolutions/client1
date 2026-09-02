@@ -7,8 +7,8 @@ As of: **2026-09-02**
 Evidence baseline: `75e1031` (`upstream/main`, including merged
 [PR #290](https://github.com/brollysolutions/client1/pull/290)).
 
-**2 September exact-candidate rehearsal is complete — NO-GO — on
-`chore/exact-candidate-rehearsal-2026-09-02`:** merged PR #290 is frozen at
+**2 September exact-candidate rehearsal is complete — NO-GO — in
+[PR #291](https://github.com/brollysolutions/client1/pull/291):** merged PR #290 is frozen at
 `75e1031de0e3a7d16246bda294a0bc3b0757e78f`; the terminal record is
 [`release-rehearsal-2026-08-30.md`](release-rehearsal-2026-08-30.md). Exact-SHA
 [CI 33617891197](https://github.com/brollysolutions/client1/actions/runs/33617891197)
