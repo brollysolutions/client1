@@ -2,10 +2,49 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-09-02**
+As of: **2026-09-03**
 
-Evidence baseline: `75e1031` (`upstream/main`, including merged
-[PR #290](https://github.com/brollysolutions/client1/pull/290)).
+Evidence baseline: `742449a` (`upstream/main`, including merged
+[PR #291](https://github.com/brollysolutions/client1/pull/291)). The frozen
+release candidate remains merged PR #290 SHA `75e1031`.
+
+**Production recovery readiness tooling is complete locally — PR pending — on
+`feat/production-recovery-readiness-2026-09-02`:** a provider-neutral checker
+turns a privacy-minimized production database/object drill record into a
+deterministic `PASS` or `NO-GO`. The closed schema calculates RPO, RTO, and
+database/object recovery-point skew; binds an independently supplied release
+candidate and Alembic head; requires matching database heads,
+schema/grant/RLS and table/row/critical-record digests, RLS counts, object
+count/bytes/content/type digests, and database-reference summaries; and fails
+on missing references,
+unproved isolation/encryption/retention/off-host controls, placeholders,
+unknown fields, duplicate JSON keys, or sensitive evidence fields. The operator
+runbook covers separate identities, coordinated backups, cluster-role
+provisioning, isolated restore, cross-store reconciliation, restricted evidence
+retention, explicit protection/reconciliation evidence IDs,
+provider-job/artifact binding, and exact cleanup. The checked-in example
+intentionally fails.
+
+Fresh evidence passes 18 focused assessor tests, all 63 repository script tests
+with one expected Windows POSIX-resource skip, API Ruff/format over 504 files,
+one Alembic head, web lint/typecheck, and all 95 files / 610 web tests. The
+native web build compiles, typechecks, and generates 94/94 routes before the
+established Windows standalone-symlink `EPERM`. A corrected isolated Linux API
+run migrated a task-only PostgreSQL target to the current head and reached 11%
+without a failure before Docker stopped responding; the Linux web build and
+full API aggregate therefore have no terminal result and are not claimed as
+passes. Hosted PR verification remains required. Security and maintainer review
+fixed PASS-only digest emission, compound sensitive-field detection, external
+candidate/head and provider-job binding, bounded file reading, and Alembic
+placeholder rejection; no further change-owned finding remains.
+
+This engineering slice does not select a backup provider, access production,
+create or restore a production backup, approve RPO/RTO targets, or check a
+launch box. Row 5 remains open until a named operator runs the procedure against
+an approved off-droplet destination and independently reviews the provider
+records. Per the user's sequencing decision, approved-provider/live-payout work
+is deferred until after recovery, production-environment, and human sign-off
+work, but remains mandatory before the final exact-candidate GO/NO-GO decision.
 
 **2 September exact-candidate rehearsal is complete — NO-GO — in
 [PR #291](https://github.com/brollysolutions/client1/pull/291):** merged PR #290 is frozen at
