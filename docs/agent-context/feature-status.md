@@ -8,8 +8,8 @@ Evidence baseline: `742449a` (`upstream/main`, including merged
 [PR #291](https://github.com/brollysolutions/client1/pull/291)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
 
-**Production recovery readiness tooling is complete locally — PR pending — on
-`feat/production-recovery-readiness-2026-09-02`:** a provider-neutral checker
+**Production recovery readiness tooling is complete locally in
+[PR #292](https://github.com/brollysolutions/client1/pull/292):** a provider-neutral checker
 turns a privacy-minimized production database/object drill record into a
 deterministic `PASS` or `NO-GO`. The closed schema calculates RPO, RTO, and
 database/object recovery-point skew; binds an independently supplied release
