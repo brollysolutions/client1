@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   listAdminAuthEvents,
   listAdminEnquiries,
+  listAdminFinancialServiceEnquiries,
   listAdminFieldVisibilityConfigs,
   listAdminLeadActivities,
   listAdminLoanTransactionHistory,
@@ -24,6 +25,7 @@ import {
   listAdminTransactions,
   type AdminAuthEvent,
   type AdminEnquiry,
+  type AdminFinancialServiceEnquiry,
   type AdminFieldVisibilityConfig,
   type AdminLeadActivity,
   type AdminLoanTransactionHistory,
@@ -39,6 +41,7 @@ const PAGE_SIZE = 25;
 const OPERATION_TABS = [
   { key: "auth-events", label: "Security events" },
   { key: "enquiries", label: "Enquiries" },
+  { key: "financial-enquiries", label: "Card & insurance" },
   { key: "field-visibility", label: "Field visibility" },
   { key: "lead-activities", label: "Lead activity" },
   { key: "loan-history", label: "Loan terms" },
@@ -67,6 +70,7 @@ function initialState(): Record<OperationKind, ViewState> {
   return {
     "auth-events": empty(),
     enquiries: empty(),
+    "financial-enquiries": empty(),
     "field-visibility": empty(),
     "lead-activities": empty(),
     "loan-history": empty(),
@@ -145,6 +149,21 @@ function enquiryRecord(row: AdminEnquiry): OperationalRecord {
       { label: "Client account", value: row.user_uuid },
       { label: "Created", value: formatWhen(row.created_at) },
       { label: "Last updated", value: formatWhen(row.updated_at) },
+    ],
+  };
+}
+
+export function financialServiceEnquiryRecord(
+  row: AdminFinancialServiceEnquiry,
+): OperationalRecord {
+  return {
+    id: row.id,
+    title: row.product_label,
+    subtitle: `${humanize(row.product_category)} enquiry`,
+    status: humanize(row.status),
+    fields: [
+      { label: "Form version", value: String(row.form_version) },
+      { label: "Submitted", value: formatWhen(row.submitted_at) },
     ],
   };
 }
@@ -253,6 +272,11 @@ async function fetchOperationalPage(
     case "enquiries":
       return normalize(await listAdminEnquiries(page), (data) => ({
         records: data.enquiries.map(enquiryRecord),
+        total: data.total,
+      }));
+    case "financial-enquiries":
+      return normalize(await listAdminFinancialServiceEnquiries(page), (data) => ({
+        records: data.enquiries.map(financialServiceEnquiryRecord),
         total: data.total,
       }));
     case "field-visibility":
@@ -366,16 +390,21 @@ export function OperationalRecordsView() {
     () => filterOperationalRecords(state.records, search, statusFilter),
     [search, state.records, statusFilter],
   );
-  const emptyCopy =
-    active === "field-visibility"
-      ? {
-          title: "No persisted field visibility overrides.",
-          description: "Role responses currently use the server-owned visibility defaults.",
-        }
-      : {
-          title: "No records in this category yet.",
-          description: "New operational activity will appear here in newest-first order.",
-        };
+  let emptyCopy = {
+    title: "No records in this category yet.",
+    description: "New operational activity will appear here in newest-first order.",
+  };
+  if (active === "field-visibility") {
+    emptyCopy = {
+      title: "No persisted field visibility overrides.",
+      description: "Role responses currently use the server-owned visibility defaults.",
+    };
+  } else if (active === "financial-enquiries") {
+    emptyCopy = {
+      title: "No card or insurance enquiries yet.",
+      description: "Submitted requests will appear here without applicant or form details.",
+    };
+  }
   React.useEffect(() => {
     if (!state.loaded && !state.loading) void load(active, 0);
   }, [active, load, state.loaded, state.loading]);
@@ -387,7 +416,8 @@ export function OperationalRecordsView() {
         <p className="mt-1 max-w-3xl text-sm text-text-secondary">
           Read-only, platform-wide workflow and security context. Contact details, messages,
           authentication metadata, pickup locations, updater identities, and reusable financial
-          references are omitted.
+          references are omitted. Card and insurance records also omit applicant identifiers and
+          form answers.
         </p>
       </div>
 

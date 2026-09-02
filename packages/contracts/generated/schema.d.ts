@@ -768,6 +768,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/operations/financial-service-enquiries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Financial Service Enquiries */
+        get: operations["list_financial_service_enquiries_api_v1_admin_operations_financial_service_enquiries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/operations/lead-activities": {
         parameters: {
             query?: never;
@@ -4375,6 +4392,40 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** AdminFinancialServiceEnquiryListResponse */
+        AdminFinancialServiceEnquiryListResponse: {
+            /** Enquiries */
+            enquiries: components["schemas"]["AdminFinancialServiceEnquiryRead"][];
+            /** Total */
+            total: number;
+        };
+        /** AdminFinancialServiceEnquiryRead */
+        AdminFinancialServiceEnquiryRead: {
+            /** Form Version */
+            form_version: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Product Category
+             * @enum {string}
+             */
+            product_category: "credit_card" | "insurance";
+            /** Product Label */
+            product_label: string;
+            /**
+             * Status
+             * @constant
+             */
+            status: "submitted";
+            /**
+             * Submitted At
+             * Format: date-time
+             */
+            submitted_at: string;
         };
         /** AdminHomeResponse */
         AdminHomeResponse: {
@@ -12152,6 +12203,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminFieldVisibilityConfigListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_financial_service_enquiries_api_v1_admin_operations_financial_service_enquiries_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminFinancialServiceEnquiryListResponse"];
                 };
             };
             /** @description Validation Error */

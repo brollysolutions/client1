@@ -569,6 +569,72 @@
         "title": "AdminFieldVisibilityConfigRead",
         "type": "object"
       },
+      "AdminFinancialServiceEnquiryListResponse": {
+        "properties": {
+          "enquiries": {
+            "items": {
+              "$ref": "#/components/schemas/AdminFinancialServiceEnquiryRead"
+            },
+            "title": "Enquiries",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enquiries",
+          "total"
+        ],
+        "title": "AdminFinancialServiceEnquiryListResponse",
+        "type": "object"
+      },
+      "AdminFinancialServiceEnquiryRead": {
+        "properties": {
+          "form_version": {
+            "title": "Form Version",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "product_category": {
+            "enum": [
+              "credit_card",
+              "insurance"
+            ],
+            "title": "Product Category",
+            "type": "string"
+          },
+          "product_label": {
+            "title": "Product Label",
+            "type": "string"
+          },
+          "status": {
+            "const": "submitted",
+            "title": "Status",
+            "type": "string"
+          },
+          "submitted_at": {
+            "format": "date-time",
+            "title": "Submitted At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "product_label",
+          "product_category",
+          "status",
+          "form_version",
+          "submitted_at"
+        ],
+        "title": "AdminFinancialServiceEnquiryRead",
+        "type": "object"
+      },
       "AdminHomeResponse": {
         "properties": {
           "open_loan_applications_count": {
@@ -21998,6 +22064,67 @@
           }
         ],
         "summary": "List Field Visibility Configs",
+        "tags": [
+          "admin-operations"
+        ]
+      }
+    },
+    "/api/v1/admin/operations/financial-service-enquiries": {
+      "get": {
+        "operationId": "list_financial_service_enquiries_api_v1_admin_operations_financial_service_enquiries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFinancialServiceEnquiryListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Financial Service Enquiries",
         "tags": [
           "admin-operations"
         ]

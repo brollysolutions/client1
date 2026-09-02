@@ -20,6 +20,8 @@ from app.schemas.admin_operations import (
     AdminEnquiryRead,
     AdminFieldVisibilityConfigListResponse,
     AdminFieldVisibilityConfigRead,
+    AdminFinancialServiceEnquiryListResponse,
+    AdminFinancialServiceEnquiryRead,
     AdminLeadActivityListResponse,
     AdminLeadActivityRead,
     AdminLoanTransactionHistoryListResponse,
@@ -70,6 +72,24 @@ async def list_enquiries(
     rows, total = await admin_operations.list_enquiries(db, limit=limit, offset=offset)
     return AdminEnquiryListResponse(
         enquiries=[AdminEnquiryRead.model_validate(row, from_attributes=True) for row in rows],
+        total=total,
+    )
+
+
+@router.get(
+    "/financial-service-enquiries",
+    response_model=AdminFinancialServiceEnquiryListResponse,
+)
+async def list_financial_service_enquiries(
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_db),
+) -> AdminFinancialServiceEnquiryListResponse:
+    rows, total = await admin_operations.list_financial_service_enquiries(
+        db, limit=limit, offset=offset
+    )
+    return AdminFinancialServiceEnquiryListResponse(
+        enquiries=[AdminFinancialServiceEnquiryRead.model_validate(row) for row in rows],
         total=total,
     )
 
