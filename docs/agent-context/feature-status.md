@@ -7,7 +7,7 @@ As of: **2026-09-02**
 Evidence baseline: `b02ac25` (`upstream/main`, including merged
 [PR #288](https://github.com/brollysolutions/client1/pull/288)), plus the
 private-registry evidence correction on `fix/private-registry-evidence`
-(corrective PR pending).
+([PR #289](https://github.com/brollysolutions/client1/pull/289)).
 
 **Approved private registry publication evidence is complete for the six runtime
 packages after correcting an invalid anonymous-access test:** the publication
