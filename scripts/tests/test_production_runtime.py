@@ -81,16 +81,24 @@ class ProductionRuntimeContractTests(unittest.TestCase):
         alpine_wrapper = (runtime_dir / "alpine-security-updates.Dockerfile").read_text(
             encoding="utf-8"
         )
+        nginx_wrapper = (runtime_dir / "nginx.Dockerfile").read_text(encoding="utf-8")
         pgbouncer_wrapper = (runtime_dir / "pgbouncer.Dockerfile").read_text(encoding="utf-8")
         postgres_wrapper = (runtime_dir / "postgres.Dockerfile").read_text(encoding="utf-8")
 
-        for dockerfile in (alpine_wrapper, pgbouncer_wrapper, postgres_wrapper):
+        for dockerfile in (
+            alpine_wrapper,
+            nginx_wrapper,
+            pgbouncer_wrapper,
+            postgres_wrapper,
+        ):
             self.assertIn("ARG BASE_IMAGE\nFROM ${BASE_IMAGE}", dockerfile)
             self.assertIn("RUN apk add --no-cache --upgrade", dockerfile)
             self.assertNotIn("RUN apk upgrade", dockerfile)
             self.assertIn('"libcrypto3=3.5.8-r0"', dockerfile)
             self.assertIn('"libssl3=3.5.8-r0"', dockerfile)
 
+        self.assertIn('"libexpat=2.8.4-r0"', nginx_wrapper)
+        self.assertNotIn('"libexpat=', alpine_wrapper)
         self.assertTrue(pgbouncer_wrapper.rstrip().endswith("USER postgres"))
         self.assertIn('"libpq=18.6-r0"', pgbouncer_wrapper)
         self.assertIn('"postgresql18-client=18.6-r0"', pgbouncer_wrapper)

@@ -5,6 +5,13 @@ Status: **NO-GO**
 Current exact candidate: `9b9e763fa0255114ab2c1d33a66e252dd8c0f8fd`
 ([merged PR #284](https://github.com/brollysolutions/client1/pull/284))
 
+Latest registry-attempt source baseline:
+`8c29ad35b5dd901c76dbd0a3304f227b0dca67a0`
+([merged PR #287](https://github.com/brollysolutions/client1/pull/287)); the
+nginx-CVE repair on `chore/registry-publication-evidence`
+([PR #288](https://github.com/brollysolutions/client1/pull/288)) is not yet a
+merged exact release candidate.
+
 Previous exact candidate: `eefc61d06708635f79055fe0187ede4fed3185cf`
 ([merged PR #277](https://github.com/brollysolutions/client1/pull/277))
 
@@ -26,6 +33,74 @@ This record reports what was actually exercised. It is not production approval,
 does not check any human-owned box in
 [`pre-deployment-checklist.md`](pre-deployment-checklist.md), and contains no
 production secret, customer data, database dump, or object.
+
+## 2 September registry publication attempt — blocked
+
+The user approved private publication of the six reviewed runtime images to the
+new company-controlled `ghcr.io/dhanadhara` namespace and reported a successful
+operator Docker login. The target host was identified as a 2-vCPU / 4-GB / 80-GB
+Ubuntu 24.04 LTS x64 DigitalOcean droplet in BLR1, confirming `linux/amd64` but
+not production capacity. No production host, secret, data, deployment, external
+provider, payout, or human sign-off was accessed or changed.
+
+The first local Trivy gate stopped before publication because nginx contained
+`libexpat=2.8.2-r0`, reported High `CVE-2026-66046` and `CVE-2026-76641`, and had
+fixed `2.8.4-r0` available. A dedicated nginx security wrapper now installs
+exact `libexpat=2.8.4-r0` alongside the existing exact OpenSSL packages without
+adding expat to the shared Redis/ClamAV wrapper. The focused structural test and
+`nginx -t` pass. After that repair, all six local images passed a fail-closed
+High/Critical vulnerability and secret scan before publication.
+
+The six tags were published, resolved as OCI indexes with exactly one
+`linux/amd64` runtime manifest and one provenance attestation, re-pulled by the
+following immutable index digests, and rescanned. Trivy 0.74.0 used database
+version 2, updated `2026-09-02T01:09:54Z` and downloaded
+`2026-09-02T04:44:39Z`. Component counts exclude the CycloneDX metadata
+component. Machine reports remain outside Git at
+`D:\release-evidence-8c29ad3`.
+
+| Artifact | Published OCI-index digest | High / critical / secrets | Components | Post-scan SHA-256 | Post-SBOM SHA-256 |
+| --- | --- | ---: | ---: | --- | --- |
+| PostgreSQL | `93ae1f58d3ada03b2b44cd33c6b99ee55032956e3ce1971a473268a2d60694e6` | 0 / 0 / 0 | 54 | `6624e09fa048b3173ab47c57bda683bf90ffc17a7c954b6f04866bdc07b9eed2` | `8baaf8317bbea2f8b8afbf98f1dc12c69dbfac159f7281db7d58c86761a8b91f` |
+| Redis | `3c3a87a3c6edf90fc5ab9288fc4f522fcd9eaff6a3a8de5a18ae2a3137f92bcf` | 0 / 0 / 0 | 23 | `021955acb666041c7fcae671e60535d9353fca483766279dcd41dde19d51a9a4` | `222ae7f2459cfdfed7b055852463fdb741d874eeed0469ffac758d50cbf18048` |
+| ClamAV | `9dfd42155b32c8f255d3a522261c0bd9247c5e34ff74d668a77464852e817bf4` | 0 / 0 / 0 | 42 | `f1fbd919efda3444e87cea550f8e2fef683051037ccd1812d536a462e9a9f243` | `c753b964ca7f9db9e8be069e6193e23b74b829dcdc7c5545c368b937894b7c92` |
+| PgBouncer | `40e7044a95974e1bce86e154dbace58a18d0ae86cdcfe9eecbfc59c7e9b66879` | 0 / 0 / 0 | 26 | `0c53c8342e2a2805e01abbacbf53d1c1ae982f1d74d5cb24a4e53a3d91d58311` | `c71e50ea9413bbbde865f76313c8a7eb7d11994451961d895d32d75788ebcac0` |
+| nginx | `243777dab5fe5094e6d7b9d55211a13847b3cb116e7f726cc8e70094213e482b` | 0 / 0 / 0 | 72 | `3ae6dd4510eab876dce60a54b039f28f5d76c2df26b96ffe0cbe8ac00fbc9e44` | `84cb7a8c164cf1b618555c288b303c28a5b519d496abcbc17f8b71f5b588b9a3` |
+| Media runtime | `6eba9751614636f7451764a30140d8c12e7a905a562aa957f23a55d881ea8c6b` | 0 / 0 / 0 | 132 | `2719f9d154fa7dbca5a02de812aacc81a6b9f498defa54b80de55bb9f3f16c63` | `49deb79f7b0a362f589f2518b8073a265a862d0ffe55acb7de424ca8ea92bb13` |
+
+The publication does **not** satisfy the registry gate. A second Docker client
+using an empty credential directory successfully fetched every tag manifest,
+proving that all six organization packages were created as public. That
+violates the approved private-only boundary. GitHub documents that a public
+package cannot be made private again. The user subsequently confirmed that
+future organization package creation is private-only, but a second
+empty-credential check still fetched all six existing tags. An organization
+owner must explicitly delete only these six public packages before the retained
+clean artifacts can be republished and anonymous denial retested.
+The zero-secret reports reduce the exposure impact but do not make public
+visibility acceptable. These public package references must not be promoted to
+production configuration.
+
+Fresh bounded repository verification passes 11 production-runtime contract
+tests, 7 feature-tracking tests, 11 migration/RLS tracking tests, API Ruff and
+format checks across 504 files, the single Alembic head `d9f1a3b5c7e0`, web
+lint/typecheck, and 95 files / 610 web tests. The native web build compiles,
+typechecks, and generates 94/94 routes before the established Windows
+standalone-symlink `EPERM`. The full repository wrapper was attempted twice;
+its host API aggregate reached a repeated error cluster at 25% and
+was stopped before a terminal traceback rather than recording hundreds of
+identical errors as fresh application evidence. Its cause is untriaged and the
+aggregate is not claimed as passing. No API or web application code changed in
+this slice.
+
+The supplied 4-GB target is a separate environment blocker. Current configured
+service maxima total 9.125 GiB: PostgreSQL 1 GiB, Redis 128 MiB, ClamAV 4 GiB,
+PgBouncer 128 MiB, media runtime 768 MiB, API 1 GiB, scheduler 1 GiB, web 1 GiB,
+and nginx 128 MiB. Limits are not proof of simultaneous consumption, but ClamAV
+alone may consume the host's advertised RAM and the OS also needs reserve.
+Measured peak/steady usage under representative traffic plus explicit reserve,
+or an approved larger/tuned topology, is required before deployment. Release
+remains **NO-GO**.
 
 ## Exact-candidate rerun after hosted browser recovery
 

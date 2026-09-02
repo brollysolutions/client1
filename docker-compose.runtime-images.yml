@@ -39,7 +39,7 @@ services:
     image: ${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/nginx:1.30.4-alpine3.24-20260830
     build:
       context: .
-      dockerfile: infra/docker/runtime/alpine-security-updates.Dockerfile
+      dockerfile: infra/docker/runtime/nginx.Dockerfile
       args:
         BASE_IMAGE: nginx:1.30.4-alpine3.24@sha256:97d490c12ba55b4946b01546d1c3ed324e8d41ab1c9fcb2a616aa470620e5b46
 
