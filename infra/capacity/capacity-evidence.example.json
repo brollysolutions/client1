@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "run_id": "replace-with-capacity-run-id",
+  "candidate_sha": "0000000000000000000000000000000000000000",
+  "compose_config_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "environment": "capacity-rehearsal",
+  "timing": {
+    "started_at": "2026-09-03T00:00:00Z",
+    "ended_at": "2026-09-03T00:30:00Z"
+  },
+  "host": {
+    "profile": "2vcpu-4gb-ubuntu-24.04-amd64",
+    "os_id": "ubuntu",
+    "os_version": "24.04",
+    "architecture": "x86_64",
+    "cpu_count": 2,
+    "memory_total_bytes": 4294967296,
+    "observed_seconds": 1800,
+    "min_memory_available_bytes": 0,
+    "max_swap_used_bytes": 0,
+    "kernel_oom_kills_delta": 0
+  },
+  "services": {
+    "postgres": {
+      "memory_limit_bytes": 369098752,
+      "peak_memory_bytes": 0,
+      "restart_count_before": 0,
+      "restart_count_after": 0,
+      "oom_killed": false,
+      "final_state": "replace",
+      "health": "replace"
+    },
+    "redis": {
+      "memory_limit_bytes": 67108864,
+      "peak_memory_bytes": 0,
+      "restart_count_before": 0,
+      "restart_count_after": 0,
+      "oom_killed": false,
+      "final_state": "replace",
+      "health": "replace"
+    },
+    "clamav": {
+      "memory_limit_bytes": 1476395008,
+      "peak_memory_bytes": 0,
+      "restart_count_before": 0,
+      "restart_count_after": 0,
+      "oom_killed": false,
+      "final_state": "replace",
+      "health": "replace"
+    },
+    "pgbouncer": {
+      "memory_limit_bytes": 33554432,
+      "peak_memory_bytes": 0,
+      "restart_count_before": 0,
+      "restart_count_after": 0,
+      "oom_killed": false,
+      "final_state": "replace",
+      "health": "replace"
+    },
+    "media-runtime": {
+      "memory_limit_bytes": 805306368,
+      "peak_memory_bytes": 0,
+      "restart_count_before": 0,
+      "restart_count_after": 0,
+      "oom_killed": false,
+      "final_state": "replace",
+      "health": "replace"
+    },
+    "api": {
+      "memory_limit_bytes": 402653184,
+      "peak_memory_bytes": 0,
+      "restart_count_before": 0,
+      "restart_count_after": 0,
+      "oom_killed": false,
+      "final_state": "replace",
+      "health": "replace"
+    },
+    "scheduler": {
+      "memory_limit_bytes": 234881024,
+      "peak_memory_bytes": 0,
+      "restart_count_before": 0,
+      "restart_count_after": 0,
+      "oom_killed": false,
+      "final_state": "replace",
+      "health": "replace"
+    },
+    "web": {
+      "memory_limit_bytes": 234881024,
+      "peak_memory_bytes": 0,
+      "restart_count_before": 0,
+      "restart_count_after": 0,
+      "oom_killed": false,
+      "final_state": "replace",
+      "health": "replace"
+    },
+    "nginx": {
+      "memory_limit_bytes": 33554432,
+      "peak_memory_bytes": 0,
+      "restart_count_before": 0,
+      "restart_count_after": 0,
+      "oom_killed": false,
+      "final_state": "replace",
+      "health": "replace"
+    }
+  },
+  "workloads": {
+    "steady_state": {
+      "passed": false,
+      "duration_seconds": 1800,
+      "operation_count": 1,
+      "evidence_id": "replace-with-steady-state-evidence-id"
+    },
+    "auth_burst": {
+      "passed": false,
+      "duration_seconds": 1,
+      "operation_count": 20,
+      "evidence_id": "replace-with-auth-burst-evidence-id"
+    },
+    "image_pdf_uploads": {
+      "passed": false,
+      "duration_seconds": 1,
+      "operation_count": 4,
+      "evidence_id": "replace-with-image-pdf-evidence-id"
+    },
+    "malware_rejection": {
+      "passed": false,
+      "duration_seconds": 1,
+      "operation_count": 1,
+      "evidence_id": "replace-with-malware-evidence-id"
+    },
+    "video_transcode_1080p": {
+      "passed": false,
+      "duration_seconds": 1,
+      "operation_count": 1,
+      "evidence_id": "replace-with-video-evidence-id"
+    },
+    "scheduler_cycle": {
+      "passed": false,
+      "duration_seconds": 1,
+      "operation_count": 1,
+      "evidence_id": "replace-with-scheduler-evidence-id"
+    },
+    "database_web_api_burst": {
+      "passed": false,
+      "duration_seconds": 1,
+      "operation_count": 100,
+      "evidence_id": "replace-with-api-burst-evidence-id"
+    },
+    "clamav_offline_update": {
+      "passed": false,
+      "duration_seconds": 1,
+      "operation_count": 1,
+      "evidence_id": "replace-with-clamav-update-evidence-id"
+    },
+    "scanner_outage_fail_closed": {
+      "passed": false,
+      "duration_seconds": 1,
+      "operation_count": 1,
+      "evidence_id": "replace-with-scanner-outage-evidence-id"
+    },
+    "media_processor_outage_fail_closed": {
+      "passed": false,
+      "duration_seconds": 1,
+      "operation_count": 1,
+      "evidence_id": "replace-with-processor-outage-evidence-id"
+    }
+  },
+  "controls": {
+    "synthetic_data_only": false,
+    "production_data_absent": false,
+    "external_side_effects_blocked": false,
+    "malware_scanning_enabled": false,
+    "clamav_test_databases_enabled": false,
+    "clamav_update_serialized": false,
+    "unready_media_private": false,
+    "ffmpeg_internal_only": false,
+    "redis_noeviction": false,
+    "scheduler_single_replica": false,
+    "api_single_worker": false,
+    "logs_reviewed_no_sensitive_data": false
+  },
+  "review": {
+    "operator_id": "replace-with-operator-id",
+    "reviewer_id": "replace-with-independent-reviewer-id",
+    "decision": "replace",
+    "decided_at": "2026-09-03T00:45:00Z"
+  },
+  "evidence": {
+    "metrics_archive": "replace-with-metrics-archive-id",
+    "workload_report": "replace-with-workload-report-id",
+    "compose_render": "replace-with-compose-render-id",
+    "clamav_update_log": "replace-with-clamav-update-log-id",
+    "security_review": "replace-with-security-review-id",
+    "operator_approval": "replace-with-operator-approval-id"
+  }
+}

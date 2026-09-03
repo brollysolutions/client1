@@ -4,9 +4,43 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-09-03**
 
-Evidence baseline: `742449a` (`upstream/main`, including merged
-[PR #291](https://github.com/brollysolutions/client1/pull/291)). The frozen
+Evidence baseline: `1893b14` (`upstream/main`, including merged
+[PR #292](https://github.com/brollysolutions/client1/pull/292)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
+
+**The configurable 4-GB production profile is complete locally on
+`feat/4gb-production-profile`:** the approved scope retains PostgreSQL, Redis,
+ClamAV, PgBouncer, isolated FFmpeg, API, scheduler, web, and nginx on the
+2-vCPU / 4-GB launch host. Overridable container ceilings now total 3,488 MiB;
+one API worker plus bounded request, Argon2, database, media, scheduler, ClamAV,
+and FFmpeg concurrency preserve nominal host reserve. ClamAV signature updates
+are serialized while the scanner is stopped, with tested databases retained
+and uploads failing closed. A closed privacy-minimized assessor binds the exact
+candidate and rendered Compose configuration and rejects the wrong host,
+missing service/workload, restart/OOM, insufficient memory headroom, excessive
+swap, weakened control, or absent independent approval. The complete topology
+and future larger-host overrides remain documented in the operator runbook.
+
+Fresh evidence passes all 75 repository script tests with one expected Windows
+skip, including 10 capacity-assessor tests and the production runtime contract;
+API Ruff/format over 504 files; 74 focused host API tests with three
+environmental skips; the same affected database-backed slice at 77 passed; one
+Alembic head; a clean fully interpolated compact Compose render; updater shell
+syntax; web lint/typecheck; and all 95 files / 610 web tests. The native web
+build compiles, typechecks, and generates 94/94 routes before the established
+Windows standalone-symlink `EPERM`. A correctly contextualized Linux web build
+and the full database-backed API suite could not obtain terminal results after
+Docker Desktop stopped responding; the latter had reached 44% without failure.
+Hosted PR verification remains required. Local ClamAV probes separately reached
+healthy state within the 1,408-MiB/no-swap limit and completed a one-shot
+database update with `Database test passed`. Security and maintainer review
+added a process-wide pre-read media slot and failure-safe scanner restart; no
+further change-owned finding remains.
+
+This work does not deploy, remove an upload feature, access production data,
+select a provider, or close the capacity blocker. The checked-in example is
+intentionally NO-GO; a named operator and different reviewer must still run and
+approve the required synthetic workload on the exact droplet.
 
 **Production recovery readiness tooling is complete locally in
 [PR #292](https://github.com/brollysolutions/client1/pull/292):** a provider-neutral checker
@@ -78,14 +112,14 @@ six files matching. All task-created runtime/recovery resources were removed;
 no production data, secret, host, provider, payout, registry mutation, or
 deployment was accessed.
 
-Launch remains NO-GO. The 2-vCPU / 4-GB target lacks representative capacity
-and OS-reserve evidence against 9.125 GiB of configured service maxima, while
+Launch remains NO-GO. The compact 3,488-MiB candidate still lacks representative
+capacity and OS-reserve evidence on the exact 2-vCPU / 4-GB target, while
 production recovery/DNS/TLS/secrets/monitoring evidence and all nine qualified
 human/environment decisions remain `Open`. The 79-requirement implementation
-result stays 100%; no application behavior, contract, schema, authorization/RLS,
-business-line, PII/KYC, money-flow, or cookie decision changed. Next priority is
-operator-owned capacity/topology evidence and completion of the canonical
-sign-off register; engineering should implement only a newly evidenced defect
+result stays 100%; no contract, schema, authorization/RLS, business-line,
+PII/KYC, money-flow, or cookie decision changed. Next priority is the named
+target-host capacity rehearsal, followed by production-environment and canonical
+sign-off evidence; engineering should implement only a newly evidenced defect
 or approved hardening requirement.
 
 **Merge-result Browserslist audit repair is merged in

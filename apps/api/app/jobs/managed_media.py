@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import time
 
+from app.core.config import settings
 from app.services import managed_media
 
 logger = logging.getLogger("scheduler")
@@ -14,7 +15,9 @@ async def process_pending_media() -> None:
     started = time.monotonic()
     logger.info("job.process_pending_media.start")
     try:
-        summary = await managed_media.process_pending_media()
+        summary = await managed_media.process_pending_media(
+            batch_size=settings.MEDIA_PROCESS_BATCH_SIZE
+        )
     except Exception:
         logger.exception("job.process_pending_media.failed")
         raise

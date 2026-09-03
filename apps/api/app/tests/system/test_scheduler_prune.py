@@ -7,6 +7,7 @@ Redis.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -14,7 +15,7 @@ from httpx import AsyncClient
 from sqlalchemy import func, select, text
 
 from app.models.auth import RefreshToken
-from app.scheduler.main import build_scheduler, prune_expired_refresh_tokens
+from app.scheduler.main import _serialized_job, build_scheduler, prune_expired_refresh_tokens
 from conftest import full_registration, unique_mobile
 
 
@@ -27,6 +28,40 @@ async def _user_id(mobile: str) -> str:
         ).fetchone()
         assert row is not None
         return str(row[0])
+
+
+async def test_operational_scheduler_jobs_share_a_global_concurrency_bound() -> None:
+    limiter = asyncio.Semaphore(1)
+    first_entered = asyncio.Event()
+    release_first = asyncio.Event()
+    second_entered = asyncio.Event()
+
+    async def first() -> None:
+        first_entered.set()
+        await release_first.wait()
+
+    async def second() -> None:
+        second_entered.set()
+
+    first_task = asyncio.create_task(_serialized_job(limiter, first)())
+    await first_entered.wait()
+    second_task = asyncio.create_task(_serialized_job(limiter, second)())
+    await asyncio.sleep(0)
+    assert not second_entered.is_set()
+
+    release_first.set()
+    await asyncio.gather(first_task, second_task)
+    assert second_entered.is_set()
+
+
+def test_scheduler_wraps_every_operational_job_but_not_heartbeat() -> None:
+    scheduler = build_scheduler()
+
+    for job in scheduler.get_jobs():
+        if job.id == "heartbeat":
+            assert not hasattr(job.func, "__wrapped__")
+        else:
+            assert hasattr(job.func, "__wrapped__")
 
 
 async def _insert_token(user_id: str, *, expired: bool, revoked: bool = False) -> str:
