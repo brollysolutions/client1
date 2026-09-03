@@ -8,8 +8,8 @@ Evidence baseline: `1893b14` (`upstream/main`, including merged
 [PR #292](https://github.com/brollysolutions/client1/pull/292)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
 
-**The configurable 4-GB production profile is complete locally on
-`feat/4gb-production-profile`:** the approved scope retains PostgreSQL, Redis,
+**The configurable 4-GB production profile is complete locally in
+[PR #293](https://github.com/brollysolutions/client1/pull/293):** the approved scope retains PostgreSQL, Redis,
 ClamAV, PgBouncer, isolated FFmpeg, API, scheduler, web, and nginx on the
 2-vCPU / 4-GB launch host. Overridable container ceilings now total 3,488 MiB;
 one API worker plus bounded request, Argon2, database, media, scheduler, ClamAV,
