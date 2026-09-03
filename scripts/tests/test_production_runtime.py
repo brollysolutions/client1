@@ -150,10 +150,95 @@ class ProductionRuntimeContractTests(unittest.TestCase):
 
         self.assertNotIn("command: uv run --no-sync", compose)
         self.assertIn(
-            "command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4",
+            'command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", '
+            '"--port", "8000", "--workers", "${API_WORKERS:-1}", '
+            '"--limit-concurrency", "${API_LIMIT_CONCURRENCY:-64}", '
+            '"--backlog", "${API_BACKLOG:-64}"]',
             compose,
         )
         self.assertIn("command: python -m app.scheduler.main", compose)
+
+    def test_compact_profile_bounds_memory_and_expensive_concurrency(self) -> None:
+        compose = (ROOT / "docker-compose.prod.example.yml").read_text(encoding="utf-8")
+        profile = (ROOT / "infra/capacity/4gb.env.example").read_text(encoding="utf-8")
+
+        memory_defaults = dict(
+            re.findall(
+                r"^\s+mem_limit:\s+\$\{([A-Z_]+):-([0-9]+)m\}$",
+                compose,
+                re.MULTILINE,
+            )
+        )
+        expected_memory_mib = {
+            "POSTGRES_MEMORY_LIMIT": "352",
+            "REDIS_MEMORY_LIMIT": "64",
+            "CLAMAV_MEMORY_LIMIT": "1408",
+            "PGBOUNCER_MEMORY_LIMIT": "32",
+            "MEDIA_RUNTIME_MEMORY_LIMIT": "768",
+            "API_MEMORY_LIMIT": "384",
+            "SCHEDULER_MEMORY_LIMIT": "224",
+            "WEB_MEMORY_LIMIT": "224",
+            "NGINX_MEMORY_LIMIT": "32",
+        }
+        self.assertEqual(memory_defaults, expected_memory_mib)
+        self.assertLessEqual(sum(map(int, memory_defaults.values())), 3584)
+        for variable, value in expected_memory_mib.items():
+            self.assertIn(f"memory: ${{{variable}:-{value}m}}", compose)
+            self.assertIn(f"{variable}={value}m", profile)
+
+        for required in (
+            '"shared_buffers=${POSTGRES_SHARED_BUFFERS:-128MB}"',
+            '"max_connections=${POSTGRES_MAX_CONNECTIONS:-40}"',
+            '"--maxmemory", "${REDIS_MAXMEMORY:-32mb}"',
+            '"--maxmemory-policy", "noeviction"',
+            'MAX_CLIENT_CONN: "${PGBOUNCER_MAX_CLIENT_CONN:-100}"',
+            'DEFAULT_POOL_SIZE: "${PGBOUNCER_DEFAULT_POOL_SIZE:-10}"',
+            'ARGON2_CONCURRENCY: "${ARGON2_CONCURRENCY:-2}"',
+            '"--limit-concurrency", "${API_LIMIT_CONCURRENCY:-64}"',
+            '"--backlog", "${API_BACKLOG:-64}"',
+            'SCHEDULER_JOB_CONCURRENCY: "${SCHEDULER_JOB_CONCURRENCY:-1}"',
+            'MEDIA_PROCESS_CONCURRENCY: "${MEDIA_PROCESS_CONCURRENCY:-1}"',
+            'MEDIA_PROCESS_BATCH_SIZE: "${MEDIA_PROCESS_BATCH_SIZE:-1}"',
+            'DB_POOL_SIZE: "${DB_POOL_SIZE:-3}"',
+            'DB_MAX_OVERFLOW: "${DB_MAX_OVERFLOW:-2}"',
+        ):
+            self.assertIn(required, compose)
+
+        for required in (
+            'CLAMAV_NO_FRESHCLAMD: "${CLAMAV_NO_FRESHCLAMD:-true}"',
+            'CLAMD_CONF_ConcurrentDatabaseReload: "${CLAMAV_CONCURRENT_DATABASE_RELOAD:-no}"',
+            'CLAMD_CONF_MaxThreads: "${CLAMAV_MAX_THREADS:-1}"',
+            'CLAMD_CONF_MaxQueue: "${CLAMAV_MAX_QUEUE:-2}"',
+            'CLAMD_CONF_StreamMaxLength: "${CLAMAV_STREAM_MAX_LENGTH:-21M}"',
+            'CLAMD_CONF_MaxFileSize: "${CLAMAV_MAX_FILE_SIZE:-21M}"',
+            'CLAMD_CONF_MaxScanSize: "${CLAMAV_MAX_SCAN_SIZE:-64M}"',
+            'CLAMD_CONF_AlertExceedsMax: "yes"',
+        ):
+            self.assertIn(required, compose)
+        self.assertNotIn("FRESHCLAM_CONF_TestDatabases", compose)
+        self.assertNotIn("FRESHCLAM_CONF_TestDatabases", profile)
+
+    def test_compact_clamav_database_update_is_serialized_and_fail_closed(self) -> None:
+        updater = (ROOT / "scripts/update-clamav-db.sh").read_text(encoding="utf-8")
+
+        for required in (
+            "set -Eeuo pipefail",
+            "flock -n 9",
+            '"${compose[@]}" stop -t 30 clamav',
+            "-e CLAMAV_NO_CLAMD=true",
+            "-e CLAMAV_NO_FRESHCLAMD=true",
+            "clamav freshclam --stdout --user=clamav",
+            '"${compose[@]}" up -d clamav',
+            "clamdscan --ping 10",
+            "trap restart_scanner_on_exit EXIT",
+        ):
+            self.assertIn(required, updater)
+        self.assertNotIn("TestDatabases no", updater)
+        self.assertNotIn("docker system prune", updater)
+        self.assertLess(
+            updater.index("scanner_stopped=true"),
+            updater.index('"${compose[@]}" stop -t 30 clamav'),
+        )
 
     def test_web_runtime_removes_package_managers_and_applies_security_updates(self) -> None:
         dockerfile = (ROOT / "apps/web/Dockerfile").read_text(encoding="utf-8")
@@ -241,8 +326,8 @@ class ProductionRuntimeContractTests(unittest.TestCase):
             "/tmp:size=64m,mode=1770,uid=10001,gid=10001,noexec,nosuid,nodev",
             "- ALL",
             "no-new-privileges:true",
-            "cpus: 1.0",
-            "mem_limit: 768m",
+            "cpus: ${MEDIA_RUNTIME_CPUS:-1.0}",
+            "mem_limit: ${MEDIA_RUNTIME_MEMORY_LIMIT:-768m}",
             "pids_limit: 64",
             "- media-control",
         ):

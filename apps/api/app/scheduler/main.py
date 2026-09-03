@@ -11,7 +11,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import Awaitable, Callable
 from contextlib import suppress
+from functools import wraps
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -44,6 +46,20 @@ logging.basicConfig(level=settings.LOG_LEVEL.upper())
 # Liveness marker: the scheduler has no HTTP port, so the heartbeat job touches this
 # file each run and the container healthcheck asserts its freshness.
 HEARTBEAT_FILE = Path("/tmp/scheduler.alive")  # noqa: S108 — container-local, non-sensitive
+
+
+def _serialized_job[JobResult](
+    limiter: asyncio.Semaphore,
+    job: Callable[[], Awaitable[JobResult]],
+) -> Callable[[], Awaitable[JobResult]]:
+    """Serialize bounded operational jobs while leaving liveness independent."""
+
+    @wraps(job)
+    async def run() -> JobResult:
+        async with limiter:
+            return await job()
+
+    return run
 
 
 def _mark_alive() -> None:
@@ -99,6 +115,14 @@ async def prune_expired_refresh_tokens() -> None:
 
 def build_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone="UTC")
+    operational_limiter = asyncio.Semaphore(settings.SCHEDULER_JOB_CONCURRENCY)
+
+    def add_operational_job(
+        job: Callable[[], Awaitable[object]],
+        **kwargs: object,
+    ) -> None:
+        scheduler.add_job(_serialized_job(operational_limiter, job), **kwargs)
+
     scheduler.add_job(
         heartbeat,
         trigger="interval",
@@ -108,7 +132,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,  # collapse missed runs into one
         replace_existing=True,  # idempotent registration on restart
     )
-    scheduler.add_job(
+    add_operational_job(
         prune_expired_refresh_tokens,
         trigger="interval",
         hours=24,  # daily housekeeping; expired tokens are not time-critical
@@ -117,7 +141,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         backfill_customer_codes,
         trigger="interval",
         hours=6,  # safety net; registration provisions codes synchronously, so hits are ~0
@@ -126,7 +150,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         backfill_referral_codes,
         trigger="interval",
         hours=6,  # safety net; GET /referrals/me self-heals on visit, so hits
@@ -136,7 +160,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         reconcile_payouts,
         trigger="interval",
         minutes=15,  # settle stuck live payouts; a no-op in mock mode (main/dev)
@@ -145,7 +169,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         audit_paid_payouts,
         trigger="interval",
         hours=24,  # reversals are bank-side/slow, not a webhook-delivery race —
@@ -155,7 +179,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         reconcile_payout_links,
         trigger="interval",
         minutes=30,  # repairs a display bug (stuck accrued/pending row), not a
@@ -165,7 +189,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         purge_agent_application_orphans,
         trigger="interval",
         hours=24,  # storage cost cleanup, not time-critical
@@ -174,7 +198,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         purge_loan_document_orphans,
         trigger="interval",
         hours=24,  # storage cost cleanup, not time-critical
@@ -183,7 +207,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         purge_task_document_orphans,
         trigger="interval",
         hours=24,  # storage cost cleanup, not time-critical
@@ -192,7 +216,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         purge_banner_image_orphans,
         trigger="interval",
         hours=24,  # storage cost cleanup, not time-critical
@@ -201,7 +225,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         purge_property_media,
         trigger="interval",
         hours=24,
@@ -210,7 +234,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         process_pending_media,
         trigger="interval",
         minutes=1,
@@ -219,7 +243,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         purge_expired_private_media,
         trigger="interval",
         hours=24,
@@ -228,7 +252,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         purge_personalization_locations,
         trigger="interval",
         hours=24,
@@ -237,7 +261,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         cms_activation,
         trigger="interval",
         minutes=5,  # bounds worst-case publish latency: 5 min here + the
@@ -248,7 +272,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         assign_unassigned_leads,
         trigger="interval",
         minutes=15,
@@ -257,7 +281,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         assign_unassigned_employee_work,
         trigger="interval",
         minutes=15,
@@ -266,7 +290,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         expire_agent_leads,
         trigger="interval",
         minutes=15,
@@ -275,7 +299,7 @@ def build_scheduler() -> AsyncIOScheduler:
         coalesce=True,
         replace_existing=True,
     )
-    scheduler.add_job(
+    add_operational_job(
         retention_purge_job,
         trigger="interval",
         hours=24,  # compliance cleanup, not time-critical

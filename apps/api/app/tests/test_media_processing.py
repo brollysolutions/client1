@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 
 import pytest
@@ -68,6 +70,59 @@ def test_scan_fails_closed_when_clamav_is_unreachable(monkeypatch) -> None:
     monkeypatch.setattr(media_processing.socket, "create_connection", unavailable)
     with pytest.raises(media_processing.ScannerUnavailable):
         media_processing.scan_bytes(b"safe-looking bytes")
+
+
+def test_canonical_media_is_bounded_before_object_bytes_are_read(monkeypatch) -> None:
+    first_entered = threading.Event()
+    release_first = threading.Event()
+    second_entered = threading.Event()
+
+    def read_object(key: str, *, max_bytes: int) -> bytes:
+        assert max_bytes == 1024
+        if key == "first":
+            first_entered.set()
+            assert release_first.wait(timeout=2)
+        else:
+            second_entered.set()
+        return b"%PDF-1.7 synthetic"
+
+    monkeypatch.setattr(media_processing, "_MEDIA_PROCESS_SLOT", threading.BoundedSemaphore(1))
+    monkeypatch.setattr(media_processing.storage, "read_object_bytes", read_object)
+    monkeypatch.setattr(media_processing, "scan_bytes", lambda _content: None)
+    monkeypatch.setattr(media_processing.storage, "put_object_bytes", lambda *_args: None)
+    monkeypatch.setattr(
+        media_processing.storage,
+        "head_object",
+        lambda _key: len(b"%PDF-1.7 synthetic"),
+    )
+    monkeypatch.setattr(
+        media_processing.storage,
+        "content_matches_declared_type",
+        lambda _key, _content_type: True,
+    )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first = executor.submit(
+            media_processing.canonicalize_object,
+            "first",
+            "canonical-first",
+            "application/pdf",
+            max_bytes=1024,
+        )
+        assert first_entered.wait(timeout=1)
+        second = executor.submit(
+            media_processing.canonicalize_object,
+            "second",
+            "canonical-second",
+            "application/pdf",
+            max_bytes=1024,
+        )
+        assert not second_entered.wait(timeout=0.1)
+        release_first.set()
+        assert first.result(timeout=2) == len(b"%PDF-1.7 synthetic")
+        assert second.result(timeout=2) == len(b"%PDF-1.7 synthetic")
+
+    assert second_entered.is_set()
 
 
 def _mp4(payload: bytes = b"video") -> bytes:

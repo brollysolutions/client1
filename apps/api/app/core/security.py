@@ -23,7 +23,7 @@ _sysrand = SystemRandom()
 # auth burst allocate ~2.5 GiB of transient RAM and OOM a small replica. Cap concurrent
 # argon2 work well under the memory budget; shared across password + OTP hashing so the
 # ceiling bounds ALL argon2 threads, not each call site independently.
-ARGON2_LIMITER = anyio.CapacityLimiter(8)
+ARGON2_LIMITER = anyio.CapacityLimiter(settings.ARGON2_CONCURRENCY)
 
 # ---------------------------------------------------------------------------
 # Password

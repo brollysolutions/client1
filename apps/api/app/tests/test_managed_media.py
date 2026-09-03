@@ -9,6 +9,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select, text
 
+from app.jobs import managed_media as managed_media_job
 from app.models.loan_document import LoanDocument
 from app.models.task import TaskFeedbackMedia
 from app.services import managed_media, storage
@@ -17,6 +18,27 @@ from app.services.media_processing import MediaProcessorUnavailable, ScannerUnav
 from .test_employee_task_documents import _seed_employee, _seed_task
 
 pytestmark = pytest.mark.asyncio
+
+
+async def test_scheduler_job_uses_configured_media_batch_size(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen: list[int] = []
+
+    async def process_pending_media(*, batch_size: int) -> dict[str, int]:
+        seen.append(batch_size)
+        return {"processed": 0}
+
+    monkeypatch.setattr(managed_media_job.settings, "MEDIA_PROCESS_BATCH_SIZE", 1)
+    monkeypatch.setattr(
+        managed_media_job.managed_media,
+        "process_pending_media",
+        process_pending_media,
+    )
+
+    await managed_media_job.process_pending_media()
+
+    assert seen == [1]
 
 
 async def test_batch_processes_only_loan_video_work(monkeypatch: pytest.MonkeyPatch) -> None:
