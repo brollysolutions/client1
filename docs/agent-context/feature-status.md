@@ -8,9 +8,9 @@ Evidence baseline: `0a6802a` (`upstream/main`, including merged
 [PR #293](https://github.com/brollysolutions/client1/pull/293)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
 
-**Production-environment evidence tooling is complete locally on
-`feat/production-environment-evidence`; all three real-environment rows remain
-open:** the provider-neutral runbook and closed assessor turn privacy-minimized
+**Production-environment evidence tooling is complete locally in
+[PR #294](https://github.com/brollysolutions/client1/pull/294); all three
+real-environment rows remain open:** the provider-neutral runbook and closed assessor turn privacy-minimized
 external observations into a deterministic PASS or NO-GO for `ENV-DNS-01`,
 `ENV-SEC-01`, and `ENV-MON-01`. The record binds an independently supplied exact
 candidate and frozen environment manifest; requires complete edge, public/private
