@@ -145,6 +145,13 @@ banner. Counsel must confirm this treatment for each launch jurisdiction.
 
 ## 3. Production identity, secrets, and supply chain
 
+Use the provider-neutral
+[`production environment validation`](../../infra/production-environment/README.md)
+and its fail-closed assessor for the runtime-configuration, DNS/TLS, monitoring,
+and alert-delivery rows below. The checked-in example is intentionally `NO-GO`;
+tooling or a merged PR does not check any box without exact-environment evidence
+and the required named approvals.
+
 - [ ] Set and independently verify `NEXT_PUBLIC_SITE_URL` (canonical HTTPS
   origin), `NEXT_PUBLIC_CONTACT_PHONE`, `NEXT_PUBLIC_CONTACT_EMAIL`,
   `NEXT_PUBLIC_CONTACT_HOURS`, and `NEXT_PUBLIC_CONTACT_ADDRESS`. Values are

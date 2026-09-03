@@ -4,9 +4,33 @@ Status: **Derived living implementation ledger**
 
 As of: **2026-09-03**
 
-Evidence baseline: `1893b14` (`upstream/main`, including merged
-[PR #292](https://github.com/brollysolutions/client1/pull/292)). The frozen
+Evidence baseline: `0a6802a` (`upstream/main`, including merged
+[PR #293](https://github.com/brollysolutions/client1/pull/293)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
+
+**Production-environment evidence tooling is complete locally in
+[PR #294](https://github.com/brollysolutions/client1/pull/294); all three
+real-environment rows remain open:** the provider-neutral runbook and closed assessor turn privacy-minimized
+external observations into a deterministic PASS or NO-GO for `ENV-DNS-01`,
+`ENV-SEC-01`, and `ENV-MON-01`. The record binds an independently supplied exact
+candidate and frozen environment manifest; requires complete edge, public/private
+object-policy, all-service managed-configuration, monitoring/SLO, alert delivery,
+log-privacy, and gate-specific approval evidence; and emits a digest only for a
+complete pass. Bounded reads, duplicate/unknown/compound-sensitive-field
+rejection, opaque identifiers, and value-free output keep credentials, customer
+data, alert destinations, and raw operational evidence outside Git.
+
+Fresh evidence passes 11 focused assessor tests and all 86 script tests with one
+expected Windows skip; API Ruff/format over 504 files and the single Alembic-head
+gate; frozen web install, lint, typecheck, and 95 files / 610 tests. The native
+build compiles, typechecks, and generates 94/94 routes before the established
+Windows standalone-symlink `EPERM`. The full API run was stopped at 3% after
+repeating database-unavailable skips while Docker/WSL was unresponsive, so it is
+not claimed as passing. No production system, provider, configuration value,
+DNS record, alert route, customer data, payment, deployment, checklist row, or
+launch decision was accessed or changed. Named operators and qualified owners
+must still execute and approve the procedure against the exact real production
+environment; the checked-in example intentionally remains NO-GO.
 
 **The configurable 4-GB production profile is complete locally in
 [PR #293](https://github.com/brollysolutions/client1/pull/293):** the approved scope retains PostgreSQL, Redis,
