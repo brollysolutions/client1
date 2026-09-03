@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "run_id": "replace-with-environment-run-id",
+  "candidate_sha": "0000000000000000000000000000000000000000",
+  "environment_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "environment": "replace-with-production",
+  "operator_id": "replace-with-operator-id",
+  "timing": {
+    "started_at": "2026-09-03T00:00:00Z",
+    "completed_at": "2026-09-03T00:30:00Z"
+  },
+  "edge": {
+    "endpoint_coverage": {
+      "apex": false,
+      "www": false,
+      "api": false,
+      "assets": false,
+      "other_intended": false
+    },
+    "expected_endpoint_count": 4,
+    "verified_endpoint_count": 0,
+    "dns_answers_verified": false,
+    "dns_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "http_redirects_verified": false,
+    "certificate_chain_verified": false,
+    "certificate_names_verified": false,
+    "minimum_tls_version": "replace",
+    "certificate_days_remaining": 0,
+    "renewal_monitoring_enabled": false,
+    "renewal_alert_exercise_passed": false,
+    "hsts_max_age_seconds": 0,
+    "hsts_include_subdomains": false,
+    "hsts_preload": false,
+    "header_surface_coverage": {
+      "html": false,
+      "authentication": false,
+      "dashboard_redirect": false,
+      "api_success": false,
+      "api_error": false,
+      "cached_asset": false
+    },
+    "header_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "security_header_policy_verified": false,
+    "cors_allowed_preflight_passed": false,
+    "cors_untrusted_origins_rejected": false,
+    "proxy_client_ip_verified": false,
+    "storage_listing_denied": false,
+    "public_object_prefix_only_verified": false,
+    "private_object_anonymous_access_denied": false,
+    "request_limits_verified": false
+  },
+  "runtime_configuration": {
+    "service_coverage": {
+      "postgres": false,
+      "redis": false,
+      "clamav": false,
+      "pgbouncer": false,
+      "media-runtime": false,
+      "api": false,
+      "scheduler": false,
+      "web": false,
+      "nginx": false
+    },
+    "binding_count": 0,
+    "unowned_binding_count": 0,
+    "stale_binding_count": 0,
+    "browser_exposed_private_value_count": 0,
+    "default_or_development_value_count": 0,
+    "approved_manager": false,
+    "unique_values_verified": false,
+    "entropy_policy_verified": false,
+    "least_privilege_verified": false,
+    "unrelated_service_access_denied": false,
+    "access_logging_enabled": false,
+    "rotation_exercise_passed": false,
+    "rollback_exercise_passed": false,
+    "expiry_alert_delivered": false,
+    "earliest_rotation_due_at": "2026-12-01T00:00:00Z",
+    "inventory_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "observability": {
+    "signals": {
+      "availability": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "latency": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "http_5xx": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "scheduler_queue_liveness": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "database_saturation": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "redis_saturation_or_failures": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "storage": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "malware_scanner": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "certificate_expiry": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "managed_value_expiry": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "authentication_abuse": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "webhook_lag": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      },
+      "payout_failures": {
+        "dashboard_present": false,
+        "target_defined": false,
+        "alert_enabled": false,
+        "runbook_id": "replace-with-runbook-id"
+      }
+    },
+    "delivery_targets": {
+      "max_primary_delivery_seconds": 60,
+      "max_escalation_delivery_seconds": 300,
+      "max_acknowledgement_seconds": 900,
+      "max_recovery_seconds": 1800
+    },
+    "expected_delivery_route_count": 2,
+    "tested_delivery_route_count": 0,
+    "failed_delivery_route_count": 2,
+    "primary_route_test": {
+      "route_id": "replace-with-primary-route-id",
+      "synthetic_event_id": "replace-with-alert-event-id",
+      "delivered_seconds": 0,
+      "acknowledged_seconds": 0,
+      "recovered_seconds": 0,
+      "passed": false
+    },
+    "escalation_route_test": {
+      "route_id": "replace-with-escalation-route-id",
+      "synthetic_event_id": "replace-with-alert-event-id",
+      "delivered_seconds": 0,
+      "acknowledged_seconds": 0,
+      "recovered_seconds": 0,
+      "passed": false
+    },
+    "delivery_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "log_review": {
+      "sampled_event_count": 0,
+      "authentication_material_findings": 0,
+      "one_time_code_findings": 0,
+      "full_pii_findings": 0,
+      "kyc_locator_findings": 0,
+      "payout_destination_findings": 0,
+      "private_configuration_findings": 0,
+      "excessive_cardinality_findings": 0,
+      "report_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "alert_ownership_current": false,
+    "quiet_hours_verified": false,
+    "runbooks_current": false,
+    "dashboard_access_restricted": false
+  },
+  "controls": {
+    "external_probes_from_independent_network": false,
+    "environment_manifest_frozen": false,
+    "configuration_drift_absent": false,
+    "clocks_synchronized": false,
+    "synthetic_alerts_only": false,
+    "alerts_labeled_synthetic": false,
+    "external_side_effects_bounded": false,
+    "no_real_money_movement": false,
+    "evidence_contains_no_sensitive_values": false,
+    "raw_evidence_access_restricted": false,
+    "runtime_values_not_exported": false,
+    "production_records_not_exported": false
+  },
+  "approvals": {
+    "ENV-DNS-01": {
+      "approver_id": "replace-with-dns-approver-id",
+      "approver_role": "replace",
+      "decision": "open",
+      "decided_at": "2026-09-03T00:40:00Z",
+      "evidence_id": "replace-with-dns-approval-id"
+    },
+    "ENV-SEC-01": {
+      "approver_id": "replace-with-config-approver-id",
+      "approver_role": "replace",
+      "decision": "open",
+      "decided_at": "2026-09-03T00:41:00Z",
+      "evidence_id": "replace-with-config-approval-id"
+    },
+    "ENV-MON-01": {
+      "approver_id": "replace-with-monitoring-approver-id",
+      "approver_role": "replace",
+      "decision": "open",
+      "decided_at": "2026-09-03T00:42:00Z",
+      "evidence_id": "replace-with-monitoring-approval-id"
+    }
+  },
+  "evidence": {
+    "environment_manifest": "replace-with-environment-manifest-id",
+    "external_dns_report": "replace-with-dns-report-id",
+    "tls_scan_report": "replace-with-tls-report-id",
+    "header_probe_report": "replace-with-header-report-id",
+    "runtime_inventory_report": "replace-with-runtime-inventory-id",
+    "access_audit_report": "replace-with-access-audit-id",
+    "rotation_exercise_report": "replace-with-rotation-report-id",
+    "monitoring_inventory_report": "replace-with-monitoring-inventory-id",
+    "alert_delivery_report": "replace-with-alert-delivery-id",
+    "log_privacy_report": "replace-with-log-review-id"
+  }
+}
