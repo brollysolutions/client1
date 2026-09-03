@@ -12,6 +12,7 @@ import http.client
 import math
 import socket
 import struct
+import threading
 import warnings
 from dataclasses import dataclass
 from io import BytesIO
@@ -24,6 +25,7 @@ from app.services import storage
 
 _SCAN_CHUNK_BYTES = 1024 * 1024
 _IMAGE_MAX_PIXELS = 25_000_000
+_MEDIA_PROCESS_SLOT = threading.BoundedSemaphore(settings.MEDIA_PROCESS_CONCURRENCY)
 _IMAGE_FORMAT_BY_CONTENT_TYPE = {
     "image/jpeg": "JPEG",
     "image/png": "PNG",
@@ -189,6 +191,17 @@ def canonicalize_object(
     max_bytes: int,
 ) -> int:
     """Scan one bounded object and write immutable canonical bytes."""
+    with _MEDIA_PROCESS_SLOT:
+        return _canonicalize_object(source_key, destination_key, content_type, max_bytes=max_bytes)
+
+
+def _canonicalize_object(
+    source_key: str,
+    destination_key: str,
+    content_type: str,
+    *,
+    max_bytes: int,
+) -> int:
     content = storage.read_object_bytes(source_key, max_bytes=max_bytes)
     if content is None:
         raise MediaProcessingError
@@ -282,6 +295,16 @@ def process_video_object(
     policy: VideoPolicy,
 ) -> VideoResult:
     """Scan, isolate native parsing, and publish one canonical private MP4."""
+    with _MEDIA_PROCESS_SLOT:
+        return _process_video_object(source_key, destination_key, policy=policy)
+
+
+def _process_video_object(
+    source_key: str,
+    destination_key: str,
+    *,
+    policy: VideoPolicy,
+) -> VideoResult:
     content = storage.read_object_bytes(source_key, max_bytes=policy.max_bytes)
     if content is None or storage.sniff_content_type(content[:32]) != "video/mp4":
         raise InvalidVideo

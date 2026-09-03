@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     ENV: str = "development"
     DEBUG: bool = False
     LOG_LEVEL: str = "info"
+    # Expensive work is bounded independently from request count. Production
+    # Compose lowers these for the 4-GB profile; larger hosts may raise them
+    # within the validated ceilings without changing password cost or job logic.
+    ARGON2_CONCURRENCY: int = 8
+    SCHEDULER_JOB_CONCURRENCY: int = 4
 
     # Database — must point to pgbouncer, not postgres directly.
     # asyncpg: statement_cache_size=0 + unique prepared_statement_name_func wired in db/session.py.
@@ -121,6 +126,8 @@ class Settings(BaseSettings):
     CLAMAV_HOST: str = "clamav"
     CLAMAV_PORT: int = 3310
     CLAMAV_TIMEOUT_SECONDS: int = 20
+    MEDIA_PROCESS_CONCURRENCY: int = 4
+    MEDIA_PROCESS_BATCH_SIZE: int = 4
     MEDIA_VIDEO_MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024
     LOAN_VIDEO_MAX_DURATION_SECONDS: int = 60
     LOAN_VIDEO_MAX_PER_APPLICATION: int = 2
@@ -326,6 +333,18 @@ class Settings(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def _guard_runtime_concurrency(self) -> "Settings":
+        if not 1 <= self.ARGON2_CONCURRENCY <= 8:
+            raise ValueError("ARGON2_CONCURRENCY must be between 1 and 8.")
+        if not 1 <= self.SCHEDULER_JOB_CONCURRENCY <= 4:
+            raise ValueError("SCHEDULER_JOB_CONCURRENCY must be between 1 and 4.")
+        if not 1 <= self.MEDIA_PROCESS_CONCURRENCY <= 4:
+            raise ValueError("MEDIA_PROCESS_CONCURRENCY must be between 1 and 4.")
+        if not 1 <= self.MEDIA_PROCESS_BATCH_SIZE <= 4:
+            raise ValueError("MEDIA_PROCESS_BATCH_SIZE must be between 1 and 4.")
+        return self
+
+    @model_validator(mode="after")
     def _guard_media_processing(self) -> "Settings":
         # Development may deliberately run without the resource-heavy local
         # scanner when exercising non-upload paths. Every other environment is
@@ -336,6 +355,8 @@ class Settings(BaseSettings):
         positive = {
             "CLAMAV_PORT": self.CLAMAV_PORT,
             "CLAMAV_TIMEOUT_SECONDS": self.CLAMAV_TIMEOUT_SECONDS,
+            "MEDIA_PROCESS_CONCURRENCY": self.MEDIA_PROCESS_CONCURRENCY,
+            "MEDIA_PROCESS_BATCH_SIZE": self.MEDIA_PROCESS_BATCH_SIZE,
             "MEDIA_VIDEO_MAX_UPLOAD_BYTES": self.MEDIA_VIDEO_MAX_UPLOAD_BYTES,
             "LOAN_VIDEO_MAX_DURATION_SECONDS": self.LOAN_VIDEO_MAX_DURATION_SECONDS,
             "LOAN_VIDEO_MAX_PER_APPLICATION": self.LOAN_VIDEO_MAX_PER_APPLICATION,

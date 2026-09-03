@@ -1,6 +1,9 @@
 # Production example — copy to docker-compose.prod.yml and adjust.
 # Principles (see .claude/rules/docker.md): multi-stage prod images, non-root, health checks,
 # config from environment/secrets manager (never baked in), one dedicated scheduler instance.
+# The defaults are the capacity-candidate profile for a 2-vCPU / 4-GB host. Every
+# capacity value is overridable for a larger host, but a new target still needs
+# its own evidence run; limits are safety boundaries, not proof of capacity.
 services:
   postgres:
     # PostgreSQL 18.6 on Alpine 3.24; publish the reviewed wrapper from
@@ -13,11 +16,12 @@ services:
     volumes:
       # postgres:18 stores data in a major-version subdir; mount the parent, not /data.
       - postgres_data:/var/lib/postgresql
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-352m}
     deploy:
       resources:
         limits:
-          memory: 1G
-    command: ["postgres", "-c", "shared_buffers=256MB", "-c", "max_connections=100"]
+          memory: ${POSTGRES_MEMORY_LIMIT:-352m}
+    command: ["postgres", "-c", "shared_buffers=${POSTGRES_SHARED_BUFFERS:-128MB}", "-c", "max_connections=${POSTGRES_MAX_CONNECTIONS:-40}"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -28,11 +32,12 @@ services:
   redis:
     # Redis 8.10.1 on supported Alpine 3.23; final manifest digest is mandatory.
     image: "${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/redis:8.10.1-alpine3.23-20260830@sha256:${REDIS_IMAGE_SHA256?set REDIS_IMAGE_SHA256 to the reviewed 64-character registry manifest hash}"
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "${REDIS_MAXMEMORY:-32mb}", "--maxmemory-policy", "noeviction"]
+    mem_limit: ${REDIS_MEMORY_LIMIT:-64m}
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: ${REDIS_MEMORY_LIMIT:-64m}
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -45,10 +50,24 @@ services:
     image: "${RUNTIME_IMAGE_REGISTRY?set RUNTIME_IMAGE_REGISTRY to the approved registry namespace}/clamav:1.4.6-alpine3.24-20260830@sha256:${CLAMAV_IMAGE_SHA256?set CLAMAV_IMAGE_SHA256 to the reviewed 64-character registry manifest hash}"
     volumes:
       - clamav_data:/var/lib/clamav
+    environment:
+      # The compact profile updates signatures with scripts/update-clamav-db.sh
+      # while clamd is stopped. TestDatabases remains enabled; uploads fail
+      # closed during the bounded maintenance window.
+      CLAMAV_NO_FRESHCLAMD: "${CLAMAV_NO_FRESHCLAMD:-true}"
+      CLAMD_CONF_ConcurrentDatabaseReload: "${CLAMAV_CONCURRENT_DATABASE_RELOAD:-no}"
+      CLAMD_CONF_MaxThreads: "${CLAMAV_MAX_THREADS:-1}"
+      CLAMD_CONF_MaxQueue: "${CLAMAV_MAX_QUEUE:-2}"
+      CLAMD_CONF_MaxConnectionQueueLength: "${CLAMAV_MAX_CONNECTION_QUEUE_LENGTH:-2}"
+      CLAMD_CONF_StreamMaxLength: "${CLAMAV_STREAM_MAX_LENGTH:-21M}"
+      CLAMD_CONF_MaxFileSize: "${CLAMAV_MAX_FILE_SIZE:-21M}"
+      CLAMD_CONF_MaxScanSize: "${CLAMAV_MAX_SCAN_SIZE:-64M}"
+      CLAMD_CONF_AlertExceedsMax: "yes"
+    mem_limit: ${CLAMAV_MEMORY_LIMIT:-1408m}
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: ${CLAMAV_MEMORY_LIMIT:-1408m}
     healthcheck:
       test: ["CMD-SHELL", "clamdscan --ping 10"]
       interval: 30s
@@ -70,16 +89,17 @@ services:
       # (not md5) so it can SCRAM-authenticate upstream. md5 default -> "wrong password type".
       AUTH_TYPE: scram-sha-256
       POOL_MODE: transaction
-      MAX_CLIENT_CONN: "200"
-      DEFAULT_POOL_SIZE: "40"
+      MAX_CLIENT_CONN: "${PGBOUNCER_MAX_CLIENT_CONN:-100}"
+      DEFAULT_POOL_SIZE: "${PGBOUNCER_DEFAULT_POOL_SIZE:-10}"
       SERVER_RESET_QUERY: "DISCARD ALL"
     depends_on:
       postgres:
         condition: service_healthy
+    mem_limit: ${PGBOUNCER_MEMORY_LIMIT:-32m}
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: ${PGBOUNCER_MEMORY_LIMIT:-32m}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U ${POSTGRES_USER}"]
       interval: 10s
@@ -104,13 +124,19 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-    cpus: 1.0
-    mem_limit: 768m
+    cpus: ${MEDIA_RUNTIME_CPUS:-1.0}
+    mem_limit: ${MEDIA_RUNTIME_MEMORY_LIMIT:-768m}
     pids_limit: 64
     expose:
       - "8080"
     networks:
       - media-control
+    deploy:
+      resources:
+        limits:
+          cpus: ${MEDIA_RUNTIME_CPUS:-1.0}
+          memory: ${MEDIA_RUNTIME_MEMORY_LIMIT:-768m}
+          pids: 64
     restart: always
 
   api:
@@ -126,13 +152,17 @@ services:
     security_opt:
       - no-new-privileges:true
     pids_limit: 256
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "${API_WORKERS:-1}", "--limit-concurrency", "${API_LIMIT_CONCURRENCY:-64}", "--backlog", "${API_BACKLOG:-64}"]
     env_file:
       - ./apps/api/.env.prod
     environment:
       MEDIA_MALWARE_SCAN_MODE: clamav
       CLAMAV_HOST: clamav
       MEDIA_VIDEO_PROCESSOR_URL: http://media-runtime:8080
+      ARGON2_CONCURRENCY: "${ARGON2_CONCURRENCY:-2}"
+      MEDIA_PROCESS_CONCURRENCY: "${MEDIA_PROCESS_CONCURRENCY:-1}"
+      DB_POOL_SIZE: "${DB_POOL_SIZE:-3}"
+      DB_MAX_OVERFLOW: "${DB_MAX_OVERFLOW:-2}"
     depends_on:
       pgbouncer:
         condition: service_healthy
@@ -140,10 +170,11 @@ services:
         condition: service_healthy
       clamav:
         condition: service_healthy
+    mem_limit: ${API_MEMORY_LIMIT:-384m}
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: ${API_MEMORY_LIMIT:-384m}
           pids: 256
     healthcheck:
       test: ["CMD", "python", "-c", "import json,sys,urllib.request; r=urllib.request.urlopen('http://localhost:8000/health', timeout=3); sys.exit(0 if r.status==200 and json.load(r).get('status')=='ok' else 1)"]
@@ -175,6 +206,11 @@ services:
       MEDIA_MALWARE_SCAN_MODE: clamav
       CLAMAV_HOST: clamav
       MEDIA_VIDEO_PROCESSOR_URL: http://media-runtime:8080
+      SCHEDULER_JOB_CONCURRENCY: "${SCHEDULER_JOB_CONCURRENCY:-1}"
+      MEDIA_PROCESS_CONCURRENCY: "${MEDIA_PROCESS_CONCURRENCY:-1}"
+      MEDIA_PROCESS_BATCH_SIZE: "${MEDIA_PROCESS_BATCH_SIZE:-1}"
+      DB_POOL_SIZE: "${DB_POOL_SIZE:-3}"
+      DB_MAX_OVERFLOW: "${DB_MAX_OVERFLOW:-2}"
     depends_on:
       pgbouncer:
         condition: service_healthy
@@ -187,11 +223,12 @@ services:
     networks:
       - default
       - media-control
+    mem_limit: ${SCHEDULER_MEMORY_LIMIT:-224m}
     deploy:
       replicas: 1   # exactly one scheduler instance — never scale this service
       resources:
         limits:
-          memory: 1G
+          memory: ${SCHEDULER_MEMORY_LIMIT:-224m}
           pids: 128
     healthcheck:
       test: ["CMD", "python", "-c", "import os,time,sys; f='/tmp/scheduler.alive'; sys.exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<150 else 1)"]
@@ -262,10 +299,11 @@ services:
       - ./apps/web/.env.prod
     depends_on:
       - api
+    mem_limit: ${WEB_MEMORY_LIMIT:-224m}
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: ${WEB_MEMORY_LIMIT:-224m}
           pids: 128
     healthcheck:
       test: ["CMD", "node", "-e", "const net=require('net'); const s=net.connect(3000,'127.0.0.1',()=>process.exit(0)); s.setTimeout(3000,()=>process.exit(1)); s.on('error',()=>process.exit(1));"]
@@ -286,10 +324,11 @@ services:
     depends_on:
       - api
       - web
+    mem_limit: ${NGINX_MEMORY_LIMIT:-32m}
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: ${NGINX_MEMORY_LIMIT:-32m}
     healthcheck:
       # `nginx -t` alone passes even with an EMPTY conf.d (syntax-valid, zero
       # server blocks, nothing listening) — a false-positive "healthy" while the

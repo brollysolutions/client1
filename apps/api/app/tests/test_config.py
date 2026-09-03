@@ -110,6 +110,10 @@ def test_empty_cors_origin_list_remains_fail_closed() -> None:
         ("TASK_DOCUMENT_MAX_UPLOAD_BYTES", 0),
         ("TASK_DOCUMENT_MAX_PER_TASK", 0),
         ("TASK_DOCUMENT_PRESIGN_LIMIT_PER_HOUR", 0),
+        ("ARGON2_CONCURRENCY", 0),
+        ("SCHEDULER_JOB_CONCURRENCY", 0),
+        ("MEDIA_PROCESS_CONCURRENCY", 0),
+        ("MEDIA_PROCESS_BATCH_SIZE", 0),
     ],
 )
 def test_security_limits_must_be_positive_or_nonempty(override: str, value: object) -> None:
@@ -134,6 +138,33 @@ def test_disabled_media_scanner_rejected_outside_development() -> None:
 def test_clamav_media_scanner_accepted_outside_development() -> None:
     settings = Settings(ENV="production", SECRET_KEY=_GOOD_KEY, **_REAL_SPACES)
     assert settings.MEDIA_MALWARE_SCAN_MODE == "clamav"
+
+
+def test_compact_runtime_concurrency_is_configurable() -> None:
+    configured = Settings(
+        ENV="production",
+        SECRET_KEY=_GOOD_KEY,
+        ARGON2_CONCURRENCY=2,
+        SCHEDULER_JOB_CONCURRENCY=1,
+        **_REAL_SPACES,
+    )
+
+    assert configured.ARGON2_CONCURRENCY == 2
+    assert configured.SCHEDULER_JOB_CONCURRENCY == 1
+
+
+@pytest.mark.parametrize(
+    ("override", "value"),
+    [
+        ("ARGON2_CONCURRENCY", 9),
+        ("SCHEDULER_JOB_CONCURRENCY", 5),
+        ("MEDIA_PROCESS_CONCURRENCY", 5),
+        ("MEDIA_PROCESS_BATCH_SIZE", 5),
+    ],
+)
+def test_runtime_concurrency_rejects_unsafe_upper_bounds(override: str, value: int) -> None:
+    with pytest.raises(ValidationError):
+        Settings(ENV="development", **{override: value})
 
 
 def test_isolated_media_processor_is_required_outside_development() -> None:
