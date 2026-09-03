@@ -39,6 +39,7 @@ apps/web/test-results/
 *.dump
 *.backup
 infra/recovery/evidence/
+infra/production-environment/evidence/
 
 # OS / editor
 .DS_Store
