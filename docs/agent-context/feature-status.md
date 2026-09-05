@@ -8,7 +8,8 @@ Evidence baseline: `0a6802a` (`upstream/main`, including merged
 [PR #293](https://github.com/brollysolutions/client1/pull/293)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
 
-**Local development web port maintenance is complete locally — PR pending:**
+**Local development web port maintenance is complete locally in
+[PR #295](https://github.com/brollysolutions/client1/pull/295):**
 the Docker web service now publishes `http://localhost:3001` while retaining
 the container listener on 3000. Direct web scripts, Playwright defaults, local
 API CORS/public-origin defaults, MinIO browser-upload CORS, demo output, and
