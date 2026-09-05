@@ -74,10 +74,10 @@ services:
       MINIO_ROOT_PASSWORD: ${SPACES_SECRET_KEY:-minioadmin}
       # The employee document-upload flow PUTs directly from the browser to
       # this origin (presigned URL, not proxied through the API) — without
-      # this, every upload fails a CORS preflight since :3000 and :9000 are
+      # this, every upload fails a CORS preflight since :3001 and :9000 are
       # different origins. DigitalOcean Spaces needs the equivalent bucket
       # CORS rule configured in prod (not something docker-compose controls).
-      MINIO_API_CORS_ALLOW_ORIGIN: http://localhost:3000
+      MINIO_API_CORS_ALLOW_ORIGIN: http://localhost:3001
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -226,9 +226,11 @@ services:
     build:
       context: ./apps/web
       target: dev
-    command: pnpm dev --hostname 0.0.0.0
+    # Keep the container listener at 3000 while publishing 3001 on the host,
+    # so local Docker development can coexist with another host app on 3000.
+    command: pnpm dev --hostname 0.0.0.0 --port 3000
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       # Plain `- api` only waits for the container to start, not for
       # `alembic upgrade head` + uvicorn bind (api's own start_period comment

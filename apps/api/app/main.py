@@ -97,7 +97,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="Loans & Real Estate API", version="0.1.0", lifespan=lifespan)
 
-# Browser calls come from the web app on a different origin (localhost:3000 ->
+# Browser calls come from the web app on a different origin (localhost:3001 ->
 # localhost:8000). Credentials are on: the httponly refresh cookie and the Bearer
 # header must be allowed, so the origin list must be explicit (never "*").
 app.add_middleware(

@@ -2,11 +2,24 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-09-03**
+As of: **2026-09-05**
 
 Evidence baseline: `0a6802a` (`upstream/main`, including merged
 [PR #293](https://github.com/brollysolutions/client1/pull/293)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
+
+**Local development web port maintenance is complete locally — PR pending:**
+the Docker web service now publishes `http://localhost:3001` while retaining
+the container listener on 3000. Direct web scripts, Playwright defaults, local
+API CORS/public-origin defaults, MinIO browser-upload CORS, demo output, and
+developer instructions now share the host origin. Focused API configuration and
+notification-link tests, a rendered development Compose configuration, and web
+lint/typecheck/unit tests pass. The web build compiles, typechecks, and
+generates 94/94 routes before the established Windows standalone-symlink
+`EPERM`. Production Compose, nginx upstreams, and all deployed/internal ports
+remain unchanged; no API
+contract, schema, authorization/RLS, business-line, PII/KYC, money-flow, or
+production configuration changed.
 
 **Production-environment evidence tooling is complete locally in
 [PR #294](https://github.com/brollysolutions/client1/pull/294); all three

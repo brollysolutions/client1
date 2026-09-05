@@ -592,7 +592,7 @@ test.describe("role-aware dashboard navigation", () => {
       const application = await createClientLoanApplication(request, account);
       const personalLoanId = await getLoanTypeId(request, account, "personal-loan");
       await context.grantPermissions(["clipboard-read", "clipboard-write"], {
-        origin: "http://localhost:3000",
+        origin: "http://localhost:3001",
       });
       await logIn(page, account);
 
