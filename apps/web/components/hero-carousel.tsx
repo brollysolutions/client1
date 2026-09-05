@@ -121,8 +121,8 @@ export function HeroCarousel({
 
   return (
     // Edge to edge and flush against the sticky NavBar above it (no top
-    // padding). Both variants are full-bleed: `hero` fills the viewport below
-    // the header, `section` uses fixed shorter heights.
+    // padding). Desktop heroes fill the viewport below the header; mobile
+    // banners grow with their copy and omit the decorative landscape artwork.
     <section
       aria-label={label}
       data-layout={variant === "hero" ? "fullscreen" : "full-bleed"}
@@ -168,8 +168,8 @@ export function HeroCarousel({
                   className={cn(
                     "relative w-full overflow-hidden bg-[var(--nav-bg)]",
                     variant === "hero"
-                      ? "h-[calc(100svh-4rem)] min-h-[420px]"
-                      : "h-[clamp(14rem,36vw,32.5rem)]",
+                      ? "min-h-[24rem] sm:h-[calc(100svh-4rem)] sm:min-h-[420px]"
+                      : "min-h-[16rem] sm:h-[clamp(14rem,36vw,32.5rem)]",
                   )}
                 >
                   {/* Media layer: real landscape image fills the card; otherwise
@@ -181,7 +181,7 @@ export function HeroCarousel({
                       fill
                       priority={i === 0}
                       sizes="100vw"
-                      className="object-cover [-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)] [mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)]"
+                      className="hidden object-cover sm:block [-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)] [mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)]"
                       // next/image's default loader proxies through /_next/image,
                       // fetched SERVER-SIDE by the web process -- not the same
                       // reachability as the browser's direct request this URL is
@@ -202,17 +202,17 @@ export function HeroCarousel({
                   {/* Copy overlay — sized to the card itself, not the page container. */}
                   <div
                     className={cn(
-                      "relative flex h-full items-center",
+                      "relative flex min-h-[inherit] items-center sm:h-full",
                       variant === "hero"
-                        ? "px-6 py-10 sm:px-16 lg:px-28"
-                        : "py-3 pl-16 pr-16 sm:px-24 sm:py-6 lg:px-28 lg:py-8",
+                        ? "px-5 py-16 sm:px-16 sm:py-10 lg:px-28"
+                        : "px-5 pb-16 pt-8 sm:px-24 sm:py-6 lg:px-28 lg:py-8",
                     )}
                   >
                     <div
                       className={cn(
                         variant === "hero"
-                          ? "max-w-[78%] sm:max-w-md lg:max-w-xl"
-                          : "max-w-[60%] sm:max-w-[46%] lg:max-w-[42%]",
+                          ? "min-w-0 w-full sm:max-w-md lg:max-w-xl"
+                          : "min-w-0 w-full sm:max-w-[46%] lg:max-w-[42%]",
                       )}
                     >
                       {banner.reraVerified ? (
@@ -225,8 +225,8 @@ export function HeroCarousel({
                         className={cn(
                           "font-heading font-semibold text-[var(--nav-text)]",
                           variant === "hero"
-                            ? "text-2xl sm:text-4xl lg:text-5xl"
-                            : "line-clamp-2 text-base sm:text-2xl lg:text-4xl",
+                            ? "break-words text-3xl sm:text-4xl lg:text-5xl"
+                            : "break-words text-2xl sm:line-clamp-2 lg:text-4xl",
                         )}
                       >
                         {banner.title}
@@ -234,7 +234,7 @@ export function HeroCarousel({
                       {banner.subtitle && (
                         <p
                           className={cn(
-                            "mt-3 hidden text-[var(--nav-text)] sm:block",
+                            "mt-3 text-[var(--nav-text)]",
                             variant === "hero"
                               ? "text-base sm:text-lg lg:text-xl"
                               : "line-clamp-2 text-sm sm:text-base",
@@ -248,7 +248,7 @@ export function HeroCarousel({
                         <Button
                           asChild={interactive}
                           disabled={!interactive}
-                          className="mt-2 h-8 max-w-full truncate bg-[var(--nav-primary)] px-3 text-xs text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:mt-5 sm:h-10 sm:px-4 sm:text-sm"
+                          className="mt-5 h-auto min-h-11 max-w-full whitespace-normal bg-[var(--nav-primary)] px-4 py-2 text-center text-sm text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:min-h-10"
                         >
                           {interactive ? <Link
                             href={banner.cta.href}
@@ -280,10 +280,9 @@ export function HeroCarousel({
               onClick={goPrev}
               className={cn(
                 "left-2 h-12 w-12 cursor-pointer rounded-full border-none bg-white/90 text-brand-blue shadow-md transition-[background-color,color,box-shadow] duration-300 hover:bg-white hover:text-brand-blue [&_svg]:size-7 sm:left-3 sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-4",
-                // The full-screen hero puts its copy near the left edge, where
-                // a phone-width arrow would sit on top of the headline. Swipe
-                // and the overlaid dots cover navigation there instead.
-                variant === "hero" && "hidden sm:flex",
+                // Keep arrows clear of mobile copy; swipe and accessible dots
+                // provide navigation for both banner variants on phones.
+                "hidden sm:flex",
               )}
             />
             <CarouselNext
@@ -291,7 +290,7 @@ export function HeroCarousel({
               onClick={goNext}
               className={cn(
                 "right-2 h-12 w-12 cursor-pointer rounded-full border-none bg-white/90 text-brand-blue shadow-md transition-[background-color,color,box-shadow] duration-300 hover:bg-white hover:text-brand-blue [&_svg]:size-7 sm:right-3 sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-4",
-                variant === "hero" && "hidden sm:flex",
+                "hidden sm:flex",
               )}
             />
           </>
@@ -316,11 +315,10 @@ export function HeroCarousel({
         </a>
       ) : null}
 
-      {/* Dot indicators — overlaid on the bottom of the full-screen slide, so
-          they do not add height beneath a banner that already fills the screen.
-          White ink because they now sit over artwork rather than a cream strip. */}
-      {variant === "hero" && count > 1 && (
-        <div className="absolute inset-x-0 bottom-6 z-10 flex items-center justify-center gap-2">
+      {/* Large tap targets around compact dots; the mobile section banner also
+          needs these because its arrows are hidden at that width. */}
+      {count > 1 && (
+        <div className={cn("absolute inset-x-0 bottom-3 z-10 flex items-center justify-center gap-1", variant === "section" && "sm:hidden")}>
           {Array.from({ length: count }).map((_, i) => (
             <button
               key={i}
@@ -329,10 +327,10 @@ export function HeroCarousel({
               aria-label={`Go to slide ${i + 1}`}
               aria-current={i === selected}
               className={cn(
-                "h-2 rounded-full transition-[width,background-color] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2",
+                "flex h-11 w-11 items-center justify-center rounded-full after:h-2 after:rounded-full after:transition-[width,background-color] motion-reduce:after:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2",
                 i === selected
-                  ? "w-6 bg-white shadow-sm ring-1 ring-black/10"
-                  : "w-2 bg-white/70 ring-1 ring-black/10 hover:bg-white"
+                  ? "after:w-6 after:bg-brand-blue"
+                  : "after:w-2 after:bg-brand-blue/40 hover:after:bg-brand-blue"
               )}
             />
           ))}

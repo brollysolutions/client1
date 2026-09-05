@@ -2,11 +2,36 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-09-05**
+As of: **2026-09-06**
 
-Evidence baseline: `0a6802a` (`upstream/main`, including merged
-[PR #293](https://github.com/brollysolutions/client1/pull/293)). The frozen
+Evidence baseline: `115fd0f` (`upstream/main`, including merged
+[PR #295](https://github.com/brollysolutions/client1/pull/295)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
+
+**Mobile UI across all routes is complete locally** on
+`feat/production-environment-evidence` (PR linkage follows delivery).
+Landing/public banners omit decorative mobile imagery and use readable,
+content-sized layouts. Shared auth forms and all role dashboards now have
+roomier touch controls, wrapping headers and records, usable mobile sorting,
+scrollable tabs/drawers and viewport-bounded dialogs with restored review-filter
+focus. The changes retain the established desktop design and business behavior.
+
+Fresh checks pass web lint/typecheck, 96 unit-test files / 612 tests and seven
+feature-tracking tests. Playwright has passing evidence for 109 distinct
+scenarios across the full sweep and focused reruns: 98 route cases discovered
+from all 77 page modules at 320/390/768/1365px, plus 11 navigation/form/dialog
+cases. Follow-up runs corrected a synthetic property image and a menu-test
+selector; no application error is accepted by the sweep. Screenshots were
+reviewed for public/auth pages, operational pages and all six dashboard roles.
+The fixtures cover empty states and selected populated lists/forms/details;
+they are not live API/authentication or payment evidence. The native build
+compiles, typechecks and generates 94/94 pages before Windows standalone
+symlink creation fails with `EPERM`; hosted Linux build verification remains
+required. UI, correctness and security reviews found no remaining change-owned
+blocker. No schema, contract, authorization/RLS, PII/KYC, money flow or production
+configuration changes. Coverage stays at 100% of 79 active requirements and
+release readiness remains unchanged. Next priority is the existing operator-run
+production evidence and independent approvals.
 
 **Local development web port maintenance is complete locally in
 [PR #295](https://github.com/brollysolutions/client1/pull/295):**

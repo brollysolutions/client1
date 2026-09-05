@@ -83,7 +83,7 @@ export function AppSidebar({
           <RailToggle expanded={expanded} onToggle={onToggle} />
         ) : (
           // Mobile drawer: no toggle, just top spacing so items don't butt the edge.
-          <div className="mb-2 mt-2" aria-hidden="true" />
+          <div className="mb-2 mt-2 h-8 shrink-0 lg:h-0" aria-hidden="true" />
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">

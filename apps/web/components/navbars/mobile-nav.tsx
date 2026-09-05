@@ -39,7 +39,7 @@ export function MobileNav() {
       <SheetContent
         side="right"
         aria-describedby={undefined}
-        className="flex w-full flex-col gap-6 overflow-y-auto sm:max-w-xs"
+        className="flex w-full flex-col gap-6 overflow-y-auto overscroll-contain pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-16 sm:max-w-xs"
       >
         <SheetTitle className="sr-only">Navigation menu</SheetTitle>
         <nav aria-label="Primary mobile" className="flex flex-col gap-1">

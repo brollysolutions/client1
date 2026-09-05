@@ -102,7 +102,7 @@ export function WhyChooseUs() {
         </div>
 
         {/* Bento benefit grid: anchor card + supporting cards */}
-        <ul className="mt-12 grid auto-rows-fr gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-8 grid gap-4 sm:mt-12 sm:auto-rows-fr sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {/* Anchor card (core promise) */}
           <li className="sm:col-span-2 lg:row-span-2">
             <article className="h-full rounded-2xl border border-[var(--nav-primary)]/20 bg-[var(--nav-tint)]/60 p-6 shadow-sm sm:p-8">

@@ -115,7 +115,7 @@ export function ProductPage({
               fill
               priority
               sizes="100vw"
-              className="pointer-events-none select-none object-cover object-center opacity-90"
+              className="pointer-events-none hidden select-none object-cover object-center opacity-90 sm:block"
             />
             {/* light scrim: enough to keep copy readable, faint enough to see the art */}
             <div

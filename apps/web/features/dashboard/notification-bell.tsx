@@ -57,7 +57,7 @@ export function NotificationBell() {
         <button
           type="button"
           aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
-          className="relative rounded-md p-1.5 text-text-secondary transition-colors hover:bg-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+          className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue sm:h-8 sm:w-8"
         >
           <Bell className="h-5 w-5" />
           {count > 0 && (

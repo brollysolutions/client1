@@ -20,7 +20,7 @@ describe("AdStrip", () => {
     expect(markup).toContain('data-layout="ad-strip"');
     expect(markup).toContain('data-presentation="split-sponsor-card"');
     expect(markup).toContain("h-[152px]");
-    expect(markup).toContain("w-[40%]");
+    expect(markup).toContain("hidden shrink-0 sm:block");
     expect(markup).toContain("sm:aspect-video");
     expect(markup).toContain("lg:w-[341px]");
     expect(markup).toContain("object-contain");

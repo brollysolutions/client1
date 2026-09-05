@@ -2,10 +2,10 @@
 
 Status: **Derived, actively maintained plan**
 
-As of: **2026-09-03**
+As of: **2026-09-06**
 
-Evidence baseline: `0a6802a` (`upstream/main`, including merged
-[PR #293](https://github.com/brollysolutions/client1/pull/293)). The frozen
+Evidence baseline: `115fd0f` (`upstream/main`, including merged
+[PR #295](https://github.com/brollysolutions/client1/pull/295)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
 
 ## Outcome
@@ -59,6 +59,29 @@ The recommendation must be reassessed at feature start. The table below is a
 default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
+
+**Complete locally — mobile UI across all routes** on
+`feat/production-environment-evidence` (PR linkage follows delivery).
+Shared public banners now give mobile copy the full width and omit decorative
+artwork; landing cards use content-sized heights. Auth forms, dashboard headers,
+record cards, tabs, drawers and dialogs fit narrow screens, with larger controls,
+readable form text and mobile sorting. Review-dialog focus returns to its trigger.
+
+Fresh verification: web lint and typecheck; 96 unit-test files / 612 tests;
+seven feature-tracking tests; 109 distinct Playwright scenarios passing across
+the route sweep and focused follow-up runs after correcting fixture data and a
+menu selector. All 77 page modules expand to 98 route cases, each checked at
+320/390/768/1365px; 11 interaction cases cover six roles, public navigation,
+OTP/password entry, sorting and constrained dialogs. Synthetic fixtures cover
+empty and selected populated states, not live backend business journeys.
+The native production build compiles, typechecks and generates 94/94 pages,
+then fails with the established Windows standalone-symlink `EPERM`; a complete
+Linux build remains required in hosted verification. UI, correctness and
+security review found no remaining change-owned blocker. API/contracts,
+authorization/RLS, uploads and financial behavior are unchanged. Requirement
+coverage remains 100% across 79 active requirements; this improves responsive
+quality and does not close any release gate. Next priority remains the existing
+operator-run production readiness evidence and independent approvals.
 
 FR-18.2 Map/GMB integration was removed from the product scope by CS-010 on
 2026-08-09. It is not an active, deferred, or release requirement and is not

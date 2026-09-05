@@ -38,7 +38,7 @@ export function LineSwitcher() {
       title={`Switch to ${LABELS[other]}`}
       onClick={switchLine}
       className={cn(
-        "group inline-flex cursor-pointer items-center gap-2 rounded-full border border-dash-border bg-surface py-1.5 pl-3 pr-3.5 text-sm font-medium text-text-secondary shadow-sm",
+        "group inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-dash-border bg-surface px-3 py-1.5 text-sm font-medium text-text-secondary shadow-sm sm:min-h-0 sm:pr-3.5",
         "transition-[background-color,border-color,color,box-shadow,transform] duration-200 ease-out motion-reduce:transition-none",
         "hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta hover:shadow-md",
         "active:scale-[0.97]",
@@ -49,6 +49,7 @@ export function LineSwitcher() {
         className="h-4 w-4 shrink-0 transition-transform duration-300 ease-out group-hover:rotate-180 motion-reduce:transition-none motion-reduce:group-hover:rotate-0"
         aria-hidden="true"
       />
+      <span className="sm:hidden">{LABELS[activeLine]}</span>
       {/* Two collapsing tracks: the resting label sits in a 1fr track, the hover
           label in a 0fr track. On hover the fr weights swap, so the pill width
           animates to fit whichever label shows (no dead space when the label is

@@ -15,4 +15,4 @@
  * icon lands where a bare icon used to sit.
  */
 export const CLOSE_BUTTON_CLASS =
-  "inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-text-secondary transition-colors hover:bg-transparent hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0";
+  "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-text-secondary transition-colors hover:bg-transparent hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue disabled:pointer-events-none disabled:opacity-50 sm:h-8 sm:w-8 [&_svg]:pointer-events-none [&_svg]:shrink-0";
