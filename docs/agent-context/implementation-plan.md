@@ -60,8 +60,9 @@ default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
 
-**Complete locally — mobile UI across all routes** on
-`feat/production-environment-evidence` (PR linkage follows delivery).
+**Complete locally — mobile UI across all routes** in
+[PR #296](https://github.com/brollysolutions/client1/pull/296), on
+`feat/production-environment-evidence`.
 Shared public banners now give mobile copy the full width and omit decorative
 artwork; landing cards use content-sized heights. Auth forms, dashboard headers,
 record cards, tabs, drawers and dialogs fit narrow screens, with larger controls,

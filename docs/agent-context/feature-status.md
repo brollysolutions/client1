@@ -8,8 +8,9 @@ Evidence baseline: `115fd0f` (`upstream/main`, including merged
 [PR #295](https://github.com/brollysolutions/client1/pull/295)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
 
-**Mobile UI across all routes is complete locally** on
-`feat/production-environment-evidence` (PR linkage follows delivery).
+**Mobile UI across all routes is complete locally** in
+[PR #296](https://github.com/brollysolutions/client1/pull/296), on
+`feat/production-environment-evidence`.
 Landing/public banners omit decorative mobile imagery and use readable,
 content-sized layouts. Shared auth forms and all role dashboards now have
 roomier touch controls, wrapping headers and records, usable mobile sorting,
