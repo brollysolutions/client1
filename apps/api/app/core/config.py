@@ -157,8 +157,8 @@ class Settings(BaseSettings):
     # per-IP OTP cap above degrades to a global cap (see OTP_RATE_LIMIT_PER_IP).
     TRUST_PROXY_HEADERS: bool = False
 
-    # CORS — set as JSON array: '["http://localhost:3000","https://yourdomain.com"]'
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
+    # CORS — set as JSON array: '["http://localhost:3001","https://yourdomain.com"]'
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:3001"]
 
     # OTP delivery channels — Voice (2Factor.in) primary, Email (SMTP) fallback.
     # SMS is intentionally NOT used: India DLT registration is out of scope and
@@ -183,7 +183,7 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True  # STARTTLS on port 587
     # Canonical public web origin used only to turn safe internal notification
     # paths into email action links. Keep this separate from API/CORS routing.
-    PUBLIC_WEB_ORIGIN: str = "http://localhost:3000"
+    PUBLIC_WEB_ORIGIN: str = "http://localhost:3001"
     # Transactional copies of in-app notifications go only to verified account
     # email addresses. Disabled by default until SMTP and the public origin are
     # deliberately configured for an environment.

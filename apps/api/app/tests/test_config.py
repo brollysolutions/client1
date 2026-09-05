@@ -89,11 +89,18 @@ def test_cors_origins_must_be_explicit_http_origins(origin: str) -> None:
 
 
 def test_explicit_cors_origins_are_preserved() -> None:
-    origins = ["http://localhost:3000", "https://app.example.com"]
+    origins = ["http://localhost:3001", "https://app.example.com"]
 
     configured = Settings(ENV="development", ALLOWED_ORIGINS=origins)
 
     assert origins == configured.ALLOWED_ORIGINS
+
+
+def test_default_local_web_origin_uses_port_3001() -> None:
+    configured = Settings(ENV="development")
+
+    assert configured.ALLOWED_ORIGINS == ["http://localhost:3001"]
+    assert configured.PUBLIC_WEB_ORIGIN == "http://localhost:3001"
 
 
 def test_empty_cors_origin_list_remains_fail_closed() -> None:

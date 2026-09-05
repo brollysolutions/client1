@@ -1817,7 +1817,7 @@ def main() -> None:
     print(f"[seed_demo] Ready: {result}")
     if verified is not None:
         print(f"[seed_demo] Verified logins and role APIs: {verified}")
-    print("[seed_demo] Login at http://localhost:3000/login")
+    print("[seed_demo] Login at http://localhost:3001/login")
     print(credentials_table())
 
 
