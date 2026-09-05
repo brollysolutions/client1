@@ -39,8 +39,8 @@ def test_external_or_ambiguous_notification_paths_are_rejected(href: str) -> Non
 
 def test_notification_email_uses_safe_action_url_and_fallback() -> None:
     assert notification_email_body("An update is ready.", "/dashboard/support").endswith(
-        "http://localhost:3000/dashboard/support"
+        "http://localhost:3001/dashboard/support"
     )
     assert notification_email_body("An update is ready.", "//attacker.example").endswith(
-        "http://localhost:3000/dashboard/notifications"
+        "http://localhost:3001/dashboard/notifications"
     )

@@ -21,7 +21,7 @@ upload-backed UI works.
 
 ## Credentials
 
-Login: <http://localhost:3000/login>
+Login: <http://localhost:3001/login>
 
 | Workspace | Mobile | Password | Scope |
 | --- | --- | --- | --- |

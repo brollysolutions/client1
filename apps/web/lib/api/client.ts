@@ -156,7 +156,7 @@ export async function apiRequest<TResponse = undefined>(
 ): Promise<ApiResponse<TResponse>> {
   // Send one attempt with the given token. Returns the Response, or null on a
   // network failure. `credentials: "include"` carries the httponly refresh
-  // cookie across the localhost:3000 -> :8000 origin boundary (CORS allows it).
+  // cookie across the localhost:3001 -> :8000 origin boundary (CORS allows it).
   const attempt = async (token: string | null): Promise<Response | null> => {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (token) headers.Authorization = `Bearer ${token}`;
