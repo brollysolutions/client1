@@ -40,6 +40,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.brand import LOGO_PNG, branded_filename
 from app.core.deps import CurrentUser, get_active_user, require_platform_admin
 from app.db.session import get_db
 from app.schemas.reporting import (
@@ -109,7 +110,9 @@ def _export_filename(
     kind: str, business_line: str | None, date_from: date, date_to: date, extension: str = "csv"
 ) -> str:
     line = business_line or "all"
-    return f"{kind}-{line}-{date_from.isoformat()}_{date_to.isoformat()}.{extension}"
+    return branded_filename(
+        f"{kind}-{line}-{date_from.isoformat()}_{date_to.isoformat()}.{extension}"
+    )
 
 
 def _export_response(rows: list[dict], header: list[str], truncated: bool, filename: str):
@@ -131,10 +134,32 @@ def _xlsx_response(rows: list[dict], header: list[str], truncated: bool, filenam
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output, {"in_memory": True, "strings_to_formulas": False})
     worksheet = workbook.add_worksheet("Report")
-    header_format = workbook.add_format({"bold": True})
+    workbook.set_properties({"company": "Dhanadhara", "author": "Dhanadhara"})
+    worksheet.insert_image(
+        "A1",
+        "logo.png",
+        {
+            "image_data": io.BytesIO(LOGO_PNG),
+            "x_scale": 0.25,
+            "y_scale": 0.25,
+            "description": "Dhanadhara",
+        },
+    )
+    worksheet.write_string(
+        "A4", "Dhanadhara report", workbook.add_format({"bold": True, "font_size": 14})
+    )
+    if truncated:
+        worksheet.write_string(
+            "A5", "Export limited to 50,000 rows. Narrow the filters for remaining data."
+        )
+    header_format = workbook.add_format(
+        {"bold": True, "font_color": "#FFFFFF", "bg_color": "#172878"}
+    )
+    header_row = 6
     for col, value in enumerate(header):
-        worksheet.write_string(0, col, value, header_format)
-    for row_index, row in enumerate(rows, start=1):
+        worksheet.write_string(header_row, col, value, header_format)
+        worksheet.set_column(col, col, max(18, min(32, len(value) + 2)))
+    for row_index, row in enumerate(rows, start=header_row + 1):
         for col, key in enumerate(header):
             value = row.get(key, "")
             if isinstance(value, bool):
@@ -143,7 +168,11 @@ def _xlsx_response(rows: list[dict], header: list[str], truncated: bool, filenam
                 worksheet.write_number(row_index, col, value)
             else:
                 worksheet.write_string(row_index, col, _csv_cell(value))
-    worksheet.freeze_panes(1, 0)
+    worksheet.freeze_panes(header_row + 1, 0)
+    worksheet.autofilter(header_row, 0, header_row + len(rows), len(header) - 1)
+    worksheet.repeat_rows(0, header_row)
+    worksheet.set_landscape()
+    worksheet.fit_to_pages(1, 0)
     workbook.close()
 
     response = Response(

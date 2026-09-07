@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Logo } from "@/components/logo";
 
 import { BrandPanel, type AuthScene } from "./brand-panel";
 
@@ -33,7 +34,10 @@ export function AuthShell({
 
       <div className="relative min-w-0 px-4 sm:px-10 lg:h-dvh lg:overflow-y-auto lg:px-12 xl:px-16">
         <div className="flex min-h-dvh flex-col justify-center py-6 lg:min-h-full">
-          <div className="auth-anim-fade-up mx-auto w-full max-w-md">{children}</div>
+          <div className="auth-anim-fade-up mx-auto w-full max-w-md">
+            <Logo className="mb-8 w-52 sm:w-60" />
+            {children}
+          </div>
         </div>
       </div>
     </div>

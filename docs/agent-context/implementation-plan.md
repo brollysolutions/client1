@@ -2,7 +2,7 @@
 
 Status: **Derived, actively maintained plan**
 
-As of: **2026-09-06**
+As of: **2026-09-07**
 
 Evidence baseline: `115fd0f` (`upstream/main`, including merged
 [PR #295](https://github.com/brollysolutions/client1/pull/295)). The frozen
@@ -59,6 +59,30 @@ The recommendation must be reassessed at feature start. The table below is a
 default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
+
+**Implemented — Dhanadhara logo and branding rollout**, on
+`feat/production-environment-evidence`, in
+[PR #296](https://github.com/brollysolutions/client1/pull/296). The supplied
+blue/gold symbol accompanies a continuous Space Grotesk wordmark with no tagline
+across public/auth/dashboard shells, errors, browser/push icons, social previews,
+email and Excel reports. Free local calculator Excel exports accompany compatible
+CSV downloads with branded filenames. Auth/RLS, original uploads, financial
+calculations and delivery behavior remain unchanged; no paid integration or
+schema change was introduced.
+
+Fresh checks pass web lint/typecheck, 617 unit tests, 32 focused API tests, API
+lint/format, the single migration head, seven feature-tracking tests and the
+production dependency audit. The broader API attempt passed 950 tests before
+interruption to diagnose two environment-sensitive configuration failures; both
+pass in an isolated test process. The continuation completed the remaining files
+with 1,031 passed (exit 0), repeating the interrupted boundary file. This is
+segmented evidence, not a single clean full-suite run. The web build compiles and generates all 95 pages, then
+fails Windows standalone symlink creation (`EPERM`); hosted Linux build validation
+remains required. Playwright was stopped at the user's request; current browser
+layout and real email-client rendering remain unverified. Static security/UI
+review found no remaining change-owned blocker. Requirement coverage remains
+100% across 79 requirements. Next priority is hosted verification and the existing
+production-evidence release gates.
 
 **Complete locally — mobile UI across all routes** in
 [PR #296](https://github.com/brollysolutions/client1/pull/296), on

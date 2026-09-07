@@ -17,6 +17,7 @@ import { RE_CATEGORIES } from "@/lib/real-estate";
 import { cn } from "@/lib/utils";
 
 import { AccountMenu } from "./account-menu";
+import { Logo } from "@/components/logo";
 import { EXPLORE_CATEGORIES } from "./explore-categories";
 import { useLine } from "./line-provider";
 import {
@@ -79,12 +80,13 @@ export function AppSidebar({
           labeled ? "px-3" : "px-2",
         )}
       >
-        {onToggle ? (
-          <RailToggle expanded={expanded} onToggle={onToggle} />
-        ) : (
-          // Mobile drawer: no toggle, just top spacing so items don't butt the edge.
-          <div className="mb-2 mt-2 h-8 shrink-0 lg:h-0" aria-hidden="true" />
-        )}
+        <Logo
+          variant={labeled ? "horizontal" : "symbol"}
+          href="/dashboard"
+          onClick={onNavigate}
+          className={cn("mx-auto mb-3", labeled && "w-48 sm:w-48", showLabels && "ml-0 mr-auto w-40 sm:w-40")}
+        />
+        {onToggle && <RailToggle expanded={expanded} onToggle={onToggle} />}
 
         <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {sections.map((section, sectionIndex) => (
@@ -150,8 +152,6 @@ function RailToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () =>
   if (expanded) {
     return (
       <div className="mb-2 mt-1 flex items-center px-1">
-        {/* Left slot reserved for the logo (lands later). */}
-        <span className="h-8 w-8 shrink-0" aria-hidden="true" />
         <button
           type="button"
           onClick={onToggle}

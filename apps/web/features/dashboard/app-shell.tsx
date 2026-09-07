@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Menu } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 import { useAuth } from "@/components/auth/session-provider";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -76,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               >
                 {/* Top bar */}
-                <header className="sticky top-0 z-20 flex min-h-14 items-center gap-1 bg-background px-3 sm:gap-3 sm:px-4 lg:px-6">
+                <header className="sticky top-0 z-20 flex min-h-14 items-center gap-0.5 bg-background px-2 sm:gap-3 sm:px-4 lg:px-6">
                   <button
                     type="button"
                     aria-label="Open menu"
@@ -85,6 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <Menu className="h-5 w-5" />
                   </button>
+                  <Logo variant="symbol" href="/dashboard" className="h-11 w-8 lg:hidden" />
                   <div className="flex-1" />
                   <NotificationBell />
                   <LineSwitcher />

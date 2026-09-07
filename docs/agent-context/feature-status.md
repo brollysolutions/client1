@@ -2,11 +2,38 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-09-06**
+As of: **2026-09-07**
 
 Evidence baseline: `115fd0f` (`upstream/main`, including merged
 [PR #295](https://github.com/brollysolutions/client1/pull/295)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
+
+**Dhanadhara branding is implemented** on
+`feat/production-environment-evidence`, in
+[PR #296](https://github.com/brollysolutions/client1/pull/296).
+The supplied blue/gold artwork now accompanies a continuous Space Grotesk
+wordmark with no tagline across public/auth/dashboard shells, errors, browser
+and push icons, social previews, email alternatives and Excel reports.
+Calculator Excel downloads use free, on-demand local generation beside compatible
+CSV. Original uploads, authorization/RLS and financial calculations are unchanged.
+
+Fresh evidence: web lint/typecheck and 97 files / 617 unit tests pass; API lint
+and formatting pass; one Alembic head; production dependency audit has no known
+vulnerabilities; seven feature-tracking tests pass. Focused container API checks
+pass 32 tests. The broader API run passed 950 tests before being interrupted
+to diagnose two unchanged configuration tests: existing container overrides
+shadowed the default CORS origin and missing media-processor URL. Both pass
+with the test process isolated from those overrides. The continuation from
+`test_fee_cashback_api.py` through `test_vehicle_arrangements_rls.py` finished
+with 1,031 passed (exit 0), completing the remaining files with the interrupted
+boundary file repeated. This is segmented evidence, not a single clean full-suite
+run. The final native web build compiles, checks types/lint and
+generates 95/95 pages, then fails at Windows standalone symlink creation
+(`EPERM`). Playwright was stopped at the user's explicit request, so current
+browser/layout and real email-client verification remain unverified. Static
+security/UI review found no remaining change-owned blocker. Coverage remains
+100% of 79 requirements. Next priority is hosted Linux build verification and
+the existing production-evidence release gates.
 
 **Mobile UI across all routes is complete locally** in
 [PR #296](https://github.com/brollysolutions/client1/pull/296), on
