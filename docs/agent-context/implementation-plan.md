@@ -62,6 +62,8 @@ default, not permission to skip the pre-implementation announcement.
 
 **Implemented — upstream synchronization PR automation; activation pending** (2026-09-12), on
 `feat/production-environment-evidence`, baseline `f509382`. Reuse the existing
+configuration in [upstream PR #298](https://github.com/brollysolutions/client1/pull/298)
+and destination activation PR #4. The automation uses the existing
 destination `SYNC_PAT` to check public upstream `main` every 30 minutes and open
 one destination sync PR at a time. Preserve destination-only commits, stop on
 conflicts, and never force-push, merge PRs, or write protected branches. Fourteen

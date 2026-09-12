@@ -13,6 +13,7 @@ skip. Ruff, Bash syntax, workflow YAML/trigger/credential and diff checks pass.
 Application/API/browser suites are not rerun for this workflow-only scope. No dependency,
 application, credential, deployment-policy or requirement-coverage change.
 Activation is included in destination [PR #4](https://github.com/vamshisaideep9/client1/pull/4).
+The tracked setup is reviewed in [upstream PR #298](https://github.com/brollysolutions/client1/pull/298).
 The local approval hook rejected the explicitly user-requested merge; the
 schedule and PAT's PR-creation access cannot yet be verified on destination
 `main`. See the [operator guide](../../.github/UPSTREAM-SYNC.md). Next step:
