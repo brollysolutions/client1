@@ -60,6 +60,27 @@ default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
 
+**Implemented — upstream synchronization PR automation; activation pending** (2026-09-12), on
+`feat/production-environment-evidence`, baseline `f509382`. Reuse the existing
+configuration in [upstream PR #298](https://github.com/brollysolutions/client1/pull/298)
+and destination activation PR #4. The automation uses the existing
+destination `SYNC_PAT` to check public upstream `main` every 30 minutes and open
+one destination sync PR at a time. Preserve destination-only commits, stop on
+conflicts, and never force-push, merge PRs, or write protected branches. Fourteen
+tests pass, including real temporary Git histories, API failure/retry behavior,
+duplicate/closed PR handling and environment boundaries. Ruff lint/format and
+workflow YAML/trigger/credential checks pass. Full script discovery finishes
+with 104 passed and one expected Windows skip; Bash syntax and diff checks pass.
+Application/API/browser suites are not rerun for this workflow-only increment.
+See the [operator guide](../../.github/UPSTREAM-SYNC.md).
+No application, deployment-policy, dependency or credential changes. Activation
+requires the workflow to reach destination `main`; the local approval hook has
+rejected the user's explicitly requested merge of destination
+[PR #4](https://github.com/vamshisaideep9/client1/pull/4). Hosted schedule execution
+and the existing PAT's PR-creation permission remain unverified. Next step is
+merging the activation PR and inspecting its first workflow result; product
+coverage and the existing release/security blockers are unchanged.
+
 **Implemented — measured frontend delivery fixes; timing budgets remain open**, on
 `feat/production-environment-evidence`, baseline `68091c6` (2026-09-12).
 Delivered in [PR #297](https://github.com/brollysolutions/client1/pull/297), using
