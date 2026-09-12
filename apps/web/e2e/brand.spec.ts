@@ -15,7 +15,9 @@ for (const route of ["/", "/login", "/register", "/forgot-password", "/change-mo
       await page.goto(route);
       const logo = page.getByRole("img", { name: "Dhanadhara", exact: true }).first();
       await expect(logo).toBeVisible();
-      await expect(logo).toHaveJSProperty("naturalWidth", 960);
+      await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+      const logoUrl = new URL(await logo.evaluate((image: HTMLImageElement) => image.currentSrc));
+      expect(logoUrl.searchParams.get("url")).toBe("/brand/logo-horizontal.png");
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
       await expect(page.locator("body")).not.toContainText("Grow Wealth");
     }

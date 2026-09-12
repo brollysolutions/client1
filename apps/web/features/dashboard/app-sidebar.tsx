@@ -84,6 +84,7 @@ export function AppSidebar({
           variant={labeled ? "horizontal" : "symbol"}
           href="/dashboard"
           onClick={onNavigate}
+          sizes={showLabels ? "160px" : labeled ? "192px" : "40px"}
           className={cn("mx-auto mb-3", labeled && "w-48 sm:w-48", showLabels && "ml-0 mr-auto w-40 sm:w-40")}
         />
         {onToggle && <RailToggle expanded={expanded} onToggle={onToggle} />}

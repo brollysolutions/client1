@@ -2,7 +2,7 @@
 
 Status: **Derived, actively maintained plan**
 
-As of: **2026-09-07**
+As of: **2026-09-12**
 
 Evidence baseline: `115fd0f` (`upstream/main`, including merged
 [PR #295](https://github.com/brollysolutions/client1/pull/295)). The frozen
@@ -59,6 +59,33 @@ The recommendation must be reassessed at feature start. The table below is a
 default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
+
+**Implemented — measured frontend delivery fixes; timing budgets remain open**, on
+`feat/production-environment-evidence`, baseline `68091c6` (2026-09-12).
+Delivered in [PR #296](https://github.com/brollysolutions/client1/pull/296), using
+`gpt-6-astra` / Extra High (`xhigh`). The user-confirmed Dhanadhara scope applies
+the supplied guide's measurement principles without importing BrollyAI's brand,
+routes or architecture. Native responsive artwork, sized logos/bundled banners,
+RSC gzip, calculator code splitting/loading space and Home CTA contrast are
+implemented. Source copy, desktop composition, URL state, calculations, exports,
+storage host behavior and security boundaries are preserved. No dependency,
+API/auth/RLS, financial, telemetry or deployment change in this increment.
+
+Fresh evidence: lint/typecheck, 620 unit tests, 49 focused/responsive browser
+cases, 90 script tests with one expected Windows skip, nginx syntax plus real
+gzip response checks, 95 generated production routes (exit 0 with the existing
+Windows standalone-copy warning), and 18 valid before plus 18 valid after
+Lighthouse samples. Eight-route/two-width resource inspection has no errors or
+overflow. Mobile resource transfer falls Home 524.6→259.2 kB, EMI 611.7→365.0 kB
+and Real Estate 648.8→370.3 kB. EMI mobile median LCP changes 4253→3731 ms and
+CLS 0.225→0. All three mobile routes still miss performance/LCP/TBT budgets;
+Home/Real Estate timing does
+not improve, and a desktop EMI run shifts 0.144. The full ranges, accessibility
+gaps, no-disk optimizer-cache constraint and verification limits are in the
+[audit](frontend-performance-audit-2026-09-12.md). No field or deployed speed
+claim is made. Coverage remains 100% of 79 requirements. Next performance
+priority is attributed shared hydration/layout work and the footer/font outlier;
+the existing target-host and production-evidence release gates remain open.
 
 **Implemented — Dhanadhara logo and branding rollout**, on
 `feat/production-environment-evidence`, in

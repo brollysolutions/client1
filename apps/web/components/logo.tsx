@@ -6,11 +6,13 @@ import { cn } from "@/lib/utils";
 
 export type LogoVariant = "horizontal" | "stacked" | "symbol";
 
-export function Logo({ className, variant = "horizontal", href = "/", onClick }: {
+export function Logo({ className, variant = "horizontal", href = "/", onClick, sizes }: {
   className?: string;
   variant?: LogoVariant;
   href?: string | null;
   onClick?: () => void;
+  /** Match any width override supplied through className. */
+  sizes?: string;
 }) {
   const asset = BRAND_ASSETS[variant];
   const classes = cn(
@@ -18,7 +20,16 @@ export function Logo({ className, variant = "horizontal", href = "/", onClick }:
     variant === "symbol" ? "h-10 w-10" : variant === "stacked" ? "w-48" : "w-36 sm:w-44",
     className,
   );
-  const artwork = <Image src={asset.src} width={asset.width} height={asset.height} alt={SITE_NAME} unoptimized className="h-auto w-full object-contain" />;
+  const artwork = (
+    <Image
+      src={asset.src}
+      width={asset.width}
+      height={asset.height}
+      alt={SITE_NAME}
+      sizes={sizes ?? (variant === "symbol" ? "40px" : variant === "stacked" ? "192px" : "(min-width: 640px) 176px, 144px")}
+      className="h-auto w-full object-contain"
+    />
+  );
   return href === null ? <span className={classes}>{artwork}</span> : (
     <Link href={href} prefetch={false} aria-label={`${SITE_NAME} ${href === "/" ? "home" : "dashboard"}`} onClick={onClick} className={classes}>
       {artwork}

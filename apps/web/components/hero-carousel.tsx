@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ResponsiveArtwork } from "@/components/responsive-artwork";
 import {
   Carousel,
   CarouselContent,
@@ -175,25 +175,18 @@ export function HeroCarousel({
                   {/* Media layer: real landscape image fills the card; otherwise
                       a cream placeholder that matches the NavBar (no gray seam). */}
                   {banner.image ? (
-                    <Image
+                    <ResponsiveArtwork
                       src={banner.image}
-                      alt=""
+                      media="(min-width: 640px)"
                       fill
-                      priority={i === 0}
+                      loading={i === 0 ? "eager" : "lazy"}
+                      fetchPriority={i === 0 ? "high" : "auto"}
                       sizes="100vw"
                       className="hidden object-cover sm:block [-webkit-mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)] [mask-image:linear-gradient(to_right,transparent_0%,transparent_24%,black_62%,black_100%)]"
-                      // next/image's default loader proxies through /_next/image,
-                      // fetched SERVER-SIDE by the web process -- not the same
-                      // reachability as the browser's direct request this URL is
-                      // otherwise built for (see services/storage.py's
-                      // internal-vs-public split; in dev, minio's public host is
-                      // only resolvable from the browser, not the web container,
-                      // and the proxy 500s). Banner images are already capped at
-                      // 2 MiB and pre-compressed on upload, so skipping Next's
-                      // re-optimization for this one image class is a deliberate
-                      // trade, not a workaround: one less network hop, and one
-                      // less way for this specific card to fail.
-                      unoptimized
+                      // Bundled artwork is local and can use responsive Next
+                      // derivatives. Uploaded assets stay direct: their public
+                      // storage host may not resolve from the web container.
+                      unoptimized={!banner.image.startsWith("/banner-templates/")}
                     />
                   ) : (
                     <div className="absolute inset-0 bg-[var(--nav-bg)]" />

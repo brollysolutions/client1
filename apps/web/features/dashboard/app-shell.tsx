@@ -86,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <Menu className="h-5 w-5" />
                   </button>
-                  <Logo variant="symbol" href="/dashboard" className="h-11 w-8 lg:hidden" />
+                  <Logo variant="symbol" href="/dashboard" className="h-11 w-8 lg:hidden" sizes="32px" />
                   <div className="flex-1" />
                   <NotificationBell />
                   <LineSwitcher />

@@ -19,7 +19,7 @@ export function SiteFooter() {
   return (
     <footer className="w-full border-t border-black bg-[var(--nav-bg)]">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        <Logo className="mb-8 w-52 sm:w-60" />
+        <Logo className="mb-8 w-52 sm:w-60" sizes="(min-width: 640px) 240px, 208px" />
         {/* Link columns */}
         <nav aria-label="Footer">
           {/* Below lg: collapsible columns, native <details>, no JS */}

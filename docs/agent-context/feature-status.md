@@ -2,7 +2,37 @@
 
 Status: **Derived living implementation ledger**
 
-As of: **2026-09-07**
+**Implemented (2026-09-12) — frontend delivery fixes; speed budgets remain open**, on
+`feat/production-environment-evidence`, baseline `68091c6`, for
+[PR #296](https://github.com/brollysolutions/client1/pull/296).
+The user confirmed Dhanadhara as the target of the supplied BrollyAI measurement
+principles. Responsive artwork stops hidden mobile requests, logos and bundled
+banners use sized derivatives, nginx compresses RSC, and calculators load their
+own implementation with reserved loading space. Home CTA contrast is corrected.
+Source copy, brand, interactions, exports, financial logic and safeguards remain.
+
+Fresh checks: lint/typecheck and 620 unit tests pass; 49 Playwright cases pass,
+including all 18 calculators, four widths and six dashboard roles. Script tests
+finish with 90 passed / one expected Windows skip. Exact nginx syntax and real
+gzip/body-integrity probes pass. Synthetic production build exits 0 with 95/95
+routes and the known Windows standalone symlink-copy warning; complete Linux
+packaging is unverified locally. The full API/monolithic gate was not rerun for
+this frontend/nginx-only increment; earlier branding API evidence below remains
+historical. New resource tests join the existing release-browser configuration.
+
+The [audit](frontend-performance-audit-2026-09-12.md) retains eight-route resource
+inventories and 18 valid Lighthouse samples per version. Mobile resource transfer
+falls Home 524.6→259.2 kB, EMI 611.7→365.0 kB and Real Estate 648.8→370.3 kB;
+EMI mobile median LCP changes 4253→3731 ms and CLS 0.225→0. Candidate mobile
+performance medians are Home 62, EMI 63 and Real Estate 58: all three routes miss
+performance/LCP/TBT budgets. Home/Real Estate timings do not improve, and one desktop EMI run
+has 0.144 CLS. Accessibility/metadata findings, CPU warnings, optimizer-cache
+limits and the unresolved footer/font shift remain explicit. No field speed,
+deployment, production readiness or complete accessibility claim is made.
+Coverage stays 100% of 79 requirements. Next performance priority is measured
+hydration/layout work; target-host and production-evidence release gates remain.
+
+As of: **2026-09-12**
 
 Evidence baseline: `115fd0f` (`upstream/main`, including merged
 [PR #295](https://github.com/brollysolutions/client1/pull/295)). The frozen

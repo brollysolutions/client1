@@ -189,7 +189,7 @@ export function WhyChooseUs() {
             <p className="font-heading text-xl font-semibold text-white sm:text-2xl">
               Ready when you are
             </p>
-            <p className="mt-1 text-sm text-white/80">
+            <p className="mt-1 text-sm text-white/90">
               Free to start, and it takes about two minutes.
             </p>
           </div>
@@ -206,7 +206,7 @@ export function WhyChooseUs() {
             </Button>
             <Link
               href="/login"
-              className="text-sm text-white/80 underline underline-offset-4 hover:text-white"
+              className="text-sm text-white/90 underline underline-offset-4 hover:text-white"
             >
               Already have an account? Sign in
             </Link>
