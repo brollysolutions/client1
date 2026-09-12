@@ -11,7 +11,8 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { INFO } from "@/lib/calculators/glossary";
 import { LOAN_DEFAULTS } from "@/lib/calculators/rates";
-import { amortizationSchedule, type Schedule } from "@/lib/finance";
+import { amortizationSchedule } from "@/lib/finance";
+import { scheduleExport } from "@/lib/calculators/export";
 import { formatCompactINR, formatINR } from "@/lib/format";
 import { AmortizationTable } from "../amortization-table";
 import { DonutChart } from "../donut-chart";
@@ -42,14 +43,6 @@ function tenureHelper(months: number): string {
   const rem = months % 12;
   if (years === 0) return `${months} months`;
   return rem ? `${years} yr ${rem} mo` : `${years} years`;
-}
-
-function buildCsv(schedule: Schedule): string {
-  const header = "Month,EMI,Principal,Interest,Balance";
-  const lines = schedule.rows.map((r) =>
-    [r.index, r.emi, r.principal, r.interest, r.closingBalance].join(","),
-  );
-  return [header, ...lines].join("\n");
 }
 
 // The EMI calculator, and the reference island every other calculator follows:
@@ -164,7 +157,7 @@ export function EmiCalculator() {
         <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
           <DonutChart principal={amount} interest={schedule.totalInterest} />
         </div>
-        <ExportShareBar buildCsv={() => buildCsv(schedule)} filename={`emi-schedule-${state.type}.csv`} />
+        <ExportShareBar buildExport={() => scheduleExport(schedule, `${TYPE_LABELS[state.type]} loan EMI schedule`)} filename={`emi-schedule-${state.type}.csv`} />
       </div>
 
       {/* Schedule */}

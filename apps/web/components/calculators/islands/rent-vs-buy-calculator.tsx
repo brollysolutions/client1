@@ -5,7 +5,8 @@ import { parseAsFloat, parseAsInteger, useQueryStates } from "nuqs";
 
 import { INFO } from "@/lib/calculators/glossary";
 import { RENT_VS_BUY_DEFAULTS as D } from "@/lib/calculators/rates";
-import { rentVsBuy, type RentVsBuyResult } from "@/lib/finance";
+import { rentVsBuy } from "@/lib/finance";
+import { rentVsBuyExport } from "@/lib/calculators/export";
 import { formatCompactINR, formatINR } from "@/lib/format";
 import { ExportShareBar } from "../export-share-bar";
 import { RateDisclaimer } from "../rate-disclaimer";
@@ -15,14 +16,6 @@ import { SliderField } from "../slider-field";
 function clamp(value: number, min: number, _max: number): number {
   if (!Number.isFinite(value)) return min;
   return Math.max(min, value); // `max` is a soft slider ceiling, not a hard cap
-}
-
-function buildCsv(result: RentVsBuyResult): string {
-  const header = "Year,Rent paid,Owner outgo,Home equity,Renter corpus,Buy advantage";
-  const lines = result.years.map((y) =>
-    [y.year, y.rentPaid, y.ownerOutgo, y.homeEquity, y.renterCorpus, y.buyAdvantage].join(","),
-  );
-  return [header, ...lines].join("\n");
 }
 
 // Rent vs buy by terminal wealth: the buyer ends with home equity, the renter
@@ -213,7 +206,7 @@ export function RentVsBuyCalculator() {
           Assumes 7% one-time buying costs, 1% a year on maintenance and property tax, and a 20
           year loan. Selling costs, tax breaks, and the rent deposit are not modeled.
         </p>
-        <ExportShareBar buildCsv={() => buildCsv(result)} filename="rent-vs-buy-yearly.csv" />
+        <ExportShareBar buildExport={() => rentVsBuyExport(result)} filename="rent-vs-buy-yearly.csv" />
       </div>
 
       {/* Year by year */}

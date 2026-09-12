@@ -1,24 +1,38 @@
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
-
-import { SITE_NAME } from "@/lib/brand";
+import { BRAND_ASSETS, SITE_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
-export function Logo({ className }: { className?: string }) {
-  return (
-    <Link
-      href="/"
-      prefetch={false}
-      aria-label={`${SITE_NAME} home`}
-      className={cn(
-        "flex items-center gap-2 rounded-sm font-heading text-lg font-semibold text-[var(--nav-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)]",
-        className
-      )}
-    >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--nav-primary)] text-sm font-bold text-white">
-        D
-      </span>
-      <span className="hidden sm:inline">{SITE_NAME}</span>
+export type LogoVariant = "horizontal" | "stacked" | "symbol";
+
+export function Logo({ className, variant = "horizontal", href = "/", onClick, sizes }: {
+  className?: string;
+  variant?: LogoVariant;
+  href?: string | null;
+  onClick?: () => void;
+  /** Match any width override supplied through className. */
+  sizes?: string;
+}) {
+  const asset = BRAND_ASSETS[variant];
+  const classes = cn(
+    "inline-flex shrink-0 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2",
+    variant === "symbol" ? "h-10 w-10" : variant === "stacked" ? "w-48" : "w-36 sm:w-44",
+    className,
+  );
+  const artwork = (
+    <Image
+      src={asset.src}
+      width={asset.width}
+      height={asset.height}
+      alt={SITE_NAME}
+      sizes={sizes ?? (variant === "symbol" ? "40px" : variant === "stacked" ? "192px" : "(min-width: 640px) 176px, 144px")}
+      className="h-auto w-full object-contain"
+    />
+  );
+  return href === null ? <span className={classes}>{artwork}</span> : (
+    <Link href={href} prefetch={false} aria-label={`${SITE_NAME} ${href === "/" ? "home" : "dashboard"}`} onClick={onClick} className={classes}>
+      {artwork}
     </Link>
   );
 }

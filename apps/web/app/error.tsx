@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Logo } from "@/components/logo";
 
 // Segment-level error boundary. Rendered INSIDE RootLayout, so `globals.css` and
 // the Tailwind v4 @theme design tokens are available — use token utilities here.
@@ -19,6 +20,7 @@ export default function Error({
   return (
     <main className="flex min-h-[60vh] items-center justify-center px-6">
       <div className="w-full max-w-md text-center">
+        <Logo className="mb-8" />
         <h1 className="font-heading text-2xl font-semibold text-text-primary">
           Something went wrong
         </h1>

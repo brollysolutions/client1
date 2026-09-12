@@ -67,7 +67,7 @@ function MobileInput({
       data-slot="mobile-input"
       className={cn(
         "flex w-full min-w-0 items-center border border-input bg-transparent shadow-xs transition-[color,box-shadow] dark:bg-input/30",
-        compact ? "h-9 rounded-md" : "h-12 rounded-lg",
+        compact ? "h-9 max-sm:min-h-11 rounded-md" : "h-12 rounded-lg",
         "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
         "has-[input[aria-invalid=true]]:border-destructive has-[input[aria-invalid=true]]:ring-destructive/20 dark:has-[input[aria-invalid=true]]:ring-destructive/40",
         "has-[input:disabled]:pointer-events-none has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50"
