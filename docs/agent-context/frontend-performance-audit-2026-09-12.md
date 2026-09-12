@@ -1,8 +1,15 @@
 # Dhanadhara frontend performance audit
 
-Date: 12 September 2026. Baseline: `68091c6`. Delivery:
-[PR #296](https://github.com/brollysolutions/client1/pull/296),
-`feat/production-environment-evidence`.
+Date: 12 September 2026. Baseline: `68091c6`; application candidate: `bbf613d`.
+Delivery: [PR #297](https://github.com/brollysolutions/client1/pull/297),
+upstream head `fix/frontend-delivery-audit`, base `main`. The contribution branch
+remains `feat/production-environment-evidence` on `origin`.
+
+At delivery, GitHub reported the earlier PR #296 closed and `origin` outside the
+fork network. The normal helper committed/pushed successfully but could not open
+a cross-repository PR. The same reviewed commits were pushed to the new upstream
+feature branch using existing write access; PR #297 includes the preceding
+branding/mobile work. No protected branch was changed and no PR was merged.
 
 The user confirmed Dhanadhara as the target after supplying a BrollyAI guide.
 Only its measurement and preservation principles apply: that site's brand,

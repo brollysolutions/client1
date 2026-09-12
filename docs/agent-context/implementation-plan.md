@@ -62,7 +62,7 @@ default, not permission to skip the pre-implementation announcement.
 
 **Implemented — measured frontend delivery fixes; timing budgets remain open**, on
 `feat/production-environment-evidence`, baseline `68091c6` (2026-09-12).
-Delivered in [PR #296](https://github.com/brollysolutions/client1/pull/296), using
+Delivered in [PR #297](https://github.com/brollysolutions/client1/pull/297), using
 `gpt-6-astra` / Extra High (`xhigh`). The user-confirmed Dhanadhara scope applies
 the supplied guide's measurement principles without importing BrollyAI's brand,
 routes or architecture. Native responsive artwork, sized logos/bundled banners,
@@ -86,6 +86,9 @@ gaps, no-disk optimizer-cache constraint and verification limits are in the
 claim is made. Coverage remains 100% of 79 requirements. Next performance
 priority is attributed shared hydration/layout work and the footer/font outlier;
 the existing target-host and production-evidence release gates remain open.
+Application candidate: `bbf613d`. PR #296 closed and `origin` no longer belongs
+to the fork network, so delivery uses upstream `fix/frontend-delivery-audit`
+against `main`, with the same commits retained on the origin contribution branch.
 
 **Implemented — Dhanadhara logo and branding rollout**, on
 `feat/production-environment-evidence`, in

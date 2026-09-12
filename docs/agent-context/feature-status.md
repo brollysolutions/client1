@@ -4,7 +4,7 @@ Status: **Derived living implementation ledger**
 
 **Implemented (2026-09-12) — frontend delivery fixes; speed budgets remain open**, on
 `feat/production-environment-evidence`, baseline `68091c6`, for
-[PR #296](https://github.com/brollysolutions/client1/pull/296).
+[PR #297](https://github.com/brollysolutions/client1/pull/297).
 The user confirmed Dhanadhara as the target of the supplied BrollyAI measurement
 principles. Responsive artwork stops hidden mobile requests, logos and bundled
 banners use sized derivatives, nginx compresses RSC, and calculators load their
@@ -31,6 +31,10 @@ limits and the unresolved footer/font shift remain explicit. No field speed,
 deployment, production readiness or complete accessibility claim is made.
 Coverage stays 100% of 79 requirements. Next performance priority is measured
 hydration/layout work; target-host and production-evidence release gates remain.
+Application candidate: `bbf613d`. The closed PR #296's branding/mobile changes
+are included in #297. Since `origin` is now outside the fork network, the same
+commits are mirrored to upstream `fix/frontend-delivery-audit` for review against
+`main`; the origin contribution branch remains pushed. No merge or deployment.
 
 As of: **2026-09-12**
 
