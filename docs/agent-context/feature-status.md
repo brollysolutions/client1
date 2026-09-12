@@ -2,6 +2,23 @@
 
 Status: **Derived living implementation ledger**
 
+**Implemented (2026-09-12) — upstream sync PR setup; activation pending**, on
+`feat/production-environment-evidence`, baseline `f509382`. The destination-only
+scheduled/manual workflow reuses the existing `SYNC_PAT`, preserves both Git
+histories, stops on conflicts and opens one sync PR at a time. It never merges,
+force-pushes or writes protected branches. Fourteen focused tests pass, covering
+real merge histories, dirty work, conflicts, duplicate/closed PRs, failures and
+retry behavior; full script discovery has 104 passed and one expected Windows
+skip. Ruff, Bash syntax, workflow YAML/trigger/credential and diff checks pass.
+Application/API/browser suites are not rerun for this workflow-only scope. No dependency,
+application, credential, deployment-policy or requirement-coverage change.
+Activation is included in destination [PR #4](https://github.com/vamshisaideep9/client1/pull/4).
+The local approval hook rejected the explicitly user-requested merge; the
+schedule and PAT's PR-creation access cannot yet be verified on destination
+`main`. See the [operator guide](../../.github/UPSTREAM-SYNC.md). Next step:
+merge the activation PR, then inspect the first hosted sync run. Existing
+application CI/security and launch blockers remain unchanged.
+
 **Implemented (2026-09-12) — frontend delivery fixes; speed budgets remain open**, on
 `feat/production-environment-evidence`, baseline `68091c6`, for
 [PR #297](https://github.com/brollysolutions/client1/pull/297).
