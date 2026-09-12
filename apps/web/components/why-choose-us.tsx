@@ -102,7 +102,7 @@ export function WhyChooseUs() {
         </div>
 
         {/* Bento benefit grid: anchor card + supporting cards */}
-        <ul className="mt-12 grid auto-rows-fr gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-8 grid gap-4 sm:mt-12 sm:auto-rows-fr sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
           {/* Anchor card (core promise) */}
           <li className="sm:col-span-2 lg:row-span-2">
             <article className="h-full rounded-2xl border border-[var(--nav-primary)]/20 bg-[var(--nav-tint)]/60 p-6 shadow-sm sm:p-8">
@@ -189,7 +189,7 @@ export function WhyChooseUs() {
             <p className="font-heading text-xl font-semibold text-white sm:text-2xl">
               Ready when you are
             </p>
-            <p className="mt-1 text-sm text-white/80">
+            <p className="mt-1 text-sm text-white/90">
               Free to start, and it takes about two minutes.
             </p>
           </div>
@@ -206,7 +206,7 @@ export function WhyChooseUs() {
             </Button>
             <Link
               href="/login"
-              className="text-sm text-white/80 underline underline-offset-4 hover:text-white"
+              className="text-sm text-white/90 underline underline-offset-4 hover:text-white"
             >
               Already have an account? Sign in
             </Link>

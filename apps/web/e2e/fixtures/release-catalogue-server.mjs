@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import mobileProperty from "./mobile-property.json" with { type: "json" };
 
 const HOST = "127.0.0.1";
 const PORT = 4311;
@@ -91,6 +92,14 @@ const server = createServer((request, response) => {
   }
   if (url.pathname === "/api/v1/public/banners") {
     json(response, 200, { banners: [] });
+    return;
+  }
+  if (url.pathname === "/api/v1/public/properties") {
+    json(response, 200, { properties: [mobileProperty] });
+    return;
+  }
+  if (url.pathname === `/api/v1/public/properties/${mobileProperty.id}`) {
+    json(response, 200, mobileProperty);
     return;
   }
   if (url.pathname === "/api/v1/public/financial-products") {

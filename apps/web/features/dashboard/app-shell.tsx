@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Menu } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 import { useAuth } from "@/components/auth/session-provider";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -76,22 +77,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               >
                 {/* Top bar */}
-                <header className="sticky top-0 z-20 flex h-14 items-center gap-3 bg-background px-4 lg:px-6">
+                <header className="sticky top-0 z-20 flex min-h-14 items-center gap-0.5 bg-background px-2 sm:gap-3 sm:px-4 lg:px-6">
                   <button
                     type="button"
                     aria-label="Open menu"
                     onClick={() => setMobileOpen(true)}
-                    className="rounded-md p-1.5 text-text-primary transition-[background-color,color,transform] duration-150 ease-out hover:bg-dash-rail-hover active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100 lg:hidden"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-primary transition-[background-color,color,transform] duration-150 ease-out hover:bg-dash-rail-hover active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100 lg:hidden"
                   >
                     <Menu className="h-5 w-5" />
                   </button>
+                  <Logo variant="symbol" href="/dashboard" className="h-11 w-8 lg:hidden" sizes="32px" />
                   <div className="flex-1" />
                   <NotificationBell />
                   <LineSwitcher />
                   <ProfileMenu />
                 </header>
 
-                <main id="dashboard-main-content" tabIndex={-1} className="w-full py-8">
+                <main id="dashboard-main-content" tabIndex={-1} className="min-w-0 w-full py-5 sm:py-8">
                   <DashboardRouteGuard>{children}</DashboardRouteGuard>
                 </main>
               </div>

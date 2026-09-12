@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import { parseAsFloat, parseAsInteger, useQueryStates } from "nuqs";
 
-import { amortizationSchedule, maxLoanFromLtv, type Schedule } from "@/lib/finance";
+import { amortizationSchedule, maxLoanFromLtv } from "@/lib/finance";
+import { scheduleExport } from "@/lib/calculators/export";
 import { formatCompactINR, formatINR } from "@/lib/format";
 import { AmortizationTable } from "../amortization-table";
 import { DonutChart } from "../donut-chart";
@@ -22,14 +23,6 @@ function tenureHelper(months: number): string {
   const rem = months % 12;
   if (years === 0) return `${months} months`;
   return rem ? `${years} yr ${rem} mo` : `${years} years`;
-}
-
-function buildCsv(schedule: Schedule): string {
-  const header = "Month,EMI,Principal,Interest,Balance";
-  const lines = schedule.rows.map((r) =>
-    [r.index, r.emi, r.principal, r.interest, r.closingBalance].join(","),
-  );
-  return [header, ...lines].join("\n");
 }
 
 // Loan against property: pick a property value and how much of it you want to
@@ -120,7 +113,7 @@ export function LoanAgainstPropertyCalculator() {
         <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
           <DonutChart principal={maxLoan} interest={schedule.totalInterest} />
         </div>
-        <ExportShareBar buildCsv={() => buildCsv(schedule)} filename="lap-schedule.csv" />
+        <ExportShareBar buildExport={() => scheduleExport(schedule, "Loan against property schedule")} filename="lap-schedule.csv" />
       </div>
 
       {/* Schedule */}

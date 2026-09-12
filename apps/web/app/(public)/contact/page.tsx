@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import { ResponsiveArtwork } from "@/components/responsive-artwork";
 
 import { ContactForm } from "@/components/contact/contact-form";
 import { ContactInfo } from "@/components/contact/contact-info";
@@ -109,15 +109,16 @@ export default async function ContactPage({
               aria-hidden
               className="hidden shrink-0 items-center justify-center lg:flex lg:w-[420px]"
             >
-              <Image
+              <ResponsiveArtwork
                 src="/illustrations/heroes/contact.svg"
-                alt=""
+                media="(min-width: 1024px)"
                 aria-hidden
                 width={500}
                 height={500}
                 sizes="420px"
                 className="h-auto w-full max-w-[420px]"
-                priority
+                loading="eager"
+                fetchPriority="high"
               />
             </div>
           </div>

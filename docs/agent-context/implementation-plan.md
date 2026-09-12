@@ -2,10 +2,10 @@
 
 Status: **Derived, actively maintained plan**
 
-As of: **2026-09-03**
+As of: **2026-09-12**
 
-Evidence baseline: `0a6802a` (`upstream/main`, including merged
-[PR #293](https://github.com/brollysolutions/client1/pull/293)). The frozen
+Evidence baseline: `115fd0f` (`upstream/main`, including merged
+[PR #295](https://github.com/brollysolutions/client1/pull/295)). The frozen
 release candidate remains merged PR #290 SHA `75e1031`.
 
 ## Outcome
@@ -59,6 +59,89 @@ The recommendation must be reassessed at feature start. The table below is a
 default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
+
+**Implemented — measured frontend delivery fixes; timing budgets remain open**, on
+`feat/production-environment-evidence`, baseline `68091c6` (2026-09-12).
+Delivered in [PR #297](https://github.com/brollysolutions/client1/pull/297), using
+`gpt-6-astra` / Extra High (`xhigh`). The user-confirmed Dhanadhara scope applies
+the supplied guide's measurement principles without importing BrollyAI's brand,
+routes or architecture. Native responsive artwork, sized logos/bundled banners,
+RSC gzip, calculator code splitting/loading space and Home CTA contrast are
+implemented. Source copy, desktop composition, URL state, calculations, exports,
+storage host behavior and security boundaries are preserved. No dependency,
+API/auth/RLS, financial, telemetry or deployment change in this increment.
+
+Fresh evidence: lint/typecheck, 620 unit tests, 49 focused/responsive browser
+cases, 90 script tests with one expected Windows skip, nginx syntax plus real
+gzip response checks, 95 generated production routes (exit 0 with the existing
+Windows standalone-copy warning), and 18 valid before plus 18 valid after
+Lighthouse samples. Eight-route/two-width resource inspection has no errors or
+overflow. Mobile resource transfer falls Home 524.6→259.2 kB, EMI 611.7→365.0 kB
+and Real Estate 648.8→370.3 kB. EMI mobile median LCP changes 4253→3731 ms and
+CLS 0.225→0. All three mobile routes still miss performance/LCP/TBT budgets;
+Home/Real Estate timing does
+not improve, and a desktop EMI run shifts 0.144. The full ranges, accessibility
+gaps, no-disk optimizer-cache constraint and verification limits are in the
+[audit](frontend-performance-audit-2026-09-12.md). No field or deployed speed
+claim is made. Coverage remains 100% of 79 requirements. Next performance
+priority is attributed shared hydration/layout work and the footer/font outlier;
+the existing target-host and production-evidence release gates remain open.
+Application candidate: `bbf613d`. PR #296 closed and `origin` no longer belongs
+to the fork network, so delivery uses upstream `fix/frontend-delivery-audit`
+against `main`, with the same commits retained on the origin contribution branch.
+PR #297 remains **draft/release blocked**: hosted dependency auditing on
+`3d30438` finds two critical and one high advisory in the unchanged Next/Sharp
+chain. A reviewed dependency security patch and fresh verification now precede
+further performance work. Main hosted verification is still running at handoff;
+the secret scan passes. The audit records advisory links and exact failed job.
+
+**Implemented — Dhanadhara logo and branding rollout**, on
+`feat/production-environment-evidence`, in
+[PR #296](https://github.com/brollysolutions/client1/pull/296). The supplied
+blue/gold symbol accompanies a continuous Space Grotesk wordmark with no tagline
+across public/auth/dashboard shells, errors, browser/push icons, social previews,
+email and Excel reports. Free local calculator Excel exports accompany compatible
+CSV downloads with branded filenames. Auth/RLS, original uploads, financial
+calculations and delivery behavior remain unchanged; no paid integration or
+schema change was introduced.
+
+Fresh checks pass web lint/typecheck, 617 unit tests, 32 focused API tests, API
+lint/format, the single migration head, seven feature-tracking tests and the
+production dependency audit. The broader API attempt passed 950 tests before
+interruption to diagnose two environment-sensitive configuration failures; both
+pass in an isolated test process. The continuation completed the remaining files
+with 1,031 passed (exit 0), repeating the interrupted boundary file. This is
+segmented evidence, not a single clean full-suite run. The web build compiles and generates all 95 pages, then
+fails Windows standalone symlink creation (`EPERM`); hosted Linux build validation
+remains required. Playwright was stopped at the user's request; current browser
+layout and real email-client rendering remain unverified. Static security/UI
+review found no remaining change-owned blocker. Requirement coverage remains
+100% across 79 requirements. Next priority is hosted verification and the existing
+production-evidence release gates.
+
+**Complete locally — mobile UI across all routes** in
+[PR #296](https://github.com/brollysolutions/client1/pull/296), on
+`feat/production-environment-evidence`.
+Shared public banners now give mobile copy the full width and omit decorative
+artwork; landing cards use content-sized heights. Auth forms, dashboard headers,
+record cards, tabs, drawers and dialogs fit narrow screens, with larger controls,
+readable form text and mobile sorting. Review-dialog focus returns to its trigger.
+
+Fresh verification: web lint and typecheck; 96 unit-test files / 612 tests;
+seven feature-tracking tests; 109 distinct Playwright scenarios passing across
+the route sweep and focused follow-up runs after correcting fixture data and a
+menu selector. All 77 page modules expand to 98 route cases, each checked at
+320/390/768/1365px; 11 interaction cases cover six roles, public navigation,
+OTP/password entry, sorting and constrained dialogs. Synthetic fixtures cover
+empty and selected populated states, not live backend business journeys.
+The native production build compiles, typechecks and generates 94/94 pages,
+then fails with the established Windows standalone-symlink `EPERM`; a complete
+Linux build remains required in hosted verification. UI, correctness and
+security review found no remaining change-owned blocker. API/contracts,
+authorization/RLS, uploads and financial behavior are unchanged. Requirement
+coverage remains 100% across 79 active requirements; this improves responsive
+quality and does not close any release gate. Next priority remains the existing
+operator-run production readiness evidence and independent approvals.
 
 FR-18.2 Map/GMB integration was removed from the product scope by CS-010 on
 2026-08-09. It is not an active, deferred, or release requirement and is not

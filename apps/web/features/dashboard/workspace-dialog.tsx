@@ -20,7 +20,7 @@ import { DESKTOP_VIEWPORT_WIDTH, ViewportFrame } from "./viewport-frame";
  * property submission with its media grid and RERA panel.
  *
  * `PANEL_DIALOG_CLASS` is the default for everything else: a centred dialog
- * that grows with its content and stops at `max-h-[85vh]`, so a short progress
+ * that grows with its content and stops at `max-h-[calc(100dvh-2rem)] sm:max-h-[85dvh]`, so a short progress
  * form no longer paints a full-screen sheet around itself. Reach for
  * `PANEL_DIALOG_WIDE_CLASS` only when the body is a two-column
  * `WorkspaceLayout` that cannot fit in `max-w-3xl`.
@@ -30,23 +30,23 @@ import { DESKTOP_VIEWPORT_WIDTH, ViewportFrame } from "./viewport-frame";
  * title rather than floating over the content.
  */
 export const WORKSPACE_DIALOG_CLASS =
-  "!top-4 !left-4 !grid h-[calc(100dvh-2rem)] !w-[calc(100%-2rem)] !max-w-none !translate-x-0 !translate-y-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-xl p-5 sm:!max-w-none sm:p-6";
+  "!top-4 !left-4 !grid h-[calc(100dvh-2rem)] !w-[calc(100%-2rem)] !max-w-none !translate-x-0 !translate-y-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-xl p-3 sm:!max-w-none sm:p-6";
 
 /** Same shape, with a third row for a filter bar between header and body. */
 export const WORKSPACE_DIALOG_FILTERED_CLASS =
-  "!top-4 !left-4 !grid h-[calc(100dvh-2rem)] !w-[calc(100%-2rem)] !max-w-none !translate-x-0 !translate-y-0 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden rounded-xl p-5 sm:!max-w-none sm:p-6";
+  "!top-4 !left-4 !grid h-[calc(100dvh-2rem)] !w-[calc(100%-2rem)] !max-w-none !translate-x-0 !translate-y-0 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden rounded-xl p-3 sm:!max-w-none sm:p-6";
 
 /** Centred, content-sized. The default detail surface. */
 export const PANEL_DIALOG_CLASS =
-  "!grid max-h-[85vh] w-[calc(100%-2rem)] !max-w-3xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-xl p-5 sm:p-6";
+  "!grid max-h-[calc(100dvh-2rem)] sm:max-h-[85dvh] w-[calc(100%-2rem)] !max-w-3xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-xl p-3 sm:p-6";
 
 /** Content-sized, with a third row for a filter bar between header and body. */
 export const PANEL_DIALOG_FILTERED_CLASS =
-  "!grid max-h-[85vh] w-[calc(100%-2rem)] !max-w-5xl grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden rounded-xl p-5 sm:p-6";
+  "!grid max-h-[calc(100dvh-2rem)] sm:max-h-[85dvh] w-[calc(100%-2rem)] !max-w-5xl grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden rounded-xl p-3 sm:p-6";
 
 /** Content-sized, for a two-column `WorkspaceLayout` that needs more width. */
 export const PANEL_DIALOG_WIDE_CLASS =
-  "!grid max-h-[85vh] w-[calc(100%-2rem)] !max-w-5xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-xl p-5 sm:p-6";
+  "!grid max-h-[calc(100dvh-2rem)] sm:max-h-[85dvh] w-[calc(100%-2rem)] !max-w-5xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-xl p-3 sm:p-6";
 
 export function WorkspaceDialogHeader({
   title,
@@ -61,12 +61,12 @@ export function WorkspaceDialogHeader({
   closeLabel?: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
-      <DialogHeader className="min-w-0 text-left">
-        <DialogTitle className="truncate">{title}</DialogTitle>
+    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
+      <DialogHeader className="min-w-0 flex-1 text-left">
+        <DialogTitle className="break-words leading-snug">{title}</DialogTitle>
         {description ? <DialogDescription>{description}</DialogDescription> : null}
       </DialogHeader>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex max-w-full flex-wrap items-center gap-2">
         {actions}
         <DialogClose asChild>
           <button type="button" className={CLOSE_BUTTON_CLASS}>
@@ -98,7 +98,7 @@ export function WorkspaceLayout({
 }) {
   if (preview && previewFirst) {
     return (
-      <div className="grid min-h-0 gap-5 overflow-y-auto xl:grid-cols-[minmax(30rem,1.3fr)_minmax(20rem,0.7fr)]">
+      <div className="grid min-h-0 min-w-0 gap-5 overflow-y-auto overscroll-contain xl:grid-cols-[minmax(30rem,1.3fr)_minmax(20rem,0.7fr)]">
         <div className="min-w-0 py-1">{preview}</div>
         <aside className="min-w-0 py-1 xl:sticky xl:top-0 xl:self-start">{editor}</aside>
       </div>
@@ -107,7 +107,7 @@ export function WorkspaceLayout({
   return (
     <div
       className={cn(
-        "min-h-0 overflow-y-auto",
+        "min-h-0 min-w-0 overflow-y-auto overscroll-contain",
         preview && "grid gap-5 xl:grid-cols-[minmax(22rem,0.85fr)_minmax(30rem,1.15fr)]",
       )}
     >
