@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { CalculatorShell } from "@/components/calculators/calculator-shell";
+import { CalculatorIsland } from "@/components/calculators/calculator-island";
+import { CalculatorPending } from "@/components/calculators/calculator-pending";
 import { calculatorJsonLd } from "@/lib/calculators/jsonld";
-import { ISLANDS } from "@/lib/calculators/islands";
 import { CALCULATOR_SLUGS, getCalculator } from "@/lib/calculators/registry";
 import { SITE_NAME } from "@/lib/site";
 
@@ -44,8 +45,6 @@ export default async function CalculatorPage({
   const def = getCalculator((await params).slug);
   if (!def) notFound();
 
-  const Island = ISLANDS[def.slug];
-
   return (
     <>
       <script
@@ -53,16 +52,9 @@ export default async function CalculatorPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(calculatorJsonLd(def)) }}
       />
       <CalculatorShell def={def}>
-        {Island ? (
-          <Suspense fallback={null}>
-            <Island />
-          </Suspense>
-        ) : (
-          <p className="rounded-xl border border-[var(--nav-border)] bg-white p-6 text-text-secondary">
-            This calculator is being finalized. In the meantime, leave your number below and our
-            team will help you directly.
-          </p>
-        )}
+        <Suspense fallback={<CalculatorPending />}>
+          <CalculatorIsland slug={def.slug} />
+        </Suspense>
       </CalculatorShell>
     </>
   );

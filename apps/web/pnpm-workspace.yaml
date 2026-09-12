@@ -7,6 +7,10 @@ allowBuilds:
 # transitively through next. next declares sharp as an optional dep (^0.34.x); the
 # API surface next uses is unchanged in 0.35, so forcing it is safe.
 overrides:
+  # ExcelJS uses only uuid.v4; 11.1.1 retains its CJS interface and fixes
+  # GHSA-w5hq-g745-h8pq. Patch legacy brace-expansion in its archive tools.
+  'exceljs>uuid': '11.1.1'
+  'brace-expansion@^1.1.7': '1.1.18'
   sharp: '>=0.35.0'
   # postcss <8.5.10 (GHSA-qx2v-qp2m-jg93) pulled in transitively through next.
   # Patch-level bump, safe for the Tailwind v4 postcss pipeline.

@@ -113,6 +113,24 @@ export function DataTable<Row>({
 
   return (
     <div className={cn("animate-in fade-in-0 overflow-visible duration-200 motion-reduce:animate-none xl:overflow-x-auto", className)}>
+      {sort && onSortChange ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border p-3 xl:hidden" role="group" aria-label="Sort records">
+          <span className="text-xs text-text-secondary">Sort by</span>
+          {columns.filter((column) => column.sortable).map((column) => (
+            <button
+              key={column.key}
+              type="button"
+              aria-label={`Sort by ${column.header}${sort.key === column.key ? `, ${sort.dir === "asc" ? "ascending" : "descending"}` : ""}`}
+              aria-pressed={sort.key === column.key}
+              onClick={() => onSortChange(column.key)}
+              className="inline-flex min-h-11 max-w-full items-center gap-1 rounded-md border border-border px-3 py-2 text-sm text-text-secondary aria-pressed:bg-brand-cta-tint aria-pressed:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+            >
+              {column.header}
+              {sort.key === column.key ? (sort.dir === "asc" ? <ArrowUp className="h-4 w-4 shrink-0" aria-hidden /> : <ArrowDown className="h-4 w-4 shrink-0" aria-hidden />) : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <table className={cn("block w-full text-left text-sm max-xl:!min-w-0 xl:table", minWidth)}>
         <thead className="hidden border-b border-border text-text-secondary xl:table-header-group">
           <tr>
@@ -181,13 +199,13 @@ export function DataTable<Row>({
                   key={column.key}
                   data-label={column.header}
                   className={cn(
-                    "grid min-w-0 grid-cols-[minmax(7rem,0.4fr)_minmax(0,1fr)] gap-3 px-4 py-2 align-middle before:text-xs before:font-medium before:uppercase before:tracking-wide before:text-text-secondary before:content-[attr(data-label)] first:pt-4 last:pb-4 xl:table-cell xl:px-5 xl:py-4 xl:before:content-none",
+                    "grid min-w-0 grid-cols-1 gap-1 px-4 py-2 align-middle before:text-xs before:font-medium before:uppercase before:tracking-wide before:text-text-secondary before:content-[attr(data-label)] first:pt-4 last:pb-4 sm:grid-cols-[minmax(7rem,0.4fr)_minmax(0,1fr)] sm:gap-3 xl:table-cell xl:px-5 xl:py-4 xl:before:content-none max-xl:!max-w-none max-xl:whitespace-normal",
                     column.align === "right" && "text-right",
                     column.align === "right" && "max-xl:text-left",
                     column.cellClassName,
                   )}
                 >
-                  {column.render(row)}
+                  <div className="min-w-0 [overflow-wrap:anywhere]">{column.render(row)}</div>
                 </td>
               ))}
               {interactive ? (
@@ -220,10 +238,10 @@ export function DataTablePrimaryCell({
 }) {
   return (
     <div className="min-w-0">
-      <p className="truncate font-medium text-text-primary transition-colors group-hover:text-brand-cta">
+      <p className="truncate max-xl:whitespace-normal max-xl:[overflow-wrap:anywhere] font-medium text-text-primary transition-colors group-hover:text-brand-cta">
         {title}
       </p>
-      {subtitle ? <p className="truncate text-xs text-text-secondary">{subtitle}</p> : null}
+      {subtitle ? <p className="truncate max-xl:whitespace-normal max-xl:[overflow-wrap:anywhere] text-xs text-text-secondary">{subtitle}</p> : null}
     </div>
   );
 }

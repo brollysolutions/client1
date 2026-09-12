@@ -5,7 +5,7 @@ const catalogueOrigin = "http://127.0.0.1:4311";
 
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: ["financial-services.spec.ts", "registration-profile.spec.ts"],
+  testMatch: ["financial-services.spec.ts", "registration-profile.spec.ts", "frontend-performance.spec.ts"],
   fullyParallel: false,
   forbidOnly: true,
   retries: 0,

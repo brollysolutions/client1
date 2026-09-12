@@ -14,7 +14,7 @@ export function DashboardPage({
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-[1440px] space-y-6 px-4 sm:px-6 lg:px-8",
+        "mx-auto min-w-0 w-full max-w-[1440px] space-y-5 px-4 sm:space-y-6 sm:px-6 lg:px-8",
         className,
       )}
     >
@@ -37,7 +37,7 @@ export function DashboardHeader({
 }) {
   return (
     <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
-      <div className="max-w-3xl">
+      <div className="min-w-0 max-w-3xl break-words">
         <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-[1.75rem]">
           {title}
         </h1>
@@ -45,7 +45,7 @@ export function DashboardHeader({
           <p className="mt-1.5 text-sm leading-6 text-text-secondary">{description}</p>
         ) : null}
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">{actions}</div> : null}
     </header>
   );
 }
@@ -120,15 +120,15 @@ export function DashboardPanel({
   bodyClassName?: string;
 }) {
   return (
-    <section className={cn("overflow-hidden rounded-xl border border-border bg-card shadow-sm", className)}>
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
-        <div>
+    <section className={cn("min-w-0 overflow-hidden rounded-xl border border-border bg-card shadow-sm", className)}>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
+        <div className="min-w-0 break-words">
           <h2 className="text-base font-semibold text-text-primary">{title}</h2>
           {description ? <p className="mt-0.5 text-sm text-text-secondary">{description}</p> : null}
         </div>
         {action}
       </div>
-      <div className={cn("p-5", bodyClassName)}>{children}</div>
+      <div className={cn("min-w-0 p-4", bodyClassName)}>{children}</div>
     </section>
   );
 }

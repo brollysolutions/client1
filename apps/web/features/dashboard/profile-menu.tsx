@@ -76,7 +76,7 @@ export function ProfileMenu() {
       <div onMouseEnter={openNow} onMouseLeave={closeSoon}>
         <DropdownMenuTrigger
           aria-label="Open account menu"
-          className="flex cursor-pointer items-center rounded-full p-1 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none"
+          className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full p-1 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue sm:h-8 sm:w-8"
         >
           <CircleUser className="h-6 w-6" aria-hidden="true" />
         </DropdownMenuTrigger>

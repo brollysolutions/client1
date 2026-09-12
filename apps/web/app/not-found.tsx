@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 
 // 404 boundary. Server Component (no interactivity needed). Rendered inside
 // RootLayout, so Tailwind v4 @theme tokens apply.
@@ -6,6 +7,7 @@ export default function NotFound() {
   return (
     <main className="flex min-h-[60vh] items-center justify-center px-6">
       <div className="w-full max-w-md text-center">
+        <Logo className="mb-8" />
         <p className="font-heading text-sm font-semibold uppercase tracking-wide text-text-secondary">
           404
         </p>

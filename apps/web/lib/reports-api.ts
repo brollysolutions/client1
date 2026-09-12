@@ -6,6 +6,7 @@ import type { components } from "@contracts/generated/schema";
 
 import { apiDownload, apiRequest, type ApiDownloadResponse, type ApiResponse } from "@/lib/api/client";
 import { buildReportParams } from "@/lib/reports";
+import { brandedFilename } from "@/lib/brand";
 
 type Schemas = components["schemas"];
 
@@ -87,7 +88,7 @@ export async function downloadReportCsv(
   const params = buildReportParams(filters);
   const line = filters.businessLine ?? "all";
   const filename = `${kind}-${line}-${filters.dateFrom}_${filters.dateTo}.csv`;
-  return apiDownload(`/api/v1/admin/reports/${kind}/export?${params}`, filename);
+  return apiDownload(`/api/v1/admin/reports/${kind}/export?${params}`, brandedFilename(filename));
 }
 
 export async function downloadReportExcel(
@@ -97,5 +98,5 @@ export async function downloadReportExcel(
   const params = buildReportParams(filters);
   const line = filters.businessLine ?? "all";
   const filename = `${kind}-${line}-${filters.dateFrom}_${filters.dateTo}.xlsx`;
-  return apiDownload(`/api/v1/admin/reports/${kind}/export.xlsx?${params}`, filename);
+  return apiDownload(`/api/v1/admin/reports/${kind}/export.xlsx?${params}`, brandedFilename(filename));
 }

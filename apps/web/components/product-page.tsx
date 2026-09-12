@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { ReactNode } from "react";
 import Image from "next/image";
+import { ResponsiveArtwork } from "@/components/responsive-artwork";
 
 import { FaqSection } from "@/components/faq-section";
 import { JourneyFootTrail } from "@/components/journey-foot-trail";
@@ -115,7 +116,7 @@ export function ProductPage({
               fill
               priority
               sizes="100vw"
-              className="pointer-events-none select-none object-cover object-center opacity-90"
+              className="pointer-events-none hidden select-none object-cover object-center opacity-90 sm:block"
             />
             {/* light scrim: enough to keep copy readable, faint enough to see the art */}
             <div
@@ -558,15 +559,16 @@ function HeroIllustration({
       aria-hidden
       className="hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]"
     >
-      <Image
+      <ResponsiveArtwork
         src={src}
-        alt=""
+        media="(min-width: 1024px)"
         aria-hidden
         width={500}
         height={500}
         sizes="460px"
         className="h-auto w-full max-w-[460px]"
-        priority
+        loading="eager"
+        fetchPriority="high"
       />
     </div>
   );

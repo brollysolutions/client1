@@ -48,14 +48,14 @@ export function AdStrip({
       aria-label="Sponsored"
       data-layout="ad-strip"
       data-presentation="split-sponsor-card"
-      className="relative isolate h-[152px] w-full overflow-hidden border-y border-brand-blue/15 bg-[#f7f2e9] px-1.5 py-1.5 sm:h-[176px] sm:px-2 sm:py-2 lg:h-[208px]"
+      className="relative isolate min-h-[152px] w-full overflow-hidden border-y border-brand-blue/15 bg-[#f7f2e9] px-1.5 py-1.5 sm:h-[176px] sm:px-2 sm:py-2 lg:h-[208px]"
     >
       <div className="relative flex h-full w-full overflow-hidden rounded-xl border border-brand-blue/15 bg-[linear-gradient(135deg,#eef6f8_0%,#f7f2e9_55%,#e2eef3_100%)] shadow-[0_12px_28px_-22px_rgba(10,56,88,0.8)] sm:rounded-2xl">
         <div
           aria-hidden
           className="sponsor-accent-sweep pointer-events-none absolute -top-px left-0 z-20 h-0.5 w-[28%] bg-brand-blue/80"
         />
-        <div className="relative w-[40%] shrink-0 bg-[#dcecf2] sm:aspect-video sm:h-full sm:w-[284px] lg:w-[341px]">
+        <div className="relative hidden shrink-0 sm:block bg-[#dcecf2] sm:aspect-video sm:h-full sm:w-[284px] lg:w-[341px]">
           {banner.image ? (
             <Image
               src={banner.image}
@@ -80,7 +80,7 @@ export function AdStrip({
             {/* A <p>, never a heading: this is an ad above the hero, and a
                 heading here would put sponsored copy at the top of the page's
                 document outline. */}
-            <p className="mt-2 line-clamp-2 font-heading text-base font-semibold leading-tight text-[var(--nav-text)] sm:text-xl lg:mt-3 lg:text-2xl">
+            <p className="mt-2 font-heading sm:line-clamp-2 text-base font-semibold leading-tight text-[var(--nav-text)] sm:text-xl lg:mt-3 lg:text-2xl">
               {banner.title}
             </p>
             {banner.subtitle ? (
@@ -92,7 +92,7 @@ export function AdStrip({
               <Button
                 asChild
                 size="sm"
-                className="mt-2.5 h-8 max-w-full truncate bg-[var(--nav-primary)] px-3 text-xs text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:mt-3 sm:h-9 sm:px-5 sm:text-sm"
+                className="mt-2.5 h-auto min-h-11 max-w-full whitespace-normal py-2 text-center sm:min-h-9 bg-[var(--nav-primary)] px-3 text-xs text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:mt-3 sm:h-9 sm:px-5 sm:text-sm"
               >
                 <Link href={banner.cta.href}>{banner.cta.label}</Link>
               </Button>

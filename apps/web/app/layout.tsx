@@ -28,6 +28,11 @@ const geist = Geist({
 export const metadata: Metadata = {
   // Absolute base for canonical URLs, Open Graph, the sitemap, and JSON-LD.
   metadataBase: new URL(SITE_URL),
+  icons: {
+    icon: [{ url: "/brand/icon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: [{ url: "/brand/icon-180.png", sizes: "180x180", type: "image/png" }],
+  },
+  twitter: { card: "summary_large_image", images: ["/brand/social.png"] },
   title: `${SITE_NAME} | Loans and Real Estate`,
   description:
     "A clear, secure way to explore loans and real estate and connect with the right partner.",

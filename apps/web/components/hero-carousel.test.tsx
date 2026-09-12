@@ -25,7 +25,7 @@ describe("HeroCarousel", () => {
     );
 
     expect(markup).toContain('aria-label="Property campaigns"');
-    expect(markup).toContain("/banner-templates/properties/villas.webp");
+    expect(markup).toContain("%2Fbanner-templates%2Fproperties%2Fvillas.webp");
     expect(markup).toContain('alt=""');
     expect(markup).toContain("RERA VERIFIED");
     expect(markup).toContain('href="/real-estate"');
@@ -36,6 +36,8 @@ describe("HeroCarousel", () => {
     expect(markup).toContain('href="#page-overview"');
     expect(markup).toContain('aria-label="Scroll to page overview"');
     expect(markup).toContain("section-scroll-cue-first");
+    expect(markup).toContain('<source media="(min-width: 640px)"');
+    expect(markup).not.toContain('rel="preload"');
   });
 
   it("renders the homepage hero full-bleed and full-screen, with overlaid dots", () => {
@@ -60,5 +62,15 @@ describe("HeroCarousel", () => {
 
   it("renders nothing for an empty campaign list", () => {
     expect(renderToStaticMarkup(<HeroCarousel banners={[]} />)).toBe("");
+  });
+
+  it("keeps uploaded banner URLs direct behind their visible breakpoint", () => {
+    const source = "http://localhost:9000/public/banner.webp";
+    const markup = renderToStaticMarkup(
+      <HeroCarousel banners={[{ id: "uploaded", title: "Published campaign", image: source }]} />,
+    );
+    expect(markup).toContain(`srcSet="${source}"`);
+    expect(markup).not.toContain("/_next/image?");
+    expect(markup).not.toContain('rel="preload"');
   });
 });

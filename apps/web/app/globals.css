@@ -170,8 +170,10 @@
   html,
   body {
     max-width: 100%;
-    overflow-x: hidden;
-    overflow-x: clip;
+  }
+
+  fieldset {
+    min-inline-size: 0;
   }
 
   body {
@@ -180,6 +182,15 @@
     /* Space Grotesk (loaded as --font-heading) is the default body typeface —
        paragraphs and long-form copy inherit it unless a component overrides. */
     font-family: var(--font-heading), "Space Grotesk", sans-serif;
+  }
+}
+
+/* Keep native form editing at a readable size without iOS focus zoom. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px;
   }
 }
 

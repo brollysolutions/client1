@@ -11,6 +11,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { CLOSE_BUTTON_CLASS } from "@/components/ui/close-button";
 import { Input } from "@/components/ui/input";
@@ -43,10 +44,12 @@ export function PendingReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <Maximize2 className="h-4 w-4" aria-hidden="true" />
-        Review filters
-      </Button>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Maximize2 className="h-4 w-4" aria-hidden="true" />
+          Review filters
+        </Button>
+      </DialogTrigger>
       <DialogContent
         showCloseButton={false}
         className={PANEL_DIALOG_FILTERED_CLASS}

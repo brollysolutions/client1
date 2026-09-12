@@ -8,6 +8,17 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class ProductionRuntimeContractTests(unittest.TestCase):
+    def test_next_route_payloads_share_the_edge_compression_contract(self) -> None:
+        nginx = (ROOT / "infra/nginx/default.conf").read_text(encoding="utf-8")
+        configured_types = re.search(r"gzip_types\s+([^;]+);", nginx)
+        self.assertIsNotNone(configured_types)
+        self.assertIn("text/x-component", configured_types.group(1).split())
+        self.assertIn("gzip_vary on;", nginx)
+        # Next deliberately delegates compression to this edge. HTML alone
+        # does not cover prefetches and client navigation's RSC responses.
+        next_config = (ROOT / "apps/web/next.config.ts").read_text(encoding="utf-8")
+        self.assertIn("compress: false", next_config)
+
     def test_reviewed_production_service_bases_are_versioned_and_digest_pinned(
         self,
     ) -> None:

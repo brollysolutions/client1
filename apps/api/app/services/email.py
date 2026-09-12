@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import logging
 from email.message import EmailMessage
+from html import escape
 from urllib.parse import urljoin
 
 import aiosmtplib
 
+from app.core.brand import LOGO_PNG
 from app.core.config import settings
 from app.core.masking import mask_email
 from app.core.navigation import notification_path_or_none
@@ -22,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 async def send_email(to: str, subject: str, body: str) -> bool:
-    """Send a plaintext email. Returns True if delivered to SMTP, False if mocked/failed.
+    """Send a branded email with plaintext fallback. False if mocked or failed.
 
     Mock mode: active when EMAIL_ENABLED is False or SMTP_HOST is empty — logs at
     WARNING (dev/staging only) and returns False. Any SMTP error is swallowed and
@@ -32,13 +34,8 @@ async def send_email(to: str, subject: str, body: str) -> bool:
         logger.warning("EMAIL_MOCK to=%s subject=%s", mask_email(to), subject)
         return False
 
-    message = EmailMessage()
-    message["From"] = settings.SMTP_FROM or settings.SMTP_USERNAME
-    message["To"] = to
-    message["Subject"] = subject
-    message.set_content(body)
-
     try:
+        message = branded_email(to, subject, body)
         await aiosmtplib.send(
             message,
             hostname=settings.SMTP_HOST,
@@ -53,6 +50,36 @@ async def send_email(to: str, subject: str, body: str) -> bool:
     except Exception as exc:  # delivery failure must not break the auth flow
         logger.warning("email.failed to=%s error=%s", mask_email(to), exc)
         return False
+
+
+def branded_email(to: str, subject: str, body: str) -> EmailMessage:
+    """No remote image fetches, tracking, or interpretation of supplied HTML."""
+    message = EmailMessage()
+    message["From"] = settings.SMTP_FROM or settings.SMTP_USERNAME
+    message["To"] = to
+    message["Subject"] = subject
+    message.set_content(body)
+    message.add_alternative(
+        '<!doctype html><html lang="en"><body style="margin:0;background:#f3f3ee;'
+        'font-family:Arial,sans-serif;color:#20242e"><main style="max-width:600px;'
+        'margin:auto;padding:32px;background:white">'
+        '<img src="cid:dhanadhara-logo" alt="Dhanadhara" width="240" height="44" '
+        'style="display:block;max-width:100%;height:auto;margin-bottom:28px">'
+        f'<h1 style="font-size:22px">{escape(subject)}</h1>'
+        '<div style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6">'
+        f"{escape(body)}</div>"
+        "</main></body></html>",
+        subtype="html",
+    )
+    message.get_payload()[1].add_related(
+        LOGO_PNG,
+        maintype="image",
+        subtype="png",
+        cid="<dhanadhara-logo>",
+        filename="dhanadhara.png",
+        disposition="inline",
+    )
+    return message
 
 
 def notification_email_body(body: str, href: str | None) -> str:

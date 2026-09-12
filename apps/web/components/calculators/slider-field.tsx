@@ -89,7 +89,7 @@ export function SliderField({
 
   return (
     <div className={cn("grid gap-2", className)}>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-1.5">
           <Label htmlFor={id} className="text-sm text-[var(--nav-text)]">
             {label}

@@ -1,7 +1,7 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import Image from "next/image";
+import { ResponsiveArtwork } from "@/components/responsive-artwork";
 
 import type { CalculatorGroup } from "@/lib/calculators/types";
 import { cn } from "@/lib/utils";
@@ -33,11 +33,8 @@ export function CalculatorHeroArt({
   const absPath = src ? join(process.cwd(), "public", src) : null;
   const asset = absPath && existsSync(absPath) ? src : null;
   const { width, height } = asset ? readSvgSize(absPath!) : { width: 500, height: 500 };
-  // The hero art is the desktop LCP, so small assets keep `priority` (preload).
-  // But two Storyset outliers exceed 150KB — preloading those competed with
-  // JS/fonts on the critical path, so anything over the threshold lazy-loads
-  // (it still fetches immediately once in the viewport).
-  const preload = asset ? statSync(absPath!).size < 100_000 : false;
+  // The browser loads this desktop LCP eagerly only when the artwork's
+  // breakpoint matches. Mobile copy no longer competes with a hidden preload.
 
   // With a real Storyset illustration, render it transparent so it blends into
   // the cream hero band (no card, border, or shadow). The coded fallback keeps
@@ -48,14 +45,15 @@ export function CalculatorHeroArt({
         aria-hidden
         className={cn("hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]", className)}
       >
-        <Image
+        <ResponsiveArtwork
           src={asset}
-          alt=""
+          media="(min-width: 1024px)"
           width={width}
           height={height}
           sizes="460px"
           className="h-auto w-full max-w-[460px]"
-          priority={preload}
+          loading="eager"
+          fetchPriority="high"
         />
       </div>
     );

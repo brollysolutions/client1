@@ -21,7 +21,7 @@ describe("CMS previews", () => {
 
   it("renders governed artwork and RERA state in the public banner preview", () => {
     const markup = renderToStaticMarkup(<BannerPreview context="public" placement="properties" banner={{ banner_type: "default", title: "Find your next home", subtitle: "Verified properties", cta_label: "Explore", deep_link: "/real-estate", image_url: "/banner-templates/properties/villas.webp", rera_verified: true }} />);
-    expect(markup).toContain("/banner-templates/properties/villas.webp");
+    expect(markup).toContain(encodeURIComponent("/banner-templates/properties/villas.webp"));
     expect(markup).toContain("RERA VERIFIED");
     expect(markup).toContain("Find your next home");
     expect(markup).toContain('data-layout="full-bleed"');
