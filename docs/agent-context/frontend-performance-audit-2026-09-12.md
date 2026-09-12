@@ -11,6 +11,12 @@ a cross-repository PR. The same reviewed commits were pushed to the new upstream
 feature branch using existing write access; PR #297 includes the preceding
 branding/mobile work. No protected branch was changed and no PR was merged.
 
+**Release blocked:** hosted dependency auditing on `3d30438` reports two critical
+and one high advisory in the unchanged Next.js/Sharp chain. PR #297 is draft.
+The reviewed performance candidate retains Next 15.5.21 for comparability; this
+record is not approval to deploy vulnerable dependencies. A scoped security
+patch and fresh verification take priority over further performance work.
+
 The user confirmed Dhanadhara as the target after supplying a BrollyAI guide.
 Only its measurement and preservation principles apply: that site's brand,
 routes, architecture, historical scores and deployment assumptions do not.
@@ -221,6 +227,17 @@ Fresh terminal verification:
   real nginx response probe passes as described above.
 - New frontend regression tests are included in `playwright.release.config.ts`.
   The hosted release-browser workflow is not claimed as freshly passed here.
+- Hosted dependency audit on `3d30438`: **failed**, reporting
+  [Next Windows RCE](https://github.com/advisories/GHSA-p293-qw3h-jr36),
+  [Next image-optimization RCE](https://github.com/advisories/GHSA-2xp9-vwfh-vxw4)
+  and [Sharp/libheif advisories](https://github.com/advisories/GHSA-rgj7-g3m4-5g8c).
+  Package and lockfiles are unchanged from `68091c6`; these are existing
+  dependency findings, not a passing security gate. The audit identifies Next
+  >=15.5.24 and Sharp >=0.35.4 as patched ranges; compatibility and the resolved
+  tree require their own review. No exploit test or package upgrade was performed.
+  [Failed job](https://github.com/brollysolutions/client1/actions/runs/34683872345/job/103527293064).
+  The hosted secret scan passes; the main CI verification job remains running
+  at handoff, so Linux/full-repository verification is not claimed complete.
 
 The full API/database/migration gate and monolithic `./scripts/verify.sh --ci`
 were not rerun for this frontend/nginx-only increment. Prior branding/API results

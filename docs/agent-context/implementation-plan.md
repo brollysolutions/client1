@@ -89,6 +89,11 @@ the existing target-host and production-evidence release gates remain open.
 Application candidate: `bbf613d`. PR #296 closed and `origin` no longer belongs
 to the fork network, so delivery uses upstream `fix/frontend-delivery-audit`
 against `main`, with the same commits retained on the origin contribution branch.
+PR #297 remains **draft/release blocked**: hosted dependency auditing on
+`3d30438` finds two critical and one high advisory in the unchanged Next/Sharp
+chain. A reviewed dependency security patch and fresh verification now precede
+further performance work. Main hosted verification is still running at handoff;
+the secret scan passes. The audit records advisory links and exact failed job.
 
 **Implemented — Dhanadhara logo and branding rollout**, on
 `feat/production-environment-evidence`, in

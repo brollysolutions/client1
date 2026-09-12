@@ -35,6 +35,12 @@ Application candidate: `bbf613d`. The closed PR #296's branding/mobile changes
 are included in #297. Since `origin` is now outside the fork network, the same
 commits are mirrored to upstream `fix/frontend-delivery-audit` for review against
 `main`; the origin contribution branch remains pushed. No merge or deployment.
+PR #297 is **draft/release blocked** after hosted dependency auditing on
+`3d30438` reports two critical and one high advisory in existing Next/Sharp
+dependencies. Package/lockfiles were not changed by the performance increment.
+The hosted secret scan passes and main verification is still running at handoff.
+Dependency patching and fresh validation take priority; see the audit for the
+advisory links and failed job. The local passing checks do not override this gate.
 
 As of: **2026-09-12**
 
