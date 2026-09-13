@@ -60,7 +60,7 @@ default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
 
-**Implemented — application-wide UI refinement and complete financial services** (2026-09-13), on `feat/production-environment-evidence`, baseline `1cce1a7`; review PR delivery pending. The selected `gpt-6-astra` / Extra High (`xhigh`) is preserved.
+**Implemented — application-wide UI refinement and complete financial services** (2026-09-13), on `feat/production-environment-evidence`, baseline `1cce1a7`; [review PR](https://github.com/brollysolutions/client1/pull/299). The selected `gpt-6-astra` / Extra High (`xhigh`) is preserved.
 
 The navy `#293681`, pale sky `#F0F7FC` and white system covers public pages,
 authentication and all six dashboard roles. Original carousel layout, artwork,

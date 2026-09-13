@@ -2,7 +2,7 @@
 
 Date: 13 September 2026. Source baseline: `1cce1a7`.
 Contribution branch: `feat/production-environment-evidence`.
-Status: implemented and reviewed; review PR delivery pending. Existing release gates remain open.
+Status: implemented and reviewed; [review PR](https://github.com/brollysolutions/client1/pull/299). Existing release gates remain open.
 
 ## Approved scope
 
@@ -256,7 +256,7 @@ certify full assistive-technology support or any production deployment.
 Evidence (ignored): `build/frontend-audit/ui-before/`, `ui-after/`,
 `ui-admin-dev/`, `ui-admin-api/`, `ui-admin-final/` and `ui-navigation-final/`.
 See [image provenance](SERVICE-IMAGES.md) for generation prompts and original
-asset preservation. Delivery: review PR delivery pending.
+asset preservation. Delivery: [review PR](https://github.com/brollysolutions/client1/pull/299).
 
 Design/Apple, security and complete-diff review found no remaining change-owned
 defect in the verified scope. Requirement coverage remains 100% of the same 79
