@@ -2,6 +2,76 @@
 
 Status: **Derived living implementation ledger**
 
+**Implemented — application-wide UI refinement and complete financial services** (2026-09-13), on `feat/production-environment-evidence`, baseline `1cce1a7`; review PR delivery pending. The selected `gpt-6-astra` / Extra High (`xhigh`) is preserved.
+
+The navy `#293681`, pale sky `#F0F7FC` and white system covers public pages,
+authentication and all six dashboard roles. Original carousel layout, artwork,
+logos, fonts and section order remain intact. Wide public dropdowns use icons;
+Calculators precedes Earn with Us and exposes all 18 tools in grouped desktop
+and mobile menus. Auth uses the original site logo in a separate row above its
+back link, shared legal links that clearly open new tabs, and the registration
+reminder. Dashboard promotional banners are removed; full-height navy rails,
+contained scrolling, mobile focus restoration and original calculator artwork
+dimensions are preserved. Skeletons cover 77 page modules and 18 loading layouts.
+
+`/loans` includes all 16 navbar services, canonical detail pages, branded generated
+photography, enquiry links and sitemap entries. Every service page now includes
+the same provider comparison and filters. Unpublished overviews show an honest
+empty state; only published API data enables provider records and applications.
+Filter submission returns to the comparison section, and clearing filters resets
+native selects as well as URL state. Credit-card aliases retain query state and
+the API product slug. School Funding copy and photography match institution finance.
+
+Admin has product-specific application fields and settings for all 16 public
+services plus Equipment Financing. Data migration `e2a4c6f8b0d3` adds missing
+OD/DOD as active but publicly unpublished. Same-slug Admin configurations are
+never overwritten; downgrade retains data and historical references. The table
+shows field counts; mobile form-builder controls and scrolling tables are fixed.
+No provider/rate seeds, financial calculation, consent recording, API-contract,
+dependency, authentication or RLS changes. Existing snapshots and validation remain.
+
+Fresh verification: web lint/typecheck pass; 103 files / 692 unit tests pass,
+with affected menu/registry and provider/loading tests repeated after final edits.
+Production build exits 0 at `2026-09-13T15:00:09.786Z`, generating 95/95 routes.
+The final broad browser sweep passes 252/253 cases at 320/390/768/1365px, covering all
+roles, populated/empty/loading/error/validation states, original published/fallback
+banners, legal links, menus and all 17 Admin form editors. The remaining delayed
+redirect test used an unreliable paused gzip stream and a generic loading-region
+selector. It now holds the complete real response and waits for the named redirect
+region; it and a new ordinary-navigation case pass three runs each (six passes).
+All 254 distinct current cases therefore have passing evidence across broad and
+targeted gates, not one uninterrupted full-suite pass. The provider filter-reset
+defect discovered in browser review is fixed and passes the broad final run.
+
+The isolated Linux API suite passes all 1,990 tests; focused configurable-form,
+catalogue and RLS tests pass 87 cases. Empty-database migrations and exactly one
+Alembic head pass. API Ruff/format passes across 508 files. Repository scripts:
+198 passed and one expected Windows skip. Native `./scripts/verify.sh --ci` cannot
+complete because Windows greenlet fails to import; component gates were run
+separately using the existing locked Linux image and disposable PostgreSQL/Redis.
+
+A new synthetic Admin was created only in the requested isolated local review
+database. Browser verification uses the real API for first-login password reset,
+all 17 current form editors, refresh after reload, logout and fresh login.
+The clean migration history retains two additional inactive legacy products.
+The local review uses localhost with the unchanged Secure/HttpOnly cookie;
+helper retries during startup/session initialization are separate from the
+completed functional checks. Credentials
+remain private and are excluded from Git and the PR. No real environment files,
+accounts, customer data or external message providers were used.
+
+Final resource/SEO/Lighthouse evidence and exact limitations are recorded in
+[UI refinement](../../apps/web/e2e/UI-REFINEMENT.md). Existing mobile performance,
+older-page metadata/indexability and dependency/release gates remain open.
+Complete Linux standalone web packaging, the separate API-backed navigation/
+media/personalization Playwright suites, hosted CI and deployment are unverified.
+
+Design/Apple, security and complete-diff review found no remaining change-owned
+defect in the verified scope. Requirement coverage remains 100% of the same 79
+requirements. Next priority: dependency remediation and outstanding performance,
+target-host, approved-provider and legal/operational release evidence. No merge
+or deployment was performed.
+
 **Implemented (2026-09-12) — upstream sync PR setup; activation pending**, on
 `feat/production-environment-evidence`, baseline `f509382`. The destination-only
 scheduled/manual workflow reuses the existing `SYNC_PAT`, preserves both Git
@@ -60,7 +130,7 @@ The hosted secret scan passes and main verification is still running at handoff.
 Dependency patching and fresh validation take priority; see the audit for the
 advisory links and failed job. The local passing checks do not override this gate.
 
-As of: **2026-09-12**
+As of: **2026-09-13**
 
 Evidence baseline: `115fd0f` (`upstream/main`, including merged
 [PR #295](https://github.com/brollysolutions/client1/pull/295)). The frozen
@@ -4838,7 +4908,7 @@ The following requirements are complete on the evidence baseline:
 | FR-4.3 | Complete | Registration captures explicit one/both-line intent while retaining both Client profiles; each requested journey is independently bound and assigned through its line's separate round-robin cursor without cross-line leakage. | Preserve explicit intent, per-line uniqueness, deterministic assignment ordering, and account-deletion closure. |
 | FR-10.3 | Complete | Cashback, referral bonuses, and commissions support UPI VPA and bank transfer through an explicit RazorpayX provider adapter plus an audited manual-cheque lifecycle. Cheque approval does not credit the ledger; issue, clearance, failure, duplicate/concurrent settlement, and compensating reversal are server-controlled, masked, and covered by migrated database tests. | Preserve provider scoping, Admin authorization, caps, raw-destination minimization, row-lock/CAS idempotency, account-deletion retention, and the no-card/no-failover boundary when adding future providers. |
 | FR-11.2 | Complete | Every notification producer, Admin broadcast, web push, public banner CTA, and transactional email action uses a same-origin relevant route; verified active email addresses can receive best-effort transactional copies when enabled. | Maintain the producer inventory as future events are added; no marketing or unverified-email delivery is implied. |
-| FR-12.1 | Complete | Authenticated Client/Agent dashboards receive one eligible banner per default, personalized, and action layer through a closed, versioned, fail-closed audience grammar. | Maintain schema/version and negative-rule tests when new dimensions are proposed. |
+| FR-12.1 | Complete | The placement API retains one eligible banner per default, personalized, and action layer through a closed, versioned, fail-closed audience grammar. The user's September 2026 UI direction suppresses all promotional dashboard banners while preserving campaign editing previews and eligible offers. | Maintain schema/version and negative-rule tests when new dimensions are proposed; preserve the approved dashboard presentation exception. |
 | FR-12.2 | Complete | The server proves Client line ownership, forces Agents to their active profile line, ranks exact-line/`both` content deterministically, and keeps Agents off customer offers. | Preserve server-side line proof and role separation for future placements. |
 | FR-12.3 | Complete | Sub Admin authoring and Admin banner approval validate the closed grammar; only eligible consented users receive personalized rows, with public and cross-role negatives. | Keep approval and anonymous allowlist tests alongside future CMS changes. |
 | FR-12.4 | Complete | Existing workflow facts and optional coarse location drive auditable, consented banner/offer placement without clickstream or inferred demographics. | Treat any new signal source as a separately approved privacy/security change. |

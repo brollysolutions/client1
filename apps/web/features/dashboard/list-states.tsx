@@ -5,6 +5,7 @@ import { Loader2, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingRegion } from "@/components/ui/loading-region";
 import { LIST_PAGE_SIZE } from "@/features/dashboard/use-filtered-page";
 import { cn } from "@/lib/utils";
 
@@ -37,10 +38,10 @@ export function ListEmptyState({
         className,
       )}
     >
-      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
+      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-cta-tint text-brand-navy">
         <Icon className="h-6 w-6" aria-hidden="true" />
       </span>
-      <h2 className="mt-5 text-lg font-semibold text-text-primary">{title}</h2>
+      <h2 className="mt-5 font-heading text-lg font-semibold text-brand-navy">{title}</h2>
       {description ? (
         <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">{description}</p>
       ) : null}
@@ -55,12 +56,11 @@ export function ListEmptyState({
  */
 export function ListLoadingState({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="space-y-2" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading</span>
+    <LoadingRegion label="Loading records" className="space-y-2">
       {Array.from({ length: rows }, (_, index) => (
-        <Skeleton key={index} className="h-12 rounded-lg" />
+        <Skeleton key={index} className="h-20 rounded-lg xl:h-12" />
       ))}
-    </div>
+    </LoadingRegion>
   );
 }
 

@@ -61,6 +61,21 @@ export async function getPublicFinancialProducts(
     : { items: [], total: 0, page: query.page ?? 1, page_size: query.pageSize ?? 12 };
 }
 
+/** Published metadata for the public service directory. Fetch subsequent pages
+ *  only when needed, so configured services beyond the first API page survive.
+ *  An unavailable page never creates a provider/application link. */
+export async function getPublishedServiceProducts(): Promise<PublicFinancialProduct[]> {
+  const pageSize = 100;
+  const first = await getPublicFinancialProducts({ pageSize });
+  const products = [...first.items];
+  for (let page = 2; page <= Math.ceil(first.total / pageSize); page += 1) {
+    const next = await getPublicFinancialProducts({ page, pageSize });
+    if (!next.items.length) break;
+    products.push(...next.items);
+  }
+  return products;
+}
+
 export type CatalogueFacets = {
   all: number;
   loan: number;

@@ -43,7 +43,7 @@ export const metadata: Metadata = {
 // dashboard near-black).
 export const viewport: Viewport = {
   colorScheme: "light",
-  themeColor: "#F3F3EE",
+  themeColor: "#F0F7FC",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

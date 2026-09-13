@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { DashboardPageSkeleton } from "@/features/dashboard/dashboard-page-skeleton";
 
 import { useAuth } from "@/components/auth/session-provider";
 import { ReferralsView } from "@/features/sub-admin/referrals-view";
@@ -32,9 +32,7 @@ export default function ReferralRulesPage() {
 
   if (isLoading || !allowed) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-      </div>
+      <DashboardPageSkeleton />
     );
   }
   return <ReferralsView />;

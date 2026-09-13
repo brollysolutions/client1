@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingRegion } from "@/components/ui/loading-region";
 
 // Mirrors the calculators hub (app/(public)/calculators/page.tsx): a two-column
 // hero with the category jump-link row, then grouped calculator-card grids.
@@ -6,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 // hub index only.
 export default function CalculatorsHubLoading() {
   return (
-    <div aria-hidden className="w-full bg-[var(--nav-bg)]">
+    <LoadingRegion label="Loading calculators" className="w-full bg-[var(--nav-bg)]">
       {/* Hero */}
       <section className="w-full">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
@@ -42,6 +43,6 @@ export default function CalculatorsHubLoading() {
           </div>
         </section>
       ))}
-    </div>
+    </LoadingRegion>
   );
 }

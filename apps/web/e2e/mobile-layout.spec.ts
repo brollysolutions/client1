@@ -49,19 +49,52 @@ for (const route of routes) {
     }
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.setViewportSize({ width: 320, height: 740 });
-    await page.goto(route === "/dashboard/apply" ? `${route}?product=${FIXTURE_ID}` : route, { waitUntil: "domcontentloaded" });
-    await expect(page.locator("main")).toBeVisible({ timeout: 30_000 });
-    if (dashboard) await expect(page.locator("#dashboard-main-content")).toBeVisible();
-    await expect(page.locator("body")).not.toContainText("Application error");
-    await page.waitForLoadState("networkidle");
-    await page.evaluate(() => document.fonts.ready);
-    for (const width of [320, 390, 768, 1365]) {
-      await page.setViewportSize({ width, height: 844 });
-      await expectContained(page);
-      if (width === 390) await page.screenshot({ path: testInfo.outputPath("mobile.png"), animations: "disabled" });
+    // Hold page data after session hydration, so every dashboard route and
+    // invitation is also inspected while its real client request is pending.
+    let releaseData = () => {};
+    let pendingData = true;
+    const dataReady = new Promise<void>((resolve) => { releaseData = resolve; });
+    const inspectLoading = dashboard || route.includes("invite/");
+    if (inspectLoading) {
+      await page.route("**/api/v1/**", async (request) => {
+        if (pendingData && request.request().method() === "GET" && new URL(request.request().url()).pathname !== "/api/v1/auth/me") await dataReady;
+        await request.fallback();
+      });
     }
-    expect(errors).toEqual([]);
+    try {
+      await page.setViewportSize({ width: 320, height: 740 });
+      await page.goto(route === "/dashboard/apply" ? `${route}?product=${FIXTURE_ID}` : route, { waitUntil: "domcontentloaded" });
+      await expect(page.locator("main")).toBeVisible({ timeout: 30_000 });
+      if (dashboard) await expect(page.locator("#dashboard-main-content")).toBeVisible();
+      await expect(page.locator("body")).not.toContainText("Application error");
+      if (inspectLoading) {
+        const main = page.locator("main");
+        await expect(main.locator('[data-slot="skeleton"], h1, form, [role="status"]').first()).toBeVisible();
+        for (const width of [320, 390, 768, 1365]) {
+          await page.setViewportSize({ width, height: 844 });
+          await expectContained(page);
+          await expect.poll(async () => main.locator('[data-slot="skeleton"]:visible').evaluateAll((nodes) => nodes
+            .filter((node) => node.isConnected)
+            .map((node) => getComputedStyle(node).animationName)
+            .filter((animation) => animation !== "none")), { message: `Reduced-motion placeholders at ${route} (${width}px)` }).toEqual([]);
+          if (width === 390) await page.screenshot({ path: testInfo.outputPath("loading-mobile.png"), animations: "disabled" });
+        }
+      }
+      pendingData = false;
+      releaseData();
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator('main [data-slot="skeleton"]:visible').first()).not.toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      for (const width of [320, 390, 768, 1365]) {
+        await page.setViewportSize({ width, height: 844 });
+        await expectContained(page);
+        if (width === 390) await page.screenshot({ path: testInfo.outputPath("mobile.png"), animations: "disabled" });
+      }
+      expect(errors).toEqual([]);
+    } finally {
+      pendingData = false;
+      releaseData();
+    }
   });
 }
 

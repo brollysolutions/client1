@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingRegion } from "@/components/ui/loading-region";
 
 // Route-level skeleton for /apply-as-agent, shaped like the real page (two-
 // column hero with an illustration slot on lg+ + centered max-w-3xl form with
@@ -7,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 // the (public) layout.
 export default function ApplyAsAgentLoading() {
   return (
-    <div aria-hidden>
+    <LoadingRegion label="Loading partner application">
       {/* Hero: two-line heading + description left, illustration slot right (lg+) */}
       <section className="w-full bg-[var(--nav-bg)]">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
@@ -19,7 +20,7 @@ export default function ApplyAsAgentLoading() {
               <Skeleton className="mt-2 h-5 w-5/6 max-w-xl" />
             </div>
             <div className="hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]">
-              <Skeleton className="h-[360px] w-full max-w-[460px] rounded-2xl" />
+              <Skeleton className="h-[460px] w-full max-w-[460px] rounded-2xl" />
             </div>
           </div>
         </div>
@@ -113,6 +114,6 @@ export default function ApplyAsAgentLoading() {
           </div>
         </div>
       </section>
-    </div>
+    </LoadingRegion>
   );
 }

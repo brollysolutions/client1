@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Phone } from "lucide-react";
@@ -21,7 +20,7 @@ import { NAV_ITEMS } from "@/components/navbars/nav-items";
 import { useScrolled } from "@/components/navbars/use-scrolled";
 import { cn } from "@/lib/utils";
 
-// A plain top-level link (Calculator, Application): matches the dropdown triggers'
+// A plain top-level link (Home, Earn with Us, Become a Partner): matches the dropdown triggers'
 // size/spacing and gains an animated underline on hover/focus. Passed through
 // NavigationMenuLink's own cn()/twMerge so it cleanly overrides that component's
 // dropdown-item base — including its hover:bg, which we neutralize so these bar
@@ -50,11 +49,11 @@ export function SiteHeader() {
       <div className="grid h-16 w-full grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8">
         <Logo className="col-start-1 justify-self-start" />
 
-        <NavigationMenu className="col-start-2 hidden min-w-0 justify-self-center lg:flex">
+        <NavigationMenu className="col-start-2 hidden min-w-0 justify-self-center xl:flex">
           <NavigationMenuList>
             {NAV_ITEMS.map((item) => {
               // Active when the URL is the item's page or any child route under
-              // it (e.g. /calculators/emi keeps "Calculator" lit). Home matches
+              // it (e.g. /calculators/emi keeps "Calculators" lit). Home matches
               // only "/". Every nav item is a real route (Application -> /apply-as-agent).
               const isActive =
                 item.href === "/"
@@ -97,23 +96,16 @@ export function SiteHeader() {
                       {item.label}
                     </span>
                   </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    {/* Financial Services uses two tracks: Loans | (Insurance
-                        + Credit Cards stacked). Properties has three equal
-                        tracks for Residential | Plots | Commercial. */}
-                    <div
-                      className={cn(
-                        item.menu.columns.length === 3
-                          ? "w-[min(900px,calc(100vw-2rem))]"
-                          : "w-[min(700px,calc(100vw-2rem))]",
-                      )}
-                    >
+                  <NavigationMenuContent className="p-5">
+                    {/* Financial Services uses a wider Loans track. Properties
+                        and Calculators use three equal category tracks. */}
+                    <div className="w-[min(1080px,calc(100vw-6rem))]">
                       <div
                         className={cn(
-                          "grid gap-x-6",
+                          "grid gap-x-8",
                           item.menu.columns.length === 3
                             ? "grid-cols-3"
-                            : "grid-cols-[27rem_1fr]",
+                            : "grid-cols-[minmax(0,2fr)_minmax(0,1fr)]",
                         )}
                       >
                         {item.menu.columns.map((column, columnIndex) => (
@@ -143,7 +135,7 @@ export function SiteHeader() {
                                   aria-labelledby={`fs-${group.key}`}
                                   className={cn(
                                     "mt-1",
-                                    group.items.length > 6 &&
+                                    group.items.length > 8 &&
                                       "grid grid-flow-col grid-rows-6 grid-cols-2 gap-x-2",
                                   )}
                                 >
@@ -151,30 +143,14 @@ export function SiteHeader() {
                                     <li key={child.href}>
                                       <NavigationMenuLink
                                         asChild
-                                        className="group/item flex-row items-center gap-2.5 px-2 py-1.5 transition-colors hover:bg-[var(--nav-tint)]/60"
+                                        className="group/item min-h-11 flex-row items-center gap-2.5 px-2 py-1.5 transition-colors hover:bg-[var(--nav-tint)]/60"
                                       >
                                         <Link href={child.href} prefetch={false}>
-                                          {child.illustration ? (
-                                            // Miniature spot illustration in a
-                                            // tint tile; decorative, the label
-                                            // carries the meaning.
-                                            <span className="flex h-9 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[var(--nav-tint)]/50 ring-1 ring-inset ring-[var(--nav-border)] transition-shadow group-hover/item:ring-[var(--nav-primary)]/40">
-                                              <Image
-                                                src={child.illustration}
-                                                alt=""
-                                                aria-hidden
-                                                width={48}
-                                                height={36}
-                                                className="h-full w-full object-contain p-0.5"
-                                              />
-                                            </span>
-                                          ) : (
-                                            <child.icon
-                                              className="h-4 w-4 shrink-0 text-text-secondary transition-colors group-hover/item:text-[var(--nav-primary)]"
-                                              aria-hidden
-                                            />
-                                          )}
-                                          <span className="truncate text-sm font-medium text-[var(--nav-text)] transition-colors group-hover/item:text-[var(--nav-primary)]">
+                                          <child.icon
+                                            className="h-4 w-4 shrink-0 text-text-secondary transition-colors group-hover/item:text-[var(--nav-primary)]"
+                                            aria-hidden
+                                          />
+                                          <span className="min-w-0 text-sm font-medium leading-snug text-[var(--nav-text)] transition-colors group-hover/item:text-[var(--nav-primary)]">
                                             {child.label}
                                           </span>
                                         </Link>
@@ -230,7 +206,7 @@ export function SiteHeader() {
         </NavigationMenu>
 
         <div className="col-start-3 flex items-center gap-2 justify-self-end">
-          <div className="hidden items-center gap-2 lg:flex">
+          <div className="hidden items-center gap-2 xl:flex">
             <Button
               asChild
               variant="ghost"

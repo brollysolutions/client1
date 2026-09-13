@@ -39,3 +39,23 @@ business journeys. Most operational lists use empty states; review and support
 queues have populated records. Dynamic records use synthetic detail responses,
 and invitation/not-found behavior remains part of the route sweep. Keep the
 existing API-backed journey tests as the separate integration gate.
+
+For the application-wide visual refinement, `ui-refinement.spec.ts` adds
+before/after family screenshots at all four widths, auth legal navigation,
+registration-state preservation, navy navigation focus and mixed published
+image/text campaigns. It also checks dashboard banner removal across roles and
+business lines, eligible offers, full-height admin/sub-admin sidebars and the
+services search field. The route sweep holds and releases client requests to
+inspect loading transitions; `loading-pages.spec.ts` renders 18 real route/shell
+fallbacks at all four widths and checks inert, labelled, reduced-motion skeletons.
+`sidebar-layout.spec.ts` checks all six roles at short desktop heights and three
+mobile sizes: selected-item visibility, independent scrolling, anchored logo and
+account controls, and focus restoration. `service-directory.spec.ts` checks all
+16 dedicated service pages at all four widths, branded images, canonical URLs,
+sitemap entries and the published-product versus contact-enquiry journeys.
+Use `release-catalogue-server.mjs --published-banners`
+and a fresh production build/cache for these scenarios. The dedicated
+`pnpm exec playwright test --config playwright.ui.config.ts` starts the
+synthetic servers from a successful standalone build and runs these checks
+alongside the route sweep and existing public/auth/brand/resource suites.
+The default fixture without the flag continues to exercise fallback banners.

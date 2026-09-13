@@ -8,7 +8,7 @@ import {
   useQueryStates,
 } from "nuqs";
 
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { INFO } from "@/lib/calculators/glossary";
 import { LOAN_DEFAULTS } from "@/lib/calculators/rates";
 import { amortizationSchedule } from "@/lib/finance";
@@ -83,7 +83,7 @@ export function EmiCalculator() {
     <div className="grid gap-8 lg:grid-cols-2">
       {/* Inputs */}
       <div className="grid content-start gap-6">
-        <Tabs value={state.type} onValueChange={selectType}>
+        <Tabs value={state.type} onValueChange={selectType} className="gap-6">
           {/* 5 loan types: 3-up on phones (wraps to two rows), single row from sm. */}
           <TabsList className="grid h-auto w-full grid-cols-3 gap-1 sm:grid-cols-5">
             {TYPES.map((t) => (
@@ -92,46 +92,47 @@ export function EmiCalculator() {
               </TabsTrigger>
             ))}
           </TabsList>
+          <TabsContent value={state.type} className="grid content-start gap-6">
+            <SliderField
+              id="emi-amount"
+              label="Loan amount"
+              info={INFO.loanAmount}
+              prefix="₹"
+              value={amount}
+              min={bounds.amountMin}
+              max={bounds.amountMax}
+              step={bounds.amountStep}
+              allowAboveMax
+              onChange={(v) => setState({ amount: Math.round(v) })}
+              helper={formatINR(amount)}
+            />
+            <SliderField
+              id="emi-rate"
+              label="Interest rate"
+              info={INFO.interestRate}
+              suffix="% p.a."
+              value={rate}
+              min={bounds.rateMin}
+              max={bounds.rateMax}
+              step={bounds.rateStep}
+              onChange={(v) => setState({ rate: v })}
+              helper={`${rate.toFixed(2)}% per year`}
+            />
+            <SliderField
+              id="emi-months"
+              label="Tenure"
+              info={INFO.tenure}
+              suffix="months"
+              value={months}
+              min={bounds.monthsMin}
+              max={bounds.monthsMax}
+              step={1}
+              onChange={(v) => setState({ months: Math.round(v) })}
+              helper={tenureHelper(months)}
+            />
+            <RateDisclaimer />
+          </TabsContent>
         </Tabs>
-
-        <SliderField
-          id="emi-amount"
-          label="Loan amount"
-          info={INFO.loanAmount}
-          prefix="₹"
-          value={amount}
-          min={bounds.amountMin}
-          max={bounds.amountMax}
-          step={bounds.amountStep}
-          allowAboveMax
-          onChange={(v) => setState({ amount: Math.round(v) })}
-          helper={formatINR(amount)}
-        />
-        <SliderField
-          id="emi-rate"
-          label="Interest rate"
-          info={INFO.interestRate}
-          suffix="% p.a."
-          value={rate}
-          min={bounds.rateMin}
-          max={bounds.rateMax}
-          step={bounds.rateStep}
-          onChange={(v) => setState({ rate: v })}
-          helper={`${rate.toFixed(2)}% per year`}
-        />
-        <SliderField
-          id="emi-months"
-          label="Tenure"
-          info={INFO.tenure}
-          suffix="months"
-          value={months}
-          min={bounds.monthsMin}
-          max={bounds.monthsMax}
-          step={1}
-          onChange={(v) => setState({ months: Math.round(v) })}
-          helper={tenureHelper(months)}
-        />
-        <RateDisclaimer />
       </div>
 
       {/* Results */}

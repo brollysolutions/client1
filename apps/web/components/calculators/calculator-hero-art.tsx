@@ -37,13 +37,15 @@ export function CalculatorHeroArt({
   // breakpoint matches. Mobile copy no longer competes with a hidden preload.
 
   // With a real Storyset illustration, render it transparent so it blends into
-  // the cream hero band (no card, border, or shadow). The coded fallback keeps
+  // the light hero band (no card, border, or shadow). The coded fallback keeps
   // a soft tinted card so the thin monoline motif still reads.
   if (asset) {
     return (
       <div
         aria-hidden
-        className={cn("hidden shrink-0 items-center justify-center lg:flex lg:w-[460px]", className)}
+        // Let the picture fill the reserved column; intrinsic SVG sizing can
+        // otherwise shrink the flex item to 300px despite the image's w-full.
+        className={cn("hidden shrink-0 items-center justify-center lg:flex lg:w-[460px] [&>picture]:w-full", className)}
       >
         <ResponsiveArtwork
           src={asset}

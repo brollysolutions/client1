@@ -1,6 +1,6 @@
 import { type LucideIcon } from "lucide-react";
 
-import { LOAN_PRODUCTS, type ProductGroup } from "@/lib/products";
+import { financialServiceHref, LOAN_PRODUCTS, type ProductGroup } from "@/lib/products";
 
 // Data-joining for the navbar's Financial Services mega-menu. Mirrors
 // components/footer-links.ts's convention: this file owns the join against
@@ -15,10 +15,6 @@ export type FinancialServiceLink = {
   label: string;
   href: string;
   icon: LucideIcon;
-  /** Product spot illustration, reused as the desktop mega-menu thumbnail so
-   *  the menu and the /loans cards share one art source. The Lucide `icon`
-   *  stays the mobile-drawer glyph (illustrations are lg+ only). */
-  illustration?: string;
 };
 
 export type FinancialServiceGroup = {
@@ -51,9 +47,8 @@ const [loansGroup, insuranceGroup, creditCardsGroup] = GROUP_DEFS.map(
     items: LOAN_PRODUCTS.filter((product) => product.group === group.key).map(
       (product) => ({
         label: product.navLabel ?? product.label,
-        href: `/loans#${product.id}`,
+        href: financialServiceHref(product.id),
         icon: product.icon,
-        illustration: product.illustration,
       }),
     ),
   }),

@@ -17,9 +17,11 @@ export function SiteFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="w-full border-t border-black bg-[var(--nav-bg)]">
+    <footer className="w-full border-t border-white/15 bg-brand-navy text-dash-foreground">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        <Logo className="mb-8 w-52 sm:w-60" sizes="(min-width: 640px) 240px, 208px" />
+        <div className="mb-8 w-fit rounded-xl bg-surface p-4">
+          <Logo className="w-52 sm:w-60" sizes="(min-width: 640px) 240px, 208px" />
+        </div>
         {/* Link columns */}
         <nav aria-label="Footer">
           {/* Below lg: collapsible columns, native <details>, no JS */}
@@ -30,13 +32,13 @@ export function SiteFooter() {
                 className={
                   index === 0
                     ? "faq-details group"
-                    : "faq-details group border-t border-[var(--nav-border)]/60"
+                    : "faq-details group border-t border-white/15"
                 }
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-heading font-semibold text-[var(--nav-text)] marker:content-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--nav-primary)]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-heading font-semibold text-dash-foreground marker:content-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand-sky">
                   {column.heading}
                   <ChevronDown
-                    className="h-4 w-4 shrink-0 text-brand-blue transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+                    className="h-4 w-4 shrink-0 text-brand-sky transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
                     aria-hidden
                   />
                 </summary>
@@ -45,7 +47,7 @@ export function SiteFooter() {
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="block py-1.5 text-sm text-text-secondary hover:text-[var(--nav-primary)]"
+                        className="block py-2.5 text-sm text-dash-muted hover:text-brand-sky focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-sky"
                       >
                         {link.label}
                       </Link>
@@ -60,7 +62,7 @@ export function SiteFooter() {
           <div className="hidden lg:grid lg:grid-cols-4 lg:gap-8">
             {FOOTER_COLUMNS.map((column) => (
               <div key={column.heading}>
-                <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-[var(--nav-text)]">
+                <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-dash-foreground">
                   {column.heading}
                 </h3>
                 <ul className="mt-4 space-y-3">
@@ -68,7 +70,7 @@ export function SiteFooter() {
                     <li key={link.href}>
                       <Link
                         href={link.href}
-                        className="text-sm text-text-secondary hover:text-[var(--nav-primary)]"
+                        className="text-sm text-dash-muted hover:text-brand-sky focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-sky"
                       >
                         {link.label}
                       </Link>
@@ -81,39 +83,39 @@ export function SiteFooter() {
         </nav>
 
         {/* Contact + trust line */}
-        <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-[var(--nav-border)]/60 pt-8 text-sm text-[var(--nav-text)]">
+        <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-white/15 pt-8 text-sm text-dash-foreground">
           <a
             href={SITE_CONTACT.phoneHref}
-            className="inline-flex items-center gap-2 hover:text-[var(--nav-primary)]"
+            className="inline-flex items-center gap-2 hover:text-brand-sky focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-sky"
           >
-            <Phone className="h-4 w-4 text-[var(--nav-primary)]" aria-hidden />
+            <Phone className="h-4 w-4 text-brand-sky" aria-hidden />
             {SITE_CONTACT.phone}
           </a>
           <a
             href={SITE_CONTACT.emailHref}
-            className="inline-flex items-center gap-2 hover:text-[var(--nav-primary)]"
+            className="inline-flex items-center gap-2 hover:text-brand-sky focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-sky"
           >
-            <Mail className="h-4 w-4 text-[var(--nav-primary)]" aria-hidden />
+            <Mail className="h-4 w-4 text-brand-sky" aria-hidden />
             {SITE_CONTACT.email}
           </a>
           <span className="inline-flex items-center gap-2">
-            <Clock className="h-4 w-4 text-[var(--nav-primary)]" aria-hidden />
+            <Clock className="h-4 w-4 text-brand-sky" aria-hidden />
             {SITE_CONTACT.hours.join(", ")}
           </span>
           <span className="inline-flex items-center gap-2">
             <MapPin
-              className="h-4 w-4 text-[var(--nav-primary)]"
+              className="h-4 w-4 text-brand-sky"
               aria-hidden
             />
             {SITE_CONTACT.address.join(", ")}
           </span>
         </div>
-        <p className="mt-4 max-w-3xl text-sm text-text-secondary">
+        <p className="mt-4 max-w-3xl text-sm text-dash-muted">
           {TRUST_LINE.lead} {TRUST_LINE.rest}
         </p>
 
         {/* Bottom bar */}
-        <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-[var(--nav-border)] pt-6 text-xs text-text-secondary sm:flex-row">
+        <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/15 pt-6 text-xs text-dash-muted sm:flex-row">
           <p>
             &copy; {year} {SITE_NAME}. All rights reserved.
           </p>
@@ -125,7 +127,7 @@ export function SiteFooter() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-sm hover:text-[var(--nav-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)]"
+                className="rounded-sm hover:text-brand-sky focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
               >
                 {link.label}
               </Link>

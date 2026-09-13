@@ -69,9 +69,9 @@ export function PropertyRow({
   return (
     <section id={id} aria-label={heading} className="w-full scroll-mt-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h3 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">
+        <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">
           {heading}
-        </h3>
+        </h2>
         {types ? (
           <p className="mt-2 text-base text-text-secondary">{types}</p>
         ) : null}

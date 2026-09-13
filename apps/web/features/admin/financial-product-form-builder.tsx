@@ -145,8 +145,8 @@ export function FinancialProductFormBuilder({
 
       {value.sections.map((section, sectionIndex) => (
         <section key={section.key} className="rounded-xl border border-border p-4">
-          <div className="flex items-start gap-3">
-            <div className="grid flex-1 gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label htmlFor={`section-title-${sectionIndex}`}>Section title<RequiredIndicator /></Label>
                 <Input
@@ -180,7 +180,7 @@ export function FinancialProductFormBuilder({
                 </FieldError>
               </div>
             </div>
-            <div className="flex gap-1">
+            <div className="flex justify-end gap-1">
               <Button
                 type="button"
                 size="icon"

@@ -92,11 +92,11 @@ export default async function ContactPage({
       {/* Hero. Same composition as the apply-as-agent hero used to carry:
           copy on the left, a decorative calling scene filling the right
           gutter on large screens only. */}
-      <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
+      <section className="relative w-full overflow-hidden bg-brand-cta-tint">
         <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <h1 className="max-w-3xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+              <h1 className="max-w-3xl font-heading text-3xl font-semibold leading-tight tracking-tight text-brand-navy sm:text-5xl lg:text-6xl">
                 Talk to a real person
               </h1>
               <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
@@ -126,12 +126,11 @@ export default async function ContactPage({
         <ScrollCue />
       </section>
 
-      {/* Form + contact details. Both columns sit flat on the cream band,
-          no card chrome on either side. */}
+      {/* A white form card separates editing from the contact details. */}
       <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-20">
-            <div>
+          <div className="grid items-start gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+            <div className="rounded-2xl border border-border bg-surface p-5 sm:p-8">
               <h2 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
                 Send us a message
               </h2>

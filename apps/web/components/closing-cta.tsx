@@ -30,7 +30,7 @@ export function ClosingCta({
     <section
       id={id}
       aria-labelledby="closing-cta-heading"
-      className="relative w-full scroll-mt-16 overflow-hidden bg-[var(--nav-primary)]"
+      className="relative w-full scroll-mt-16 overflow-hidden bg-brand-navy"
     >
       <CtaBandDoodles />
       <div className="relative z-10 mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
@@ -45,7 +45,7 @@ export function ClosingCta({
           {href ? (
             <Link
               href={href}
-              className="inline-flex h-10 w-full items-center justify-center rounded-md bg-white px-4 text-sm font-medium text-[var(--nav-primary)] transition hover:bg-white/90 sm:w-auto"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-brand-sky px-5 py-3 text-sm font-semibold text-brand-navy transition-colors duration-150 hover:bg-brand-cta-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy motion-reduce:transition-none sm:w-auto"
             >
               {ctaLabel}
             </Link>

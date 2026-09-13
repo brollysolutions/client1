@@ -1,25 +1,19 @@
 import { type LucideIcon } from "lucide-react";
 
+import { CALCULATORS_MENU, CALCULATORS_OVERVIEW } from "@/components/navbars/calculators-menu";
 import {
   FINANCIAL_SERVICES_MENU,
   FINANCIAL_SERVICES_OVERVIEW,
 } from "@/components/navbars/financial-services-menu";
 import { PROPERTIES_MENU, PROPERTIES_OVERVIEW } from "@/components/navbars/properties-menu";
 
-// Real Estate, Earn with Us, Calculator, and Application are all dedicated
-// pages with no navbar dropdown. Financial Services is the one exception: it
-// carries 16 products (see lib/products.ts), too many to be discoverable from
-// a single flat page alone, so it renders a mega-menu built from
-// financial-services-menu.ts. This reverses the "children removed, dedicated
-// pages only" decision from commit 45d9573 — see .agent-workflow/DECISIONS.md
-// for the rationale. Contact is not a center nav item; it sits in the header
-// actions beside Register (see site-header/mobile-nav).
+// Desktop and mobile share the same order, grouped destinations and overview
+// links. Contact sits in the header actions beside Register.
 export type NavChild = {
   label: string;
   href: string;
   icon: LucideIcon;
-  /** Miniature illustration thumbnail for the desktop mega-menu. The Lucide
-   *  `icon` stays the mobile-drawer glyph (illustrations are lg+ only). */
+  /** Optional catalogue artwork reference; navbar renderers use icons only. */
   illustration?: string;
 };
 
@@ -64,7 +58,10 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/real-estate",
     menu: { columns: PROPERTIES_MENU, overview: PROPERTIES_OVERVIEW },
   },
+  {
+    label: "Calculators", href: "/calculators",
+    menu: { columns: CALCULATORS_MENU, overview: CALCULATORS_OVERVIEW },
+  },
   { label: "Earn with Us", href: "/earn-with-us" },
-  { label: "Calculator", href: "/calculators" },
   { label: "Become a Partner", href: "/apply-as-agent" },
 ];

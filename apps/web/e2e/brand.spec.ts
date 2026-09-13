@@ -15,9 +15,13 @@ for (const route of ["/", "/login", "/register", "/forgot-password", "/change-mo
       await page.goto(route);
       const logo = page.getByRole("img", { name: "Dhanadhara", exact: true }).first();
       await expect(logo).toBeVisible();
-      await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
-      const logoUrl = new URL(await logo.evaluate((image: HTMLImageElement) => image.currentSrc));
-      expect(logoUrl.searchParams.get("url")).toBe("/brand/logo-horizontal.png");
+      // The route fallback and resolved auth form both render the logo. Read
+      // readiness and URL together so replacing the fallback cannot race this check.
+      await expect.poll(() => logo.evaluate((image: HTMLImageElement) =>
+        image.complete && image.naturalWidth > 0 && image.currentSrc
+          ? new URL(image.currentSrc).searchParams.get("url")
+          : null,
+      )).toBe("/brand/logo-horizontal.png");
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width + 1);
       await expect(page.locator("body")).not.toContainText("Grow Wealth");
     }

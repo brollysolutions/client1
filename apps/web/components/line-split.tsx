@@ -6,10 +6,8 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// Landing page is blue-only (see hero-carousel + lead-dialog): Loans and Real
-// Estate are told apart by illustration side + alternating band tint, not by
-// hue. Loans-green/realestate-amber stay reserved for authenticated role
-// dashboards, per docs/design/ui-principles.md.
+// Public service bands share the same pale sky section surface.
+// Status colors remain independent of these decorative section backgrounds.
 type Line = {
   id: string;
   name: string;
@@ -22,7 +20,6 @@ type Line = {
    *  amounts of it, so one can visually read smaller. Defaults to 1. */
   imageScale?: number;
   imageSide: "left" | "right";
-  tint: "cream" | "white";
   ctaLabel: string;
   ctaHref: string;
 };
@@ -41,7 +38,6 @@ const LINES: Line[] = [
     ],
     image: "/illustrations/loans.svg",
     imageSide: "left",
-    tint: "cream",
     ctaLabel: "Explore loans",
     ctaHref: "/loans",
   },
@@ -59,7 +55,6 @@ const LINES: Line[] = [
     image: "/illustrations/real-estate.svg",
     imageScale: 1.18,
     imageSide: "right",
-    tint: "cream",
     ctaLabel: "Explore properties",
     ctaHref: "/real-estate",
   },
@@ -73,8 +68,7 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
       id={line.id}
       aria-labelledby={`${line.id}-heading`}
       className={cn(
-        "w-full scroll-mt-16",
-        line.tint === "cream" ? "bg-[var(--nav-bg)]" : "bg-surface",
+        "w-full scroll-mt-16 overflow-x-clip bg-surface-sky",
         paddingClassName
       )}
     >
@@ -112,11 +106,11 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
           >
             <h2
               id={`${line.id}-heading`}
-              className="font-heading text-3xl font-semibold text-[var(--nav-text)] sm:text-4xl lg:text-5xl"
+              className="font-heading text-3xl font-semibold leading-tight tracking-tight text-brand-navy sm:text-4xl lg:text-5xl"
             >
               {line.title}
             </h2>
-            <p className="mt-4 text-lg text-[var(--nav-text)] sm:text-xl">
+            <p className="mt-5 text-lg leading-relaxed text-text-secondary sm:text-xl">
               {line.paragraph}
             </p>
             <ul className="mt-7 space-y-4 text-left">
@@ -152,7 +146,7 @@ export function LineSplit() {
     <>
       <Band
         line={LINES[0]}
-        paddingClassName="pt-6 pb-16 sm:pt-8 sm:pb-20 lg:pt-10 lg:pb-24"
+        paddingClassName="py-16 sm:py-20 lg:py-24"
       />
       <Band line={LINES[1]} paddingClassName="py-16 sm:py-20 lg:py-24" />
     </>

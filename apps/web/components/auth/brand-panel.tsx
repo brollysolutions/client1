@@ -21,12 +21,8 @@ const SCENES: Record<AuthScene, ReactNode> = {
 // generic — no unverifiable claims.
 const TRUST_CUES = ["Bank-grade security", "OTP verified", "Your data stays private"];
 
-// The sky-blue left-hand panel shared by every auth screen. Sky gradient backdrop
-// (soft white glows + a drifting dot texture) carries a bespoke per-page
-// illustration, the screen's headline + subtext, the step indicator on multi-step
-// flows, and a slim trust row at the foot. Shown only at lg+; AuthShell renders
-// the form full-width below lg. The gradient stays in the sky-600..sky-800 band so
-// white body text clears WCAG AA.
+// The navy panel preserves each flow's illustration and multi-step guidance.
+// AuthShell renders the form full-width below lg.
 export function BrandPanel({
   title,
   subtitle,
@@ -45,15 +41,14 @@ export function BrandPanel({
   return (
     <div
       className={cn(
-        "relative flex-col overflow-hidden bg-gradient-to-br from-brand-cta via-brand-cta-hover to-brand-cta-deep p-8 text-white xl:p-12",
+        "relative flex-col overflow-hidden bg-brand-navy p-8 text-white xl:p-12",
         className
       )}
     >
-      {/* Soft white glows + a fine dot texture, gently animated over the sky
-          gradient. Motion switches off under prefers-reduced-motion. */}
+      {/* Existing glows and dot texture, subdued over navy. */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="auth-anim-float-a absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/20 blur-3xl" />
-        <div className="auth-anim-float-b absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
+        <div className="auth-anim-float-a absolute -right-24 -top-24 h-96 w-96 rounded-full bg-brand-sky/10 blur-3xl" />
+        <div className="auth-anim-float-b absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-white/5 blur-3xl" />
         <div
           className="auth-anim-drift absolute inset-0 opacity-15"
           style={{

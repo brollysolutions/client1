@@ -234,7 +234,12 @@ export function LoanTypesView() {
         key: "version",
         header: "Form",
         sortable: true,
-        render: (product) => <span className="tabular-nums">v{product.form_version}</span>,
+        render: (product) => (
+          <DataTablePrimaryCell
+            title={`v${product.form_version}`}
+            subtitle={`${product.form_schema.sections.reduce((total, section) => total + section.fields.length, 0)} fields`}
+          />
+        ),
       },
       {
         key: "submissions",

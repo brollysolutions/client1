@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardPageSkeleton } from "@/features/dashboard/dashboard-page-skeleton";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import {
   DashboardHeader,
@@ -52,12 +53,7 @@ export function AgentHome() {
   const { earnings, status: earningsStatus, retry: retryEarnings } = useAgentEarnings();
 
   if (status === "loading") {
-    return (
-      <DashboardPage className="space-y-5">
-        <Skeleton className="h-9 w-48 rounded-lg" />
-        <Skeleton className="h-64 rounded-2xl" />
-      </DashboardPage>
-    );
+    return <DashboardPageSkeleton overview />;
   }
 
   if (status === "error" || !home) {

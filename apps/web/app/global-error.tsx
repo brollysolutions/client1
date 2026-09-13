@@ -28,7 +28,7 @@ export default function GlobalError({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#F3F3EE",
+          backgroundColor: "#F0F7FC",
           color: "#20242E",
           fontFamily: "Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
         }}
@@ -49,13 +49,14 @@ export default function GlobalError({
             onClick={() => reset()}
             style={{
               cursor: "pointer",
+              minHeight: 44,
               border: "none",
               borderRadius: 8,
               padding: "10px 20px",
               fontSize: 15,
               fontWeight: 500,
               color: "#FFFFFF",
-              backgroundColor: "#9A4F14",
+              backgroundColor: "#293681",
             }}
           >
             Try again

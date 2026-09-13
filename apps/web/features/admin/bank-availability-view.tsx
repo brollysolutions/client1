@@ -17,6 +17,7 @@ import {
 import { setBankAvailability } from "@/lib/loan-config-api";
 import { isAvailable } from "@/lib/loan-config";
 import { useBankAvailability } from "./use-bank-availability";
+import { FormSkeleton } from "@/components/form-skeleton";
 
 export function BankAvailabilityView() {
   const { matrix, loading, error, reload } = useBankAvailability();
@@ -64,8 +65,8 @@ export function BankAvailabilityView() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+        <FormSkeleton label="Loading bank availability" />
       </div>
     );
   }

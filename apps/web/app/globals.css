@@ -13,38 +13,34 @@
   --font-geist: "Geist", sans-serif;
 
   --color-brand-navy: #293681;
-  --color-brand-blue: #315FC7;
+  --color-brand-blue: var(--color-brand-navy);
   --color-brand-sky: #95CCDD;
-  --color-brand-aqua: #D0E7E6;
+  --color-brand-aqua: var(--color-brand-sky);
 
-  /* Auth-only sky CTA + left-panel gradient. Mirrors the landing sky-blue
-     (--nav-primary / #0369a1) but as real @theme utilities so bg-brand-cta,
-     hover:bg-brand-cta-hover, text-brand-cta, ring-brand-cta, and from-/to-
-     gradient utilities all exist and dedupe cleanly against the navy defaults.
-     Used only by the (auth) route group; dashboards keep brand-navy. Distinct
-     from the amber --color-cta above (that is the marketing CTA button). */
-  --color-brand-cta: #0369a1; /* sky-700  buttons, links, rings, gradient start */
-  --color-brand-cta-hover: #075985; /* sky-800  hover */
-  --color-brand-cta-deep: #0c4a6e; /* sky-900  gradient end */
-  --color-brand-cta-tint: #e0f2fe; /* sky-100  icon badge bg */
+  /* Shared action colours across public, auth and dashboard surfaces. Legacy
+     utility names resolve to the same navy action and pale sky highlight. */
+  --color-brand-cta: var(--color-brand-navy);
+  --color-brand-cta-hover: var(--color-dash-rail-hover);
+  --color-brand-cta-deep: var(--color-brand-navy);
+  --color-brand-cta-tint: var(--color-surface-sky);
 
   --color-surface: #FFFFFF;
-  /* Silver-white section wash, cooler than the cream --nav-bg. Used on the
-     Earn page process sections so white cards read with a subtle depth. */
-  --color-surface-silver: #F4F6F8;
+  --color-surface-sky: #F0F7FC;
+  /* Compatibility alias: secondary sections share one pale sky surface. */
+  --color-surface-silver: var(--color-surface-sky);
 
   --color-text-primary: #20242E;
   --color-text-secondary: #5C5C5C;
 
-  --color-cta: #9A4F14;
-  --color-cta-hover: #7C3D0D;
-  --color-cta-soft: #F7E8D8;
+  --color-cta: var(--color-brand-navy);
+  --color-cta-hover: var(--color-dash-rail-hover);
+  --color-cta-soft: var(--color-surface-sky);
 
-  --color-loans-accent: #0369a1; /* blue-only line accent, see ADR-0007 */
-  --color-loans-soft: #e0f2fe;
+  --color-loans-accent: var(--color-brand-navy);
+  --color-loans-soft: var(--color-surface-sky);
 
-  --color-realestate-accent: #0369a1; /* blue-only line accent, see ADR-0007 */
-  --color-realestate-soft: #e0f2fe;
+  --color-realestate-accent: var(--color-brand-navy);
+  --color-realestate-soft: var(--color-surface-sky);
 
   --color-success: #15803D;
   --color-warning: #92400E;
@@ -54,16 +50,13 @@
   /* Announcement/notice bar — global site chrome, not a line accent. */
   --color-notice: #F3BB1B;
 
-  /* Sidebar rail chrome — neutral light gray, a quiet step down from the cream
-     --background so the rail reads as chrome, not a coloured panel (the old
-     navy sidebar is gone). Rail icons are gray by default and turn blue on
-     hover, so the rail carries no hover fill. The top bar blends fully into
-     --background. Line accent is blue-only for both lines, see ADR-0007; the
-     switcher label (not colour) distinguishes the active line. --dash-rail-hover
-     survives only for the mobile hamburger tap target. */
-  --color-dash-rail: #F2F0EC;
-  --color-dash-rail-hover: #eae7e1;
-  --color-dash-border: #e4e0d8;
+  /* Navy navigation chrome, with sky feedback. Reading surfaces stay light;
+     business-line identity is still carried by labels, not status colors. */
+  --color-dash-rail: var(--color-brand-navy);
+  --color-dash-rail-hover: #374893;
+  --color-dash-foreground: var(--color-surface);
+  --color-dash-muted: var(--color-brand-sky);
+  --color-dash-border: var(--border);
 
   /* Letter-avatar palette (components/user-avatar). A user's tile colour is a
      deterministic hash of their name, so it never changes between sessions.
@@ -97,33 +90,33 @@
 
   --radius: 0.625rem;
 
-  --background: #F3F3EE;
+  --background: var(--color-surface-sky);
   --foreground: #20242E;
 
-  --card: #FFFFFF;
+  --card: var(--color-surface);
   --card-foreground: #20242E;
 
-  --popover: #FFFFFF;
+  --popover: var(--color-surface);
   --popover-foreground: #20242E;
 
-  --primary: #293681; /* brand navy */
-  --primary-foreground: #FFFFFF;
+  --primary: var(--color-brand-navy);
+  --primary-foreground: var(--color-surface);
 
-  --secondary: #D0E7E6; /* brand aqua */
+  --secondary: var(--color-surface-sky);
   --secondary-foreground: #20242E;
 
-  --muted: #ECEDE8;
+  --muted: var(--color-surface-sky);
   --muted-foreground: #5C5C5C;
 
-  --accent: #95CCDD; /* brand sky */
+  --accent: var(--color-brand-sky);
   --accent-foreground: #20242E;
 
   --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
 
-  --border: #D9D9D9;
-  --input: #D9D9D9;
-  --ring: #315FC7; /* brand blue */
+  --border: #D3DFEB;
+  --input: #7F899C;
+  --ring: var(--color-brand-navy);
 }
 
 @theme inline {
@@ -216,14 +209,14 @@
   display: none;
 }
 
-/* Landing navbar tokens. Cream bar + near-black text + Sky-blue accent. */
+/* Public chrome shares the same surfaces and actions as auth and dashboards. */
 :root {
-  --nav-bg: #f3f3ee;
-  --nav-text: #111827;
-  --nav-primary: #0369a1;
-  --nav-primary-hover: #075985;
-  --nav-tint: #e0f2fe;
-  --nav-border: #e3e3db;
+  --nav-bg: var(--color-surface-sky);
+  --nav-text: var(--color-brand-navy);
+  --nav-primary: var(--color-brand-navy);
+  --nav-primary-hover: var(--color-dash-rail-hover);
+  --nav-tint: var(--color-surface-sky);
+  --nav-border: var(--border);
 
   /* Light info-yellow, for the "Indicative" disclaimer badge (road-sign feel,
      distinct from the blue used for neutral/explainer content). */
@@ -264,7 +257,7 @@
   background-image: linear-gradient(
     100deg,
     transparent 30%,
-    rgba(2, 132, 199, 0.14) 45%,
+    color-mix(in srgb, var(--color-brand-sky) 30%, transparent) 45%,
     transparent 60%
   );
   background-size: 220% 100%;
