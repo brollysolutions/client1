@@ -1,21 +1,15 @@
 import type { CatalogueFacets, PublicFinancialProduct, PublicFinancialProductList } from "@/lib/financial-catalog";
-import type { CatalogueCategory, CatalogueQuery } from "@/lib/financial-catalogue-url";
-import { financialServiceHref, LOAN_PRODUCTS, type ProductGroup } from "@/lib/products";
+import type { CatalogueQuery } from "@/lib/financial-catalogue-url";
+import { financialServiceHref, findFinancialService } from "@/lib/products";
 
-// Every public marketing service has an overview page. Its provider/application
-// journey is available only when the detail route receives published API data.
+// The API owns visibility and ordering. The static registry supplies artwork
+// and legacy anchors only; it must never recreate an inactive or deleted row.
 export type ServiceDirectoryItem = Pick<PublicFinancialProduct, "slug" | "label" | "summary" | "category"> & {
   id: string;
   legacyAnchorId?: string;
   detailHref?: string;
 };
 export type ServiceDirectoryPage = Omit<PublicFinancialProductList, "items"> & { items: ServiceDirectoryItem[] };
-
-const CATEGORY: Record<ProductGroup, CatalogueCategory> = {
-  loans: "loan",
-  insurance: "insurance",
-  "credit-cards": "credit_card",
-};
 
 export function serviceAnchor(slug: string): string {
   return slug === "credit-card" ? "credit-cards" : slug;
@@ -27,23 +21,17 @@ export function buildServiceDirectory(
   pageSize = 24,
 ): { catalogue: ServiceDirectoryPage; facets: CatalogueFacets } {
   const byAnchor = new Map(published.map((product) => [serviceAnchor(product.slug), product]));
-  const known = new Set(LOAN_PRODUCTS.map((product) => product.id));
-  const items: ServiceDirectoryItem[] = LOAN_PRODUCTS.map((service) => {
-    const product = byAnchor.get(service.id);
+  const items: ServiceDirectoryItem[] = [...byAnchor].map(([anchor, product]) => {
     return {
-      id: service.id,
-      slug: product?.slug ?? service.id,
-      label: product?.label ?? service.label,
-      summary: product?.summary ?? service.description,
-      category: CATEGORY[service.group],
-      legacyAnchorId: service.legacyAnchorId,
-      detailHref: financialServiceHref(service.id),
+      id: anchor,
+      slug: product.slug,
+      label: product.label,
+      summary: product.summary,
+      category: product.category,
+      legacyAnchorId: findFinancialService(product.slug)?.legacyAnchorId,
+      detailHref: financialServiceHref(product.slug),
     };
   });
-  for (const [anchor, product] of byAnchor) {
-    if (known.has(anchor)) continue;
-    items.push({ id: anchor, slug: product.slug, label: product.label, summary: product.summary, category: product.category, detailHref: `/loans/${product.slug}` });
-  }
 
   const search = query.q?.trim().toLowerCase();
   const matching = search ? items.filter((item) => `${item.label} ${item.summary} ${item.id}`.toLowerCase().includes(search)) : items;

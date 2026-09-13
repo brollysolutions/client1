@@ -9,7 +9,6 @@ import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 
 import { FinancialProviderOptions, financialApplicationHref as applyHref, providerOfferQuery } from "@/components/financial-provider-options";
-import { FinancialServiceOverview } from "@/components/financial-service-overview";
 import { LeadDialog } from "@/components/lead-dialog";
 import { ServiceArtwork } from "@/components/service-artwork";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,7 @@ import {
   type PublicFinancialProduct,
 } from "@/lib/financial-catalog";
 import { contactHref } from "@/lib/leads";
-import { catalogueIllustration, financialServiceHref, findFinancialService } from "@/lib/products";
+import { catalogueIllustration, financialServiceHref } from "@/lib/products";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 type PageProps = {
@@ -76,13 +75,12 @@ function ProductFacts({ product }: { product: PublicFinancialProduct }) {
 
 export async function generateMetadata({ params }: Pick<PageProps, "params">): Promise<Metadata> {
   const { slug } = await params;
-  const service = findFinancialService(slug);
   const canonicalSlug = slug === "credit-cards" ? "credit-card" : slug;
   const product = await publishedService(canonicalSlug);
-  if (!product && !service) return { title: "Financial service" };
-  const label = product?.label ?? service!.label;
-  const description = product?.summary ?? service!.description;
-  const href = financialServiceHref(product?.slug ?? service!.id);
+  if (!product) return { title: "Financial service unavailable", robots: { index: false, follow: false } };
+  const label = product.label;
+  const description = product.summary;
+  const href = financialServiceHref(product.slug);
   const image = catalogueIllustration(canonicalSlug) ?? "/opengraph-image.png";
   return {
     title: label,
@@ -105,8 +103,6 @@ export default async function FinancialServicePage({ params, searchParams }: Pag
   const offerQuery = providerOfferQuery(raw);
   const product = await publishedService(slug);
   if (!product) {
-    const service = findFinancialService(slug);
-    if (service) return <FinancialServiceOverview service={service} providerQuery={offerQuery} />;
     notFound();
   }
 

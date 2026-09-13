@@ -4,6 +4,8 @@ import { ChevronDown, Clock, Mail, MapPin, Phone } from "lucide-react";
 import { FOOTER_COLUMNS, LEGAL_LINKS } from "@/components/footer-links";
 import { Logo } from "@/components/logo";
 import { SITE_CONTACT, SITE_NAME, TRUST_LINE } from "@/lib/site";
+import { financialServiceHref } from "@/lib/products";
+import type { PublicServiceLink } from "@/components/navbars/financial-services-menu";
 
 // Site-wide footer for the public marketing pages (app/(public)/layout.tsx).
 // Server Component: the only "interactivity" is native <details>/<summary> for
@@ -13,8 +15,16 @@ import { SITE_CONTACT, SITE_NAME, TRUST_LINE } from "@/lib/site";
 // require attribution. The bottom-bar attribution link was removed on
 // request; restore it, replace the SVGs, or buy Freepik Premium to stay
 // compliant.
-export function SiteFooter() {
+export function SiteFooter({ products = [] }: { products?: readonly PublicServiceLink[] }) {
   const year = new Date().getFullYear();
+  const byHref = new Map(products.map((product) => [financialServiceHref(product.slug), product]));
+  const columns = FOOTER_COLUMNS.map((column) => column.heading === "Loans" ? {
+    ...column,
+    links: column.links.flatMap((link) => {
+      const product = byHref.get(financialServiceHref(link.href.split("#")[1]));
+      return product ? [{ label: product.label, href: financialServiceHref(product.slug) }] : [];
+    }),
+  } : column).filter((column) => column.links.length > 0);
 
   return (
     <footer className="w-full border-t border-white/15 bg-brand-navy text-dash-foreground">
@@ -26,7 +36,7 @@ export function SiteFooter() {
         <nav aria-label="Footer">
           {/* Below lg: collapsible columns, native <details>, no JS */}
           <div className="lg:hidden">
-            {FOOTER_COLUMNS.map((column, index) => (
+            {columns.map((column, index) => (
               <details
                 key={column.heading}
                 className={
@@ -60,7 +70,7 @@ export function SiteFooter() {
 
           {/* lg+: flat grid, no disclosure chrome */}
           <div className="hidden lg:grid lg:grid-cols-4 lg:gap-8">
-            {FOOTER_COLUMNS.map((column) => (
+            {columns.map((column) => (
               <div key={column.heading}>
                 <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-dash-foreground">
                   {column.heading}

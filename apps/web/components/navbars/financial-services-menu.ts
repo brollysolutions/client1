@@ -1,6 +1,7 @@
-import { type LucideIcon } from "lucide-react";
+import { Landmark, type LucideIcon } from "lucide-react";
 
-import { financialServiceHref, LOAN_PRODUCTS, type ProductGroup } from "@/lib/products";
+import { financialServiceHref, findFinancialService, LOAN_PRODUCTS, type ProductGroup } from "@/lib/products";
+import type { PublicFinancialProduct } from "@/lib/financial-catalog";
 
 // Data-joining for the navbar's Financial Services mega-menu. Mirrors
 // components/footer-links.ts's convention: this file owns the join against
@@ -63,3 +64,21 @@ export const FINANCIAL_SERVICES_OVERVIEW = {
   label: "View all financial services",
   href: "/loans",
 } as const;
+
+export type PublicServiceLink = Pick<PublicFinancialProduct, "slug" | "label" | "category">;
+
+/** Keep the approved icon menu while letting Admin control its visible rows. */
+export function financialServicesMenu(products: readonly PublicServiceLink[]): FinancialServiceColumn[] {
+  const categories = { loans: "loan", insurance: "insurance", "credit-cards": "credit_card" } as const;
+  const groups = GROUP_DEFS.map((group) => ({
+    ...group,
+    items: products.filter((product) => product.category === categories[group.key]).map((product) => ({
+      label: product.label,
+      href: financialServiceHref(product.slug),
+      icon: findFinancialService(product.slug)?.icon ?? Landmark,
+    })),
+  }));
+  return [{ groups: groups.slice(0, 1) }, { groups: groups.slice(1) }]
+    .map((column) => ({ groups: column.groups.filter((group) => group.items.length > 0) }))
+    .filter((column) => column.groups.length > 0);
+}

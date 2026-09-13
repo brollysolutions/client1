@@ -181,7 +181,7 @@ test("mobile public navigation can expand and reach the auth pages", async ({ pa
   const drawer = page.getByRole("dialog");
   await expect(drawer).toBeVisible();
   await drawer.locator("summary").first().click();
-  await expect(drawer.getByRole("link", { name: "Personal", exact: true })).toBeVisible();
+  await expect(drawer.locator('a[href^="/loans/"]').first()).toBeVisible();
   await drawer.getByRole("link", { name: "Login", exact: true }).click();
   await expect(drawer).not.toBeVisible();
   await expect(page).toHaveURL(/\/login$/);

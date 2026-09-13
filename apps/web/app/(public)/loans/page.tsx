@@ -12,12 +12,9 @@ import { getHeroBanners } from "@/lib/public-banners";
 import { LOAN_JOURNEY, LOAN_TRUST } from "@/lib/products";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
-// First server-side data fetch on this page. Matches /real-estate's ISR
-// window: CMS-authored content is human-paced, not real-time, so a five
-// minute regeneration keeps the page from needing a redeploy to show a new
-// offer without adding meaningful load (at most ~12 requests/hour from the
-// web container, regardless of visitor volume).
-export const revalidate = 300;
+// Product visibility follows Admin changes on the next request. Banner fetches
+// retain their own cache window independently of the live catalogue.
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Curated Loans, Credit Cards & Insurance",

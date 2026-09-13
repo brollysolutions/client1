@@ -8,6 +8,22 @@ Authority: **Authoritative for the product catalogue, product-specific intake
 fields, Admin-to-Client configuration behavior, and the implementation shape
 explicitly approved when the user asked to start implementation.**
 
+## 2026-09-14 lifecycle amendment
+
+The user subsequently requested that Admin activation/deactivation change the
+public Financial Services directory, and requested product deletion. Public
+navigation, directory cards, detail pages and sitemap entries now follow active,
+explicitly published API products; a static marketing entry cannot recreate an
+inactive, unpublished or deleted product. Existing publication configuration is
+preserved, so both activation and public visibility are required.
+
+Platform Admin may permanently delete unused products after confirmation.
+Applications, service enquiries and configured provider offers prevent deletion;
+deactivation remains available for those products. Audit history and submitted
+form snapshots are retained. Only disposable bank availability overrides cascade.
+This dated amendment supersedes the earlier no-delete direction for unused
+financial products; it does not change retention of financial records.
+
 ## 2026-09-13 catalogue extension
 
 The user subsequently requested application fields and settings in Admin for

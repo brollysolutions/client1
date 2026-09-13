@@ -125,7 +125,7 @@ test("the card-category redirect completes through ordinary navigation", async (
   await mockMobileApi(page, "client");
   await page.context().addCookies([{ name: "session_hint", value: "1", url: baseURL! }]);
   await page.goto("/dashboard/explore/cards", { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL(/\/dashboard\/explore\/cards\/credit-card$/, { timeout: 30_000 });
+  await expect(page).toHaveURL(/\/dashboard\/explore\/cards\/credit-cards?$/, { timeout: 30_000 });
   await expect(page.locator("main").getByRole("heading", { level: 1 })).toContainText("Credit Card");
   await expect(page.locator("main").getByRole("status", { name: "Opening credit cards" })).toHaveCount(0);
 });
@@ -138,13 +138,19 @@ test("the card-category redirect retains a loading region until its product arri
   let requested = false;
   let release = () => {};
   const ready = new Promise<void>((resolve) => { release = resolve; });
-  await page.route("**/dashboard/explore/cards/credit-card?*", async (route) => {
+  // Dashboard URLs retain the configured API slug, including the plural alias.
+  await page.route("**/dashboard/explore/cards/credit-card*", async (route) => {
     requested = true;
-    // Keep the actual RSC payload intact while controlling its arrival. Paused
-    // Chromium streams do not reliably complete behind the local gzip proxy.
+    // Keep the actual RSC payload intact while controlling its arrival. Fetch
+    // decodes gzip; remove wire framing before replaying its complete body.
     const response = await route.fetch();
+    const body = await response.body();
+    const headers = response.headers();
+    delete headers["content-encoding"];
+    delete headers["content-length"];
+    delete headers["transfer-encoding"];
     await ready;
-    await route.fulfill({ response });
+    await route.fulfill({ status: response.status(), headers, body });
   });
   try {
     await page.goto("/dashboard/explore/cards", { waitUntil: "domcontentloaded" });
@@ -160,12 +166,13 @@ test("the card-category redirect retains a loading region until its product arri
       await expect(loading).toBeVisible();
       await page.screenshot({ path: testInfo.outputPath(`redirect-loading-${width}.png`), animations: "disabled" });
     }
-    const destination = page.waitForResponse((response) => new URL(response.url()).pathname === "/dashboard/explore/cards/credit-card", { timeout: 30_000 });
+    const destination = page.waitForResponse((response) => /^\/dashboard\/explore\/cards\/credit-cards?$/.test(new URL(response.url()).pathname), { timeout: 30_000 });
     release();
     const response = await destination;
     expect(response.status()).toBe(200);
-    await response.finished();
-    await expect(page).toHaveURL(/\/dashboard\/explore\/cards\/credit-card$/);
+    // Assert completed navigation directly. Chromium can leave the synthetic
+    // response's finished event pending after the destination has rendered.
+    await expect(page).toHaveURL(/\/dashboard\/explore\/cards\/credit-cards?$/);
     await expect(page.locator("main").getByRole("heading", { level: 1 })).toContainText("Credit Card");
     await expect(loading).not.toBeVisible();
     expect(await page.evaluate(() => history.length)).toBe(historyLength);

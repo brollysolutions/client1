@@ -77,6 +77,7 @@ class AuditAction(enum.StrEnum):
     RETENTION_PURGED = "retention_purged"
     LOAN_TYPE_CREATED = "loan_type_created"
     LOAN_TYPE_UPDATED = "loan_type_updated"
+    LOAN_TYPE_DELETED = "loan_type_deleted"
     BANK_CREATED = "bank_created"
     BANK_UPDATED = "bank_updated"
     BANK_DELETED = "bank_deleted"

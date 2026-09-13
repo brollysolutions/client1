@@ -4,7 +4,130 @@ Date: 13 September 2026. Source baseline: `1cce1a7`.
 Contribution branch: `feat/production-environment-evidence`.
 Status: implemented and reviewed; [review PR](https://github.com/brollysolutions/client1/pull/299). Existing release gates remain open.
 
-## Approved scope
+## 14 September 2026 extension: product lifecycle and sidebar controls
+
+Baseline for this extension: `7b6d609`. The following publication behavior
+supersedes the earlier always-visible marketing overviews recorded below.
+
+Only active, explicitly published products appear in the public directory,
+Financial Services navigation, curated footer links, detail pages and sitemap.
+Static service definitions still supply icons, artwork and legacy anchors; they
+cannot restore products hidden by Admin. Public catalogue requests and the public
+layout render fresh publication state on the next page load. Existing open tabs
+are not pushed updates. CMS banner fetches retain their existing cache windows.
+A missing service is not indexed, while a failed detail API request reaches the
+existing retry boundary instead of being reported as a missing product.
+
+Platform Admin can confirm deletion of an unused product. Applications,
+enquiries and provider offers block deletion even when disabled or unpublished.
+A parent-row lock and restrictive foreign keys protect concurrent writes; an
+atomic deletion audit survives removal. Only disposable bank availability
+configuration cascades. Additive migration `f3b5d7e9a1c2` grants DELETE to the API
+role behind a platform-Admin-only RLS policy and adds the audit enum value.
+Rollback removes the grant/policy and retains audit history. The DELETE endpoint
+and audit enum are regenerated in both contract outputs.
+
+Native vertical and horizontal scrollbars are thin throughout public pages,
+auth, dashboards, tables and dialogs. Navy navigation uses a sky thumb;
+forced-color mode restores system controls. The expanded Client logo shifts
+left with the collapse control to its right; toggling retains keyboard focus.
+Fixed staff sidebars retain their prior centered 192px white logo on navy.
+Mobile drawers retain their white logo. The collapsed Client arrangement,
+original asset files, calculations and authentication behavior are unchanged.
+
+The broader browser sweep caught a calculator regression caused by dynamic
+public rendering: controls appeared before hydration, the expected placeholder
+was absent, and early export clicks could be lost. Calculator islands now retain
+the existing placeholder until mounting. Public copy, URL inputs, calculations
+and exports remain unchanged.
+
+Verification for this extension (the 13 September results below belong to
+the preceding increment):
+
+- `pnpm lint`, `pnpm typecheck`, `pnpm test`: pass, 105 files / 697 tests. Final
+  E2E test edits also pass focused ESLint and TypeScript checks. The locked Next
+  build CLI exits 0 at `2026-09-13T21:34:58.887058+00:00`, producing 84 routes with the original
+  cached font bytes; 804 checked web/contract inputs match the served snapshot.
+- Linux `pytest -q --disable-warnings`: 2,008 passed / one policy-inventory
+  failure. The new `loan_types_delete` policy is added to the exhaustive ledger,
+  then all four `test_platform_scope_rls.py` tests pass. Separately, 79 focused
+  lifecycle/catalogue/role/RLS cases pass. No uninterrupted all-green API run is
+  claimed. Ruff and format checks pass across 510 files, with the final inventory
+  edit checked again. Empty-database upgrade, downgrade/reupgrade, retained
+  deletion audits and exactly one Alembic head (`f3b5d7e9a1c2`) pass.
+- OpenAPI and the TypeScript client are regenerated with repository scripts.
+  Repository script tests: 198 passed / one expected Windows skip. Native
+  `./scripts/verify.sh --ci` cannot run successfully because the installed Windows
+  greenlet module fails to import; the component gates use the locked Linux API
+  image and disposable PostgreSQL/Redis instead.
+- Real synthetic Admin verification passes against the production web build and
+  isolated API: deactivate/reactivate and confirmed deletion change the public
+  directory, homepage menu, footer, details and sitemap on fresh requests. The
+  existing review credentials and Personal Loan publication state are preserved;
+  only the helper's temporary product is removed.
+- The nine-suite browser sweep (mobile-layout, ui-refinement, loading-pages,
+  sidebar-layout, sidebar-chrome, brand, admin-financial-products,
+  service-directory and frontend-performance) passes 247/255 cases. After the
+  calculator hydration fix, the affected 38-case subset passes 37. It confirms
+  all calculator exports/loading/accessibility, mobile navigation and artwork
+  sizing. The remaining delayed card test required plural-slug support and safe
+  replay of a decoded response. Both card cases pass in multiple repeats but
+  still intermittently time out, including direct Next access without the gzip
+  proxy. This remains unresolved verification; successful retries do not erase
+  those failures. A real Admin card probe returns to `/dashboard` as required by
+  its existing role guard and does not certify the Client card route.
+- All six sidebar roles, logo treatments, focus restoration, full height,
+  forced colors and page/dialog/table scrollbars pass at 320/390/768/1365px.
+  Final `pnpm exec playwright test e2e/sidebar-chrome.spec.ts --workers=1`
+  passes all seven cases against the final build at
+  `2026-09-13T21:45:04.725672+00:00`. The preceding run had two mobile logo
+  resting-color assertions fail because the menu-button pointer hovered the
+  opened drawer logo. The test now checks resting and hover states separately;
+  focused ESLint and TypeScript checks pass after that correction.
+  All 17 Admin form editors, deletion confirmation/cancel/409 states and role
+  loading/error recovery pass. One public property test fails because the review
+  DB has no matching fixture. Three published-banner fixture cases are excluded.
+  Command review rejected the combined secondary-preview launch with only
+  “blocked by policy”; the primary localhost preview was restored separately.
+  Published fixtures remain unverified for this increment.
+- The 45-URL SEO audit exits 1 with 52 existing findings and 48 warnings; all
+  17 published service pages pass. Original assets are unchanged. Design review
+  uses Taste/Impeccable/Kowalski and Apple Design; security review covers the new
+  platform-Admin guard, RLS, reference protection, rollback and audit retention.
+
+Lighthouse 13.4.1 produced five valid initial samples and an invalid EMI mobile
+`NO_NAVSTART` trace (overall initial runner exit 1). A separate mobile replacement
+exits 0. These six single samples ran locally while the API suite was active;
+they are not field data or repeated-run medians. Budgets remain performance >=90,
+LCP <=2500ms, TBT <=200ms and CLS <=0.1. Only Loans and EMI desktop meet all four.
+
+| Page | Device | Performance | LCP (ms) | TBT (ms) | CLS | Accessibility |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `/` | mobile | 52 | 4553 | 2734 | 0.000 | 100 |
+| `/` | desktop | 88 | 1566 | 158 | 0.000 | 100 |
+| `/loans` | mobile | 55 | 4170 | 2659 | 0.000 | 100 |
+| `/loans` | desktop | 91 | 1285 | 155 | 0.000 | 100 |
+| `/calculators/emi` | desktop | 94 | 854 | 172 | 0.000 | 100 |
+| `/calculators/emi` | mobile | 52 | 4414 | 4069 | 0.000 | 100 |
+
+Windows standalone symlink-copy warnings remain. Linux web packaging, the
+separate API-backed release suites and deployment are unverified. This remains a
+draft with card-navigation, fixture, SEO, dependency and performance gates open.
+No merge or deployment is performed. Evidence is retained under
+`build/frontend-audit/product-lifecycle/` and `product-lifecycle-api/`; failed,
+intermediate, broad and focused reports are kept separately. Final PR readback
+must compare local HEAD to both contribution branches and PR #299's actual
+upstream base/head because the automatic checker assumes origin is a fork.
+The isolated copy reuses installed dependencies. Its initial `pnpm build`
+invocation refused an automatic modules-directory purge without a TTY; the same
+installed Next executable from the package's build script was invoked directly.
+No dependencies were added or removed, and the final build retains lint/type
+validation. The temporary native card-redirect experiment was reverted; the
+final candidate preserves the existing router behavior and its documented
+intermittent browser failures.
+
+
+## 13 September approved scope
 
 The final approved direction pairs brand navy `#293681`, sky accents and pale
 sky blue `#F0F7FC`

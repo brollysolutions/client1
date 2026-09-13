@@ -2,6 +2,73 @@
 
 Status: **Derived living implementation ledger**
 
+**Implemented — financial-product visibility, safe deletion and sidebar restoration**
+(2026-09-14), on `feat/production-environment-evidence`, extending
+[PR #299](https://github.com/brollysolutions/client1/pull/299) from `7b6d609`.
+The selected `gpt-6-astra` / Extra High (`xhigh`) is unchanged.
+
+Active, explicitly published products now govern the public directory, navigation,
+curated footer, detail pages and sitemap on each fresh page load. Static artwork
+cannot recreate hidden products. Platform Admin can confirm deletion of unused
+products; parent locking, restrictive foreign keys and an atomic audit protect
+applications, enquiries, provider offers and history. Additive migration
+`f3b5d7e9a1c2` adds the deletion audit action and platform-Admin-only DELETE policy;
+both generated contracts and the exhaustive RLS policy inventory are updated.
+Native scrollbars are thin on pages, rails, tables and dialogs, with system
+controls in forced-color mode. The expanded Client logo sits left of its toggle
+and retains keyboard focus. The latest user correction restores the prior
+centered white logo on navy for always-open staff sidebars and white mobile
+drawer logos. Calculator loading placeholders persist until hydration, preventing
+lost first export clicks. No asset, calculation, consent, authentication or
+dependency changes are included in this extension.
+
+Fresh evidence: web lint/typecheck and 697 unit tests across 105 files pass;
+the final production build exits 0 at `2026-09-13T21:34:58.887058+00:00` (84 routes).
+All 804 checked web/contract build inputs match source. The isolated Linux API
+suite finishes with 2,008 passes and one failure: the structural policy inventory
+omitted the new DELETE policy. That inventory is corrected and all four structural
+tests pass; the 79 focused lifecycle/catalogue/role/RLS tests also pass. This is
+combined full-suite and targeted evidence, not an uninterrupted full-suite pass.
+Ruff/format (510 files), empty-database migration, downgrade/reupgrade retaining
+audits, one Alembic head and generated contracts pass. Repository scripts pass
+198 tests with one expected Windows skip.
+
+The final seven sidebar/scrollbar Playwright cases pass against the final build
+at `2026-09-13T21:45:04.725672+00:00`, covering all six roles and four widths.
+The prior run had two hover-state assertion failures; the test now moves the
+pointer away before checking the resting logo and checks its hover color
+separately. Focused ESLint and TypeScript checks pass after that test correction.
+
+The real isolated Admin browser journey verifies deactivate/reactivate/delete
+through the public directory, homepage navigation, footer, details and sitemap.
+The broad 320/390/768/1365px sweep passes 247/255 cases; after the calculator fix,
+37/38 affected cases pass. Sidebar, scrollbar, all-role loading/error states,
+all 17 form editors and deletion dialogs pass. Card redirect checks have passing
+repeats but also intermittent navigation/stream timeouts, including direct Next
+access; they remain a browser verification gap. One property case lacks its
+synthetic public listing, and three published-banner fixture cases were excluded.
+The combined secondary-preview launch was rejected by command review with only
+“blocked by policy”; the primary localhost review was restored independently.
+
+The 45-URL SEO audit reports 52 existing metadata/root-slash findings; all 17
+published service pages pass. Six valid Lighthouse lab samples cover Home, Loans
+and EMI on both devices (one invalid EMI mobile trace was replaced). Loans/EMI
+desktop meet the existing budgets; Home desktop and all three mobile samples
+miss performance budgets. Native `./scripts/verify.sh --ci` remains unavailable
+because Windows greenlet cannot import; component gates ran separately. Windows
+standalone symlink warnings, Linux web packaging and deployment remain unverified.
+
+Design/Apple, security and diff review leave no confirmed change-owned finding;
+the browser gaps above remain explicit. Requirement coverage stays 100% across
+the same 79 requirements. See `apps/web/e2e/UI-REFINEMENT.md` for commands, retained
+failures and lab measurements. Next priority: stabilize card navigation evidence,
+restore fixture coverage, address dependency/performance gates, and collect
+target-host, provider and legal/operational release evidence. PR #299 remains a
+draft. Origin is outside upstream's fork network: delivery uses origin's task
+branch plus the existing upstream `feat/navy-sky-ui-refinement` PR head. Direct
+GitHub SHA/base/head readback is required; the local automatic PR checker cannot
+validate that repository mapping. No merge or deployment is included.
+
 **Implemented — application-wide UI refinement and complete financial services** (2026-09-13), on `feat/production-environment-evidence`, baseline `1cce1a7`; [review PR](https://github.com/brollysolutions/client1/pull/299). The selected `gpt-6-astra` / Extra High (`xhigh`) is preserved.
 
 The navy `#293681`, pale sky `#F0F7FC` and white system covers public pages,

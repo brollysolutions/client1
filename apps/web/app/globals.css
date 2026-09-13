@@ -187,26 +187,32 @@
   }
 }
 
-/* Horizontal overflow remains available to touch, trackpad, mouse-wheel
-   shift, and keyboard users, but never adds a visible bar to the interface.
-   Keep these rules outside Tailwind's named layers so they augment the
-   generated overflow utilities instead of being replaced by them. */
-*::-webkit-scrollbar:horizontal {
-  height: 0;
+/* One native scrollbar treatment for pages, dialogs, tables and navigation.
+   Keep horizontal bars usable for mouse/keyboard users as well as touch. */
+:root {
+  --scrollbar-thumb: var(--input);
+  --scrollbar-hover: var(--color-brand-navy);
 }
 
-/* `scrollbar-width` has no axis-specific value, so apply it only to the
-   horizontal-only overflow utilities. Mixed vertical/horizontal scrollers
-   retain their vertical bar and use the directional WebKit rule above. */
-.overflow-x-auto,
-.overflow-x-scroll {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.bg-dash-rail {
+  --scrollbar-thumb: var(--color-brand-sky);
+  --scrollbar-hover: var(--color-surface);
 }
 
-.overflow-x-auto::-webkit-scrollbar,
-.overflow-x-scroll::-webkit-scrollbar {
-  display: none;
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track, *::-webkit-scrollbar-corner { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+
+@media (forced-colors: active) {
+  * { scrollbar-width: auto; scrollbar-color: auto; }
+  *::-webkit-scrollbar { width: auto; height: auto; }
+  *::-webkit-scrollbar-thumb, *::-webkit-scrollbar-thumb:hover { background: ButtonText; }
 }
 
 /* Public chrome shares the same surfaces and actions as auth and dashboards. */

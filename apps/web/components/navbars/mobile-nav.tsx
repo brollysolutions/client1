@@ -15,10 +15,10 @@ import {
 
 import { cn } from "@/lib/utils";
 
-import { NAV_ITEMS } from "./nav-items";
+import type { NavItem } from "./nav-items";
 
 /* Auth CTAs route into the (auth) route group: /login, /register, /forgot-password. */
-export function MobileNav() {
+export function MobileNav({ items }: { items: readonly NavItem[] }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname() ?? "";
 
@@ -43,7 +43,7 @@ export function MobileNav() {
       >
         <SheetTitle className="sr-only">Navigation menu</SheetTitle>
         <nav aria-label="Primary mobile" className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => {
+          {items.map((item) => {
             const isActive =
               item.href === "/"
                 ? pathname === "/"

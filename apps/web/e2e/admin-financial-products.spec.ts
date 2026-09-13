@@ -28,6 +28,7 @@ async function mockCatalogue(page: Page) {
     updated_at: "2026-09-13T00:00:00Z",
   }));
   const patches: { id: string; payload: Partial<AdminLoanType> }[] = [];
+  const deletions: string[] = [];
   await page.route("**/api/v1/admin/loan-types{,/*}", async (route) => {
     const request = route.request();
     if (request.method() === "GET") {
@@ -36,6 +37,16 @@ async function mockCatalogue(page: Page) {
     }
     const id = new URL(request.url()).pathname.split("/").pop()!;
     const product = products.find((item) => item.id === id)!;
+    if (request.method() === "DELETE") {
+      deletions.push(id);
+      if (product.application_count || product.enquiry_count) {
+        await route.fulfill({ status: 409, json: { detail: "This product has applications, enquiries or provider offers. Deactivate it instead." } });
+      } else {
+        products.splice(products.indexOf(product), 1);
+        await route.fulfill({ status: 204 });
+      }
+      return;
+    }
     const payload = request.postDataJSON() as Partial<AdminLoanType>;
     patches.push({ id, payload });
     Object.assign(product, payload, {
@@ -44,7 +55,7 @@ async function mockCatalogue(page: Page) {
     });
     await route.fulfill({ json: product });
   });
-  return { products, patches };
+  return { products, patches, deletions };
 }
 
 async function openProduct(page: Page, label: string) {
@@ -88,6 +99,38 @@ test("every public service and Equipment Financing expose editable Admin fields 
 });
 
 for (const width of [320, 390, 768, 1365]) {
+  test(`product deletion confirms the choice and preserves referenced records at ${width}px`, async ({ page, baseURL }, testInfo) => {
+    const { products, deletions } = await mockCatalogue(page);
+    await page.setViewportSize({ width, height: 844 });
+    await page.context().addCookies([{ name: "session_hint", value: "1", url: baseURL! }]);
+    await page.goto("/dashboard/loan-config", { waitUntil: "networkidle" });
+    const product = products[0];
+    await page.getByRole("textbox", { name: "Search financial products" }).fill(product.label);
+    const row = page.locator("tbody tr").filter({ has: page.getByText(product.label, { exact: true }) });
+    await row.getByRole("button", { name: "Delete", exact: true }).click();
+    const confirmation = page.getByRole("dialog", { name: `Delete ${product.label}?` });
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
+    expect(deletions).toEqual([]);
+    product.application_count = 1;
+    await row.getByRole("button", { name: "Delete", exact: true }).click();
+    await confirmation.getByRole("button", { name: "Delete product", exact: true }).click();
+    await expect(confirmation.getByRole("alert")).toContainText("Deactivate it instead");
+    await expect(row).toHaveCount(1);
+    await page.screenshot({ path: testInfo.outputPath(`delete-product-conflict-${width}.png`), animations: "disabled" });
+    await confirmation.getByRole("button", { name: "Cancel", exact: true }).click();
+    // A different, unused product can be permanently removed.
+    const unused = products[1];
+    await page.getByRole("textbox", { name: "Search financial products" }).fill(unused.label);
+    const unusedRow = page.locator("tbody tr").filter({ has: page.getByText(unused.label, { exact: true }) });
+    await unusedRow.getByRole("button", { name: "Delete", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete product", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(unusedRow).toHaveCount(0);
+    expect(deletions).toEqual([product.id, unused.id]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+
   test(`OD/DOD configuration is usable at ${width}px and retains unsaved fields after a save error`, async ({ page, baseURL }, testInfo) => {
     test.setTimeout(90_000);
     await page.setViewportSize({ width, height: 844 });

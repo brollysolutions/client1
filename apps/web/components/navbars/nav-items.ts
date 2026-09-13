@@ -4,6 +4,8 @@ import { CALCULATORS_MENU, CALCULATORS_OVERVIEW } from "@/components/navbars/cal
 import {
   FINANCIAL_SERVICES_MENU,
   FINANCIAL_SERVICES_OVERVIEW,
+  financialServicesMenu,
+  type PublicServiceLink,
 } from "@/components/navbars/financial-services-menu";
 import { PROPERTIES_MENU, PROPERTIES_OVERVIEW } from "@/components/navbars/properties-menu";
 
@@ -65,3 +67,11 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Earn with Us", href: "/earn-with-us" },
   { label: "Become a Partner", href: "/apply-as-agent" },
 ];
+
+export function publicNavItems(products: readonly PublicServiceLink[]): NavItem[] {
+  const columns = financialServicesMenu(products);
+  return NAV_ITEMS.map((item) => item.href === "/loans" ? {
+    ...item,
+    menu: columns.length ? { columns, overview: FINANCIAL_SERVICES_OVERVIEW } : undefined,
+  } : item);
+}

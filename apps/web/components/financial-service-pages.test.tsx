@@ -4,14 +4,14 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import FinancialServicePage, { generateMetadata } from "@/app/(public)/loans/[slug]/page";
 import sitemap from "@/app/sitemap";
-import { getPublicFinancialProduct, getPublicProviderOffers } from "@/lib/financial-catalog";
-import { FINANCIAL_SERVICE_GUIDES } from "@/lib/financial-service-guides";
+import { getPublishedServiceProducts, getPublicFinancialProduct, getPublicProviderOffers } from "@/lib/financial-catalog";
 import { financialServiceHref, LOAN_PRODUCTS } from "@/lib/products";
 import { SITE_URL } from "@/lib/site";
 
 vi.stubGlobal("React", React);
 afterAll(() => vi.unstubAllGlobals());
 vi.mock("@/lib/financial-catalog", () => ({
+  getPublishedServiceProducts: vi.fn(),
   getPublicFinancialProduct: vi.fn(),
   getPublicProviderOffers: vi.fn(),
 }));
@@ -22,32 +22,18 @@ vi.mock("next/navigation", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(getPublishedServiceProducts).mockResolvedValue([]);
   vi.mocked(getPublicFinancialProduct).mockResolvedValue(null);
 });
 
 describe("financial service overview pages", () => {
-  it.each(LOAN_PRODUCTS)("$label has a complete page without a published provider product", async (service) => {
+  it.each(LOAN_PRODUCTS)("$label stays hidden when inactive, unpublished or deleted", async (service) => {
     const href = financialServiceHref(service.id);
     const params = Promise.resolve({ slug: href.replace("/loans/", "") });
-    const page = await FinancialServicePage({ params, searchParams: Promise.resolve({}) });
-    const markup = renderToStaticMarkup(page);
-    expect(markup).toContain(`<h1`);
-    expect(markup).toContain(service.label);
-    expect(markup).toContain("Plan your enquiry");
-    expect(FINANCIAL_SERVICE_GUIDES[service.id].topics).toHaveLength(3);
-    expect(markup).toContain(service.illustration!.replaceAll("/", "%2F"));
-    expect(markup).toContain("logo-horizontal.png");
-    expect(markup).toContain("/contact?line=loans&amp;product=");
-    expect(markup).not.toContain("dashboard%2Fapply");
-    expect(markup).toContain('id="providers"');
-    expect(markup).toContain("Compare configured provider options");
-    expect(markup).toContain("Search providers");
-    expect(markup).toContain("No provider options published yet");
+    await expect(FinancialServicePage({ params, searchParams: Promise.resolve({}) })).rejects.toThrow("NOT_FOUND");
     expect(getPublicProviderOffers).not.toHaveBeenCalled();
-    const metadata = await generateMetadata({ params });
-    expect(metadata.alternates?.canonical).toBe(href);
-    expect(metadata.openGraph).toMatchObject({ title: service.label, description: service.description });
-    expect(sitemap().some((entry) => entry.url === `${SITE_URL}${href}`)).toBe(true);
+    expect((await generateMetadata({ params })).robots).toEqual({ index: false, follow: false });
+    expect((await sitemap()).some((entry) => entry.url === `${SITE_URL}${href}`)).toBe(false);
   });
 
   it.each(LOAN_PRODUCTS)("$label keeps the provider comparison and application journey when published", async (service) => {
@@ -62,17 +48,14 @@ describe("financial service overview pages", () => {
     expect(getPublicProviderOffers).toHaveBeenCalledWith(slug, expect.any(Object));
   });
 
-  it("retains overview provider filters without exposing unpublished offers or application links", async () => {
-    const page = await FinancialServicePage({ params: Promise.resolve({ slug: "school-funding" }), searchParams: Promise.resolve({ provider_q: "Local review", provider_type: "nbfc", sort: "amount", amount: "200000", interest_rate_max: "invalid", tenure_months: "12" }) });
-    const markup = renderToStaticMarkup(page);
-    expect(markup).toContain('value="Local review"');
-    expect(markup).toContain('value="nbfc" selected=""');
-    expect(markup).toContain('value="amount" selected=""');
-    expect(markup).toContain('value="200000"');
-    expect(markup).toContain("0 published options");
-    expect(markup).toContain("Clear filters");
-    expect(markup).not.toContain("dashboard%2Fapply");
-    expect(getPublicProviderOffers).not.toHaveBeenCalled();
+  it("includes currently published services in the sitemap, including configured products", async () => {
+    vi.mocked(getPublishedServiceProducts).mockResolvedValue([
+      { slug: "personal-loan" }, { slug: "equipment-financing" }, { slug: "credit-cards" },
+    ] as Awaited<ReturnType<typeof getPublishedServiceProducts>>);
+    const urls = (await sitemap()).map((item) => item.url);
+    expect(urls).toContain(`${SITE_URL}/loans/equipment-financing`);
+    expect(urls).toContain(`${SITE_URL}/loans/credit-card`);
+    expect(urls).not.toContain(`${SITE_URL}/loans/home-loan`);
   });
 
   it("keeps unknown unpublished slugs as not found", async () => {

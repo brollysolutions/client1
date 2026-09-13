@@ -50,6 +50,18 @@ export function AppSidebar({
   const { count: bookmarkCount } = useBookmarks();
   const { session } = useAuth();
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const toggleRef = React.useRef<HTMLButtonElement>(null);
+  const restoreToggleFocus = React.useRef(false);
+  const toggleSidebar = () => {
+    restoreToggleFocus.current = true;
+    onToggle?.();
+  };
+  React.useEffect(() => {
+    if (restoreToggleFocus.current) {
+      toggleRef.current?.focus();
+      restoreToggleFocus.current = false;
+    }
+  }, [expanded]);
 
   // Labeled = the mobile drawer, or the desktop rail when the user expands it.
   const labeled = showLabels || expanded;
@@ -104,20 +116,25 @@ export function AppSidebar({
           labeled ? "px-3" : "px-1",
         )}
       >
-        <Logo
-          tone="white"
-          variant={labeled ? "horizontal" : "symbol"}
-          href="/dashboard"
-          onClick={onNavigate}
-          sizes={showLabels ? "160px" : labeled ? "192px" : "40px"}
-          className={cn("mx-auto mb-3", labeled && "w-48 sm:w-48", showLabels && "ml-0 mr-auto w-40 sm:w-40")}
-        />
-        {onToggle && <RailToggle expanded={expanded} onToggle={onToggle} />}
+        <div className={cn("mb-3 shrink-0", labeled ? "flex min-h-12 items-center justify-between gap-1" : "flex justify-center")}>
+          <Logo
+            tone="white"
+            variant={labeled ? "horizontal" : "symbol"}
+            href="/dashboard"
+            onClick={onNavigate}
+            sizes={labeled ? (showLabels || onToggle ? "160px" : "192px") : "40px"}
+            className={cn(
+              labeled && (showLabels || onToggle ? "mr-auto w-40 sm:w-40" : "mx-auto w-48 sm:w-48"),
+            )}
+          />
+          {onToggle && labeled && <RailToggle buttonRef={toggleRef} expanded={expanded} onToggle={toggleSidebar} />}
+        </div>
+        {onToggle && !labeled && <RailToggle buttonRef={toggleRef} expanded={expanded} onToggle={toggleSidebar} />}
 
         <div
           ref={scrollRef}
           data-sidebar-scroll
-          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain py-1 [scrollbar-width:thin] [scrollbar-color:var(--color-brand-sky)_transparent] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-brand-sky [&::-webkit-scrollbar-track]:bg-transparent"
+          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain py-1"
         >
           {sections.map((section, sectionIndex) => (
             <div
@@ -178,25 +195,25 @@ export function AppSidebar({
 
 // Desktop collapse/expand control. Collapsed, it's a centered toggle button in the
 // icon slot; expanded, the toggle sits at the top with the label list below.
-function RailToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
+function RailToggle({ expanded, onToggle, buttonRef }: { expanded: boolean; onToggle: () => void; buttonRef: React.Ref<HTMLButtonElement> }) {
   if (expanded) {
     return (
-      <div className="mb-2 mt-1 flex shrink-0 items-center px-1">
         <button
+          ref={buttonRef}
           type="button"
           onClick={onToggle}
           aria-label="Collapse sidebar"
           aria-expanded={true}
-          className="ml-auto grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-lg text-dash-foreground transition-[background-color,color,transform] duration-150 ease-out hover:bg-dash-rail-hover hover:text-brand-sky active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-inset motion-reduce:transition-none motion-reduce:active:scale-100"
+          className="group/toggle ml-auto grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-lg text-dash-foreground transition-[background-color,color,transform] duration-150 ease-out hover:bg-dash-rail-hover hover:text-brand-sky active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-inset motion-reduce:transition-none motion-reduce:active:scale-100"
         >
-          <PanelLeft className="h-5 w-5" aria-hidden="true" />
+          <PanelLeft className="h-5 w-5 transition-transform duration-150 group-hover/toggle:-translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none" aria-hidden="true" />
         </button>
-      </div>
     );
   }
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={onToggle}
       aria-label="Expand sidebar"
