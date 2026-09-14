@@ -37,10 +37,10 @@ export function AuthShell({
       <div className="relative min-w-0 px-4 sm:px-10 lg:h-dvh lg:overflow-y-auto lg:px-12 xl:px-16">
         <div className="flex min-h-dvh flex-col justify-center py-8 sm:py-10 lg:min-h-full">
           <div className="auth-anim-fade-up mx-auto w-full max-w-md">
-            <div className="mb-6">
-              <Logo className="w-48 sm:w-52" sizes="(min-width: 640px) 208px, 192px" />
+            <div className="mb-6 flex items-center justify-between gap-3 border-b border-border pb-5">
+              <Logo className="w-40 sm:w-52 lg:w-40 xl:w-52" sizes="(min-width: 1280px) 208px, (min-width: 1024px) 160px, (min-width: 640px) 208px, 160px" />
+              <AuthSupport />
             </div>
-            <div className="mb-5 flex items-center justify-end gap-2"><AuthSupport /></div>
             {children}
             <AuthLegalLinks />
           </div>

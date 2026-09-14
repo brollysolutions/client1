@@ -214,7 +214,7 @@ function SidebarLink({
       aria-current={active ? "page" : undefined}
       onClick={onNavigate}
       className={cn(
-        "group/link relative flex items-center gap-3 rounded-lg text-sm font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-inset motion-reduce:transition-none motion-reduce:active:scale-100",
+        "pressable group/link relative flex items-center gap-3 rounded-lg text-sm font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-inset motion-reduce:transition-none motion-reduce:active:scale-100",
         labeled ? "min-h-11 px-3 py-2.5" : "mx-auto h-12 w-12 justify-center",
         // Hover keeps the semantic icon stable and adds a subtle tint plus the
         // left indicator. Active stays blue with a solid bar.
@@ -300,7 +300,7 @@ function SidebarExplore({
         aria-current={active ? "page" : undefined}
         onClick={onNavigate}
         className={cn(
-          "relative flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-inset motion-reduce:transition-none motion-reduce:active:scale-100",
+          "pressable relative flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-inset motion-reduce:transition-none motion-reduce:active:scale-100",
           active ? activeText : "text-dash-foreground hover:bg-dash-rail-hover hover:text-brand-sky",
         )}
       >

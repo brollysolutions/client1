@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import { ResponsiveArtwork } from "@/components/responsive-artwork";
 
+import { ClosingCtaFrame } from "@/components/closing-cta-frame";
 import { FaqSection } from "@/components/faq-section";
 import { JourneyFootTrail } from "@/components/journey-foot-trail";
 import { LeadDialog } from "@/components/lead-dialog";
@@ -69,7 +70,7 @@ export type ProductPageProps = {
   ctaHeading: string;
   ctaText: string;
   ctaLabel: string;
-  /** Render the closing CTA as a bold full-bleed navy band (loans). Off = calm light block. */
+  /** Route the closing CTA to the contact funnel (loans). Off = inline enquiry dialog. */
   ctaBanner?: boolean;
   businessLine: LeadBusinessLine;
 };
@@ -501,44 +502,14 @@ export function ProductPage({
       ) : null}
 
       {/* Closing CTA */}
-      {ctaBanner ? (
-        // Bold full-bleed navy band: page-closer for the Loans surface. Reuses
-        // the shared brand navy. Faint finance glyphs bleed
-        // in from the edges on lg+ (CtaBandDoodles); center stays clear.
-        <section className="relative w-full overflow-hidden bg-brand-navy">
-          <CtaBandDoodles />
-          <div className="relative z-10 mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
-            <h2 className="font-heading text-3xl font-semibold text-white sm:text-4xl">
-              {ctaHeading}
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-white/85">
-              {ctaText}
-            </p>
-            <div className="mt-8 flex justify-center">
-              <LeadDialog
-                businessLine={businessLine}
-                triggerLabel={ctaLabel}
-                triggerVariant="invert"
-                href={contactHref({ line: businessLine })}
-              />
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section className="w-full bg-surface">
-          <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
-            <h2 className="font-heading text-3xl font-semibold text-foreground sm:text-4xl">
-              {ctaHeading}
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-text-secondary">
-              {ctaText}
-            </p>
-            <div className="mt-8 flex justify-center">
-              <LeadDialog businessLine={businessLine} triggerLabel={ctaLabel} />
-            </div>
-          </div>
-        </section>
-      )}
+      <ClosingCtaFrame heading={ctaHeading} text={ctaText}>
+        <LeadDialog
+          businessLine={businessLine}
+          triggerLabel={ctaLabel}
+          size="lg"
+          href={ctaBanner ? contactHref({ line: businessLine }) : undefined}
+        />
+      </ClosingCtaFrame>
     </>
   );
 }
@@ -736,98 +707,6 @@ export function PropertyDoodles() {
           <line x1="20" y1="18" x2="46" y2="44" />
           <line x1="36" y1="34" x2="30" y2="40" />
           <line x1="42" y1="40" x2="36" y2="46" />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-// Faint finance line-doodles for the closing CTA band. White monoline ink on the
-// navy band at low opacity, same finance vocabulary as ProductDoodles (rupee coin,
-// percent, trend arrow). Two clusters bleed in from the left and right edges so the
-// centered copy stays clear. Decorative + desktop-only (docs: illustrations render
-// lg+ only; blue-accent palette; illustrations-desktop-only memory).
-function CtaBandDoodles() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 z-0 hidden overflow-hidden text-white opacity-10 lg:block"
-    >
-      {/* left edge cluster */}
-      <svg
-        className="absolute -left-6 top-1/2 h-40 w-52 -translate-y-1/2"
-        viewBox="0 0 200 160"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {/* coin */}
-        <g transform="translate(16,20)">
-          <circle cx="18" cy="18" r="16" />
-          <text
-            x="18"
-            y="24"
-            textAnchor="middle"
-            fontSize="17"
-            fontWeight={700}
-            fill="currentColor"
-            stroke="none"
-            fontFamily="system-ui, sans-serif"
-          >
-            &#8377;
-          </text>
-        </g>
-        {/* trend arrow */}
-        <g transform="translate(96,44)">
-          <polyline points="2 38 16 24 26 30 44 8" />
-          <polyline points="34 8 44 8 44 18" />
-        </g>
-        {/* percent */}
-        <g transform="translate(40,104)">
-          <circle cx="8" cy="8" r="6" />
-          <circle cx="30" cy="30" r="6" />
-          <line x1="34" y1="4" x2="4" y2="34" />
-        </g>
-      </svg>
-
-      {/* right edge cluster */}
-      <svg
-        className="absolute -right-6 top-1/2 h-40 w-52 -translate-y-1/2"
-        viewBox="0 0 200 160"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {/* percent */}
-        <g transform="translate(24,20)">
-          <circle cx="8" cy="8" r="6" />
-          <circle cx="30" cy="30" r="6" />
-          <line x1="34" y1="4" x2="4" y2="34" />
-        </g>
-        {/* trend arrow */}
-        <g transform="translate(104,24)">
-          <polyline points="2 38 16 24 26 30 44 8" />
-          <polyline points="34 8 44 8 44 18" />
-        </g>
-        {/* coin */}
-        <g transform="translate(60,100)">
-          <circle cx="18" cy="18" r="16" />
-          <text
-            x="18"
-            y="24"
-            textAnchor="middle"
-            fontSize="17"
-            fontWeight={700}
-            fill="currentColor"
-            stroke="none"
-            fontFamily="system-ui, sans-serif"
-          >
-            &#8377;
-          </text>
         </g>
       </svg>
     </div>

@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 // own hover — NavigationMenuList also sets `group`, which would otherwise fire
 // every link's underline when any sibling is hovered.
 const linkClass =
-  "group/navlink inline-flex h-9 flex-row items-center rounded-md px-3 text-base font-medium text-[var(--nav-text)] transition-colors hover:bg-transparent hover:text-brand-link focus:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)]";
+  "pressable group/navlink inline-flex h-9 flex-row items-center rounded-md px-3 text-base font-medium text-[var(--nav-text)] transition-colors hover:bg-transparent hover:text-brand-link focus:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)]";
 
 export function SiteHeader({ products = [] }: { products?: readonly PublicServiceLink[] }) {
   const items = publicNavItems(products);
