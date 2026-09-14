@@ -106,7 +106,7 @@ function NavigationMenuLink({
     <NavigationMenuPrimitive.Link
       data-slot="navigation-menu-link"
       className={cn(
-        "flex select-none flex-col gap-1 rounded-md p-3 font-geist leading-none no-underline outline-none transition-colors hover:bg-background focus:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "pressable flex select-none flex-col gap-1 rounded-md p-3 font-geist leading-none no-underline outline-none transition-colors hover:bg-background focus:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         className
       )}
       {...props}

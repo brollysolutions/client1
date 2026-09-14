@@ -28,7 +28,7 @@ export function AuthSupport() {
               ["/change-mobile", "Recover access with a new mobile number"],
               ["/help-center", "Browse the Help Center"],
             ].map(([href, label]) => (
-              <Link key={href} href={href} className="rounded-lg border border-border px-4 py-3 font-medium text-brand-link hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <Link key={href} href={href} className="pressable rounded-lg border border-border px-4 py-3 font-medium text-brand-link hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {label}
               </Link>
             ))}
