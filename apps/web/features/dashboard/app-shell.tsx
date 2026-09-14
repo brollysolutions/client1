@@ -46,7 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div
                 className={cn(
                   "font-geist min-h-dvh bg-background transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none lg:grid",
-                  desktopSidebarExpanded ? "lg:grid-cols-[15.5rem_minmax(0,1fr)]" : "lg:grid-cols-[4rem_minmax(0,1fr)]",
+                  desktopSidebarExpanded ? "lg:grid-cols-[15.5rem_minmax(0,1fr)]" : "lg:grid-cols-[6rem_minmax(0,1fr)]",
                 )}
               >
                 <a

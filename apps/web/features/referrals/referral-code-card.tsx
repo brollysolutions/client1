@@ -111,7 +111,7 @@ export function ReferralCodeCard({ my }: { my: MyReferral }) {
         </div>
         {origin && <Button variant="outline" className="h-auto min-h-12 px-5" onClick={() => { void navigator.clipboard.writeText(buildRegisterUrl(origin, my.code!)).then(() => toast.success("Referral link copied"), () => toast.error("Could not copy the link")); }}><Copy aria-hidden="true" />Copy invite link</Button>}
         {waHref ? (
-          <Button asChild className="h-auto min-h-12 px-5">
+          <Button asChild className="h-auto min-h-12 bg-[#25D366] px-5 text-[#073B1A] hover:bg-[#20BD5A]">
             <a href={waHref} target="_blank" rel="noopener noreferrer">
               <WhatsAppIcon className="h-5 w-5" /> Share on WhatsApp
             </a>

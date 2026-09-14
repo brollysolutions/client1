@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +33,7 @@ function ApplyCta({ className }: { className?: string }) {
 }
 
 export function LoansApplications() {
+  const router = useRouter();
   const [applications, setApplications] = React.useState<LoanApplication[]>([]);
   const [status, setStatus] = React.useState<Status>("loading");
   const [error, setError] = React.useState<string | null>(null);
@@ -132,7 +134,19 @@ export function LoansApplications() {
                 return (
                   <tr
                     key={a.id}
-                    className="border-b border-border transition-colors last:border-0 hover:bg-muted/40"
+                    tabIndex={0}
+                    aria-label={`Open ${a.loanTypeLabel} application`}
+                    onClick={(event) => {
+                      if (!(event.target as HTMLElement).closest("a, button")) router.push(`/dashboard/loans/${a.id}`);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget) return;
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        router.push(`/dashboard/loans/${a.id}`);
+                      }
+                    }}
+                    className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   >
                     <td className="px-5 py-4 font-medium">
                       <Link

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Bell, CheckCheck, ChevronRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export function NotificationBell() {
     feedStatus: previewStatus,
     loadNotifications,
     markAllRead,
+    markRead,
   } = useNotifications();
 
   const loadPreview = React.useCallback(async () => {
@@ -37,6 +39,10 @@ export function NotificationBell() {
   // out instead of keeping stale rows around. The full snapshot (`items`) is
   // untouched — /dashboard/notifications still shows read+unread history.
   const previewItems = selectUnreadPreview(items, PREVIEW_LIMIT);
+
+  async function readNotification(id: string) {
+    if (!(await markRead(id))) toast.error("Could not mark notification as read. Please try again.");
+  }
 
   async function handleMarkAllRead() {
     if (markingAll || count === 0) return;
@@ -162,12 +168,13 @@ export function NotificationBell() {
                     <Link
                       href={notification.href}
                       className="flex gap-3 bg-muted/40 px-4 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                      onClick={() => setOpen(false)}
+                      onClick={() => { void readNotification(notification.id); setOpen(false); }}
+                      onAuxClick={(event) => { if (event.button === 1) void readNotification(notification.id); }}
                     >
                       {content}
                     </Link>
                   ) : (
-                    <div className="flex gap-3 bg-muted/40 px-4 py-3">{content}</div>
+                    <button type="button" onClick={() => void readNotification(notification.id)} className="flex w-full gap-3 bg-muted/40 px-4 py-3 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">{content}</button>
                   )}
                 </li>
               );

@@ -11,6 +11,7 @@ import { useBookmarks, useCompare } from "@/features/real-estate/store";
 import type { REListing } from "@/lib/real-estate";
 import { isReraVerified, resolvePropertyArtwork } from "@/lib/property-artwork";
 import { cn } from "@/lib/utils";
+import { PropertyPreviewDialog } from "./property-preview-dialog";
 
 // Category rails and result grids share one browse-first card. Generated
 // artwork remains a render-only fallback and is never represented as uploaded
@@ -38,7 +39,7 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
   return (
     <Card
       className={cn(
-        "flex h-[408px] flex-col gap-0 overflow-hidden pt-0",
+        "flex h-full min-h-[408px] flex-col gap-0 overflow-hidden py-0",
         fluid ? "w-full" : "w-[280px] shrink-0 sm:w-[300px]",
       )}
     >
@@ -114,7 +115,7 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
         </p>
       </CardHeader>
 
-      <CardContent className="flex min-h-0 flex-1 flex-col px-4 pb-3 pt-3">
+      <CardContent className="flex flex-1 flex-col px-4 pb-4 pt-3">
         {facts.length ? (
           <ul className="flex flex-wrap gap-1.5" aria-label="Property highlights">
             {facts.map((fact) => (
@@ -127,18 +128,13 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
             ))}
           </ul>
         ) : null}
-        <p className="mt-auto pt-3 font-heading text-xl font-semibold text-brand-link">
+        <p className="mt-auto break-words pt-4 font-heading text-xl font-semibold text-brand-link">
           {listing.price}
         </p>
       </CardContent>
 
-      <CardFooter className="px-4 pb-4 pt-0">
-        <Link
-          href={`/dashboard/properties/${listing.id}`}
-          className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-brand-blue px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          View details
-        </Link>
+      <CardFooter className="shrink-0 px-4 pb-4 pt-0">
+        <PropertyPreviewDialog listing={listing} />
       </CardFooter>
     </Card>
   );

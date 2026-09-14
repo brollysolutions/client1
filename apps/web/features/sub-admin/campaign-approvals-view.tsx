@@ -63,14 +63,14 @@ export function CampaignApprovalsView({
       >
         <TabsList
           aria-label="Campaign type"
-          className="grid h-auto w-full max-w-md grid-cols-2 rounded-xl p-1"
+          className="grid !h-auto w-full max-w-xl grid-cols-2 gap-1 rounded-xl border border-border bg-muted/50 p-1"
         >
-          <TabsTrigger value="banners" className="gap-2 rounded-lg py-2.5">
+          <TabsTrigger value="banners" className="!h-auto min-h-12 min-w-0 flex-wrap gap-1.5 whitespace-normal rounded-lg px-3 py-3 data-[state=active]:bg-brand-blue data-[state=active]:text-white dark:data-[state=active]:bg-brand-blue dark:data-[state=active]:text-white">
             <Layers3 className="h-4 w-4" aria-hidden />
             Banners
             <PendingBadge count={pendingBanners} />
           </TabsTrigger>
-          <TabsTrigger value="offers" className="gap-2 rounded-lg py-2.5">
+          <TabsTrigger value="offers" className="!h-auto min-h-12 min-w-0 flex-wrap gap-1.5 whitespace-normal rounded-lg px-3 py-3 data-[state=active]:bg-brand-blue data-[state=active]:text-white dark:data-[state=active]:bg-brand-blue dark:data-[state=active]:text-white">
             <Percent className="h-4 w-4" aria-hidden />
             Dashboard offers
             <PendingBadge count={pendingOffers} />

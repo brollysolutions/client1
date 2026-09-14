@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { PropertyDetailsSummary } from "@/components/property-details-dialog";
 import Link from "next/link";
 import { Inbox, Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -174,7 +175,7 @@ export function MySubmissionsView() {
       )}
 
       <Dialog open={active !== null} onOpenChange={(open) => !open && setActive(null)}>
-        <DialogContent>
+        <DialogContent className="!max-w-3xl rounded-2xl">
           {active ? (
             <>
               <DialogHeader>
@@ -194,6 +195,7 @@ export function MySubmissionsView() {
                 <div><dt className="text-text-secondary">Property type</dt><dd className="font-medium capitalize">{active.property_subtype?.replaceAll("_", " ") ?? active.type}</dd></div>
                 <div><dt className="text-text-secondary">Submitted</dt><dd className="font-medium">{new Date(active.created_at).toLocaleString("en-IN")}</dd></div>
               </dl>
+              <section className="border-t border-border pt-5"><h3 className="mb-4 font-semibold">Property specifications</h3><PropertyDetailsSummary details={active.structured_details} /></section>
               {active.status === "rejected" && active.review_note ? (
                 <p className="rounded-lg bg-destructive/5 p-3 text-sm text-text-secondary">
                   Reviewer note: {active.review_note}

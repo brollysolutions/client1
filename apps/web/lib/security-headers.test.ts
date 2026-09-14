@@ -8,6 +8,20 @@ function asRecord(headers: ReturnType<typeof buildSecurityHeaders>) {
 }
 
 describe("browser security headers", () => {
+  it("allows signed browser uploads only to the configured storage origin", () => {
+    const policy = asRecord(buildSecurityHeaders({ production: true, assetHost: "https://storage.example.test/public" }))["Content-Security-Policy"];
+    const connect = policy.split("; ").find((directive) => directive.startsWith("connect-src"));
+    expect(connect).toBe("connect-src 'self' https://storage.example.test");
+    expect(connect).not.toContain("*");
+    expect(policy).toContain("form-action 'self'");
+  });
+
+  it("allows the existing local MinIO upload endpoint only in development", () => {
+    const development = asRecord(buildSecurityHeaders({ production: false }))["Content-Security-Policy"];
+    const production = asRecord(buildSecurityHeaders({ production: true }))["Content-Security-Policy"];
+    expect(development.split("; ").find((directive) => directive.startsWith("connect-src"))).toContain("http://localhost:9000");
+    expect(production).not.toContain("localhost:9000");
+  });
   it("applies the baseline to every web route", async () => {
     const rules = await nextConfig.headers?.();
     const globalRule = rules?.find((rule) => rule.source === "/:path*");

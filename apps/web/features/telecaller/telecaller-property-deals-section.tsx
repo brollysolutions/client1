@@ -8,13 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { PropertySelect } from "@/features/real-estate/property-select";
 import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import {
   PropertyDealProgressControls,
@@ -37,18 +31,23 @@ function CreateDealForm({
   const [propertyId, setPropertyId] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [propertyError, setPropertyError] = React.useState<string>();
+  const [loadError, setLoadError] = React.useState(false);
+  const [reloadKey, setReloadKey] = React.useState(0);
 
   React.useEffect(() => {
     let active = true;
+    setLoadingProperties(true);
+    setLoadError(false);
     void getProperties().then((res) => {
       if (!active) return;
       if (res.ok) setProperties(res.data);
+      else setLoadError(true);
       setLoadingProperties(false);
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,20 +74,8 @@ function CreateDealForm({
     >
       <div className="min-w-56 flex-1">
         <Label htmlFor={`deal-property-${leadId}`}>Property<RequiredIndicator /></Label>
-        <Select value={propertyId} onValueChange={(value) => { setPropertyId(value); setPropertyError(undefined); }} disabled={loadingProperties}>
-          <SelectTrigger id={`deal-property-${leadId}`} className="w-full" aria-required="true" aria-invalid={Boolean(propertyError)} aria-describedby={propertyError ? `deal-property-${leadId}-error` : undefined}>
-            <SelectValue
-              placeholder={loadingProperties ? "Loading properties..." : "Choose a property"}
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {properties.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.title} · {p.location}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <PropertySelect id={`deal-property-${leadId}`} properties={properties} value={propertyId} onChange={(value) => { setPropertyId(value); setPropertyError(undefined); }} disabled={loadingProperties} errorId={propertyError ? `deal-property-${leadId}-error` : undefined} />
+        {loadError ? <p role="alert" className="mt-2 text-sm text-destructive">Could not load properties. <button type="button" className="underline" onClick={() => setReloadKey((key) => key + 1)}>Try again</button></p> : null}
         <FieldError id={`deal-property-${leadId}-error`} className="mt-1">{propertyError}</FieldError>
       </div>
       <Button type="submit" size="sm" disabled={saving || loadingProperties}>
