@@ -192,7 +192,7 @@ export default function NotificationsPage() {
                           <Icon className="h-4 w-4" />
                         </span>
                         {n.href && isSafeLocalHref(n.href) ? (
-                          <Link href={n.href} className="min-w-0 flex-1 hover:opacity-80">
+                          <Link href={n.href} onClick={() => { if (!n.readAt) void handleMarkRead(n.id); }} onAuxClick={(event) => { if (event.button === 1 && !n.readAt) void handleMarkRead(n.id); }} className="min-w-0 flex-1 hover:opacity-80">
                             {body}
                           </Link>
                         ) : (
