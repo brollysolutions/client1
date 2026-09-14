@@ -68,7 +68,7 @@ export function PropertyDescription({ text }: { text: string }) {
         onClick={() => setExpanded((current) => !current)}
         aria-expanded={expanded}
         aria-controls="property-description-tail"
-        className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-sm text-sm font-medium text-[var(--nav-primary)] transition-colors hover:text-[var(--nav-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2"
+        className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-sm text-sm font-medium text-brand-link transition-colors hover:text-[var(--nav-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         {expanded ? "See less" : "See more"}
         <ChevronDown

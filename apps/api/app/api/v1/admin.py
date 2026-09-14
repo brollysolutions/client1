@@ -143,7 +143,7 @@ from app.services.financial_catalog import (
     create_provider_offer,
     list_admin_provider_offers,
     presign_provider_logo,
-    provider_logo_url,
+    provider_logo_metadata,
     update_provider_offer,
 )
 from app.services.financial_products import form_for_product
@@ -1222,15 +1222,16 @@ def _to_admin_loan_type_read(
 
 
 def _to_admin_bank_read(bank, count: int, offer_count: int = 0) -> AdminBankRead:  # noqa: ANN001
+    logo_url, logo_source, logo_verified_at = provider_logo_metadata(bank)
     return AdminBankRead(
         id=bank.id,
         name=bank.name,
         legal_name=bank.legal_name,
         provider_type=bank.provider_type,
         logo_key=bank.logo_key,
-        logo_url=provider_logo_url(bank.logo_key) if bank.logo_verified_at is not None else None,
-        logo_source=bank.logo_source,
-        logo_verified_at=bank.logo_verified_at,
+        logo_url=logo_url,
+        logo_source=logo_source,
+        logo_verified_at=logo_verified_at,
         active=bank.active,
         created_at=bank.created_at,
         updated_at=bank.updated_at,

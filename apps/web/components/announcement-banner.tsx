@@ -38,7 +38,7 @@ export function AnnouncementBanner() {
   if (dismissed) return null;
 
   return (
-    <div role="region" aria-label="Site announcement" className="bg-notice text-[var(--nav-text)]">
+    <div role="region" aria-label="Site announcement" className="bg-notice text-notice-foreground">
       <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2 sm:px-6 lg:px-8">
         {/* MOBILE + TABLET: single-line marquee (icon scrolls with text) — hidden at lg+ */}
         <div className="flex min-w-0 flex-1 items-center lg:hidden">
@@ -63,7 +63,7 @@ export function AnnouncementBanner() {
           type="button"
           aria-label="Dismiss announcement"
           onClick={() => setDismissed(true)}
-          className={cn("shrink-0", CLOSE_BUTTON_CLASS)}
+          className={cn(CLOSE_BUTTON_CLASS, "shrink-0 text-notice-foreground hover:text-notice-foreground focus-visible:ring-notice-foreground focus-visible:ring-offset-notice")}
         >
           <X className="h-4 w-4" />
         </button>

@@ -22,7 +22,7 @@ function LegalLink({ href, children }: { href: string; children: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex min-h-11 items-center gap-1 rounded-sm font-medium text-brand-navy underline underline-offset-4 hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2"
+      className="inline-flex min-h-11 items-center gap-1 rounded-sm font-medium text-brand-heading underline underline-offset-4 hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       {children}
       <ExternalLink className="h-3 w-3" aria-hidden="true" />

@@ -73,10 +73,16 @@ export function ProfileMenu() {
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
-      <div onMouseEnter={openNow} onMouseLeave={closeSoon}>
+      <div
+        // A closing workspace can uncover this trigger beneath a stationary
+        // pointer. Open on deliberate mouse movement so it cannot steal focus
+        // as the workspace returns the user to the original ticket.
+        onPointerMove={(event) => { if (event.pointerType === "mouse") openNow(); }}
+        onPointerLeave={closeSoon}
+      >
         <DropdownMenuTrigger
           aria-label="Open account menu"
-          className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full p-1 text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue sm:h-8 sm:w-8"
+          className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full p-1 text-text-secondary transition-colors hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 sm:w-8"
         >
           <CircleUser className="h-6 w-6" aria-hidden="true" />
         </DropdownMenuTrigger>
@@ -101,7 +107,7 @@ export function ProfileMenu() {
           {!emailVerified && (
             <DropdownMenuItem
               onSelect={() => router.push("/dashboard/settings")}
-              className="text-warning [&_svg]:text-warning data-[highlighted]:text-sky-500"
+              className="text-warning [&_svg]:text-warning data-[highlighted]:text-brand-link"
             >
               <MailWarning />
               Verify your email

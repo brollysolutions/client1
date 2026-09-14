@@ -54,7 +54,7 @@ export default function CalculatorsError({
         <button
           type="button"
           onClick={() => (chunk ? window.location.reload() : reset())}
-          className="mt-6 inline-flex items-center justify-center rounded-lg bg-[var(--nav-primary)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]"
+          className="mt-6 inline-flex items-center justify-center rounded-lg bg-[var(--nav-primary)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {chunk ? "Reload page" : "Try again"}
         </button>

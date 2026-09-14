@@ -89,7 +89,7 @@ function ConfirmDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {destructive ? (
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-red-600">
                 <AlertTriangle className="h-4 w-4" aria-hidden />
               </span>
             ) : null}

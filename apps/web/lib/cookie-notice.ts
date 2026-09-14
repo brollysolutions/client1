@@ -32,7 +32,7 @@ export const BROWSER_STORAGE = [
   {
     mechanism: "Local storage",
     purpose:
-      "Remembers non-sensitive choices such as property and loan shortlists, the selected dashboard business line, and whether a session check may be useful.",
+      "Remembers non-sensitive choices such as property and loan shortlists, the selected dashboard business line, Light/Dark/System appearance, and whether a session check may be useful.",
     duration: "Until you remove the choice, sign out where applicable, or clear browser data.",
   },
   {

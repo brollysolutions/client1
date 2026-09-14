@@ -4,6 +4,8 @@ import * as React from "react";
 import { CarFront } from "lucide-react";
 import { toast } from "sonner";
 
+import { DashboardHeader, DashboardPage } from "@/features/dashboard/dashboard-ui";
+import { ContactActions } from "@/components/contact-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,11 +81,8 @@ export function EmployeeVehicleArrangementsView() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Vehicle arrangements</h1>
-        <p className="text-sm text-text-secondary">Site-visit pickups assigned to you.</p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader title="Vehicle arrangements" description="Review assigned pickups, contact the driver and record completion." />
       <Select value={filter} onValueChange={(value) => setFilter(value as typeof filter)}>
         <SelectTrigger className="w-48" aria-label="Filter by status">
           <SelectValue />
@@ -109,7 +108,7 @@ export function EmployeeVehicleArrangementsView() {
         <div className="space-y-4">
         <ul className="space-y-4">
           {pageItems.map((item) => (
-            <li key={item.id} className="rounded-2xl border border-border bg-card p-5">
+            <li key={item.id} className="rounded-xl border border-border bg-card p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -128,6 +127,7 @@ export function EmployeeVehicleArrangementsView() {
                     Driver: {item.driver_name} · {item.driver_mobile}
                   </p>
                 </div>
+                {item.driver_mobile && <ContactActions mobile={item.driver_mobile} name={item.driver_name ?? "driver"} />}
                 {item.status === "assigned" ? (
                   <div className="flex gap-2">
                     <Button disabled={busyId === item.id} onClick={() => void update(item, "completed")}>
@@ -149,6 +149,6 @@ export function EmployeeVehicleArrangementsView() {
         <ListPagination page={page} total={items.length} onPageChange={setPage} label="Vehicle arrangements pages" />
         </div>
       )}
-    </div>
+    </DashboardPage>
   );
 }

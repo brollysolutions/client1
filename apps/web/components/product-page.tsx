@@ -128,7 +128,7 @@ export function ProductPage({
         <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <h1 className="max-w-4xl font-heading text-3xl font-semibold leading-tight tracking-tight text-brand-navy sm:text-5xl lg:text-6xl">
+              <h1 className="max-w-4xl font-heading text-3xl font-semibold leading-tight tracking-tight text-brand-heading sm:text-5xl lg:text-6xl">
                 {title}
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary sm:text-xl">
@@ -223,7 +223,7 @@ export function ProductPage({
                     ) : null}
                     <CardHeader className="flex-1">
                       {product.illustration ? null : (
-                        <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-brand-blue">
+                        <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-brand-link">
                           <product.icon className="h-6 w-6" aria-hidden />
                         </span>
                       )}

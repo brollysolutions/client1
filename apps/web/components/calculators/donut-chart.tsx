@@ -2,7 +2,7 @@ import { formatCompactINR, formatINR } from "@/lib/format";
 
 // Principal-vs-interest donut. Hand-coded inline SVG (two arcs) so it needs no
 // chart library, renders on mobile and desktop, and stays on the blue-only
-// palette: principal in the brand blue, interest in the deeper navy.
+// palette, with distinct theme-aware principal and interest colours.
 export function DonutChart({
   principal,
   interest,
@@ -29,15 +29,15 @@ export function DonutChart({
           interest,
         )} (${100 - principalPct}%)`}
       >
-        {/* interest ring (full circle, navy) */}
-        <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--color-brand-navy)" strokeWidth="16" />
+        {/* Interest ring; the legend uses the same colour as this full circle. */}
+        <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--color-chart-interest)" strokeWidth="16" />
         {/* principal arc (blue), drawn from 12 o'clock */}
         <circle
           cx="60"
           cy="60"
           r={radius}
           fill="none"
-          stroke="var(--nav-primary)"
+          stroke="var(--color-brand-link)"
           strokeWidth="16"
           strokeDasharray={`${principalArc} ${circumference - principalArc}`}
           strokeDashoffset="0"
@@ -57,9 +57,9 @@ export function DonutChart({
       </svg>
 
       <dl className="grid gap-3 text-sm">
-        <LegendRow color="var(--nav-primary)" label="Principal" value={formatINR(principal)} pct={principalPct} />
+        <LegendRow color="var(--color-brand-link)" label="Principal" value={formatINR(principal)} pct={principalPct} />
         <LegendRow
-          color="var(--color-brand-navy)"
+          color="var(--color-chart-interest)"
           label="Total interest"
           value={formatINR(interest)}
           pct={100 - principalPct}

@@ -25,7 +25,7 @@ export function ResultCard({
         "min-w-0 rounded-xl border p-5",
         emphasis
           ? "border-transparent bg-[var(--nav-primary)] text-white shadow-sm"
-          : "border-[var(--nav-border)] bg-white",
+          : "border-[var(--nav-border)] bg-card",
         className,
       )}
     >

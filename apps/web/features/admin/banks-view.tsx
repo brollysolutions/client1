@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ImageIcon, Landmark, Loader2, Plus, Trash2 } from "lucide-react";
-import Image from "next/image";
+import { Landmark, Loader2, Plus, Trash2 } from "lucide-react";
+import { ProviderLogo } from "@/components/provider-logo";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,6 @@ import {
   type AdminBank,
   type ProviderType,
 } from "@/lib/loan-config-api";
-import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import { formatLastUpdated } from "@/lib/format";
 import { apiIssuesToFieldErrors, requiredTextError } from "@/lib/form-validation";
 import { useBanks } from "./use-banks";
@@ -133,13 +132,7 @@ export function BanksView() {
         sortable: true,
         render: (provider) => (
           <div className="flex items-center gap-3">
-            <span className="relative flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white">
-              {provider.logo_url && isAllowedAssetUrl(provider.logo_url) ? (
-                <Image src={provider.logo_url} alt="" fill sizes="64px" className="object-contain p-1" />
-              ) : (
-                <ImageIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
-              )}
-            </span>
+            <ProviderLogo url={provider.logo_url} sizes="64px" className="h-10 w-16" />
             <DataTablePrimaryCell
               title={provider.name}
               subtitle={provider.legal_name || formatLastUpdated(provider.updated_at)}

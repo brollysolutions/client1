@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
-import { ImageIcon, Landmark, Loader2 } from "lucide-react";
+import { ProviderLogo } from "@/components/provider-logo";
+import { Landmark, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,6 @@ import {
 import { ListEmptyState, ListLoadingState, ListPagination } from "@/features/dashboard/list-states";
 import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
 import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
-import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import { apiIssuesToFieldErrors, fieldErrorProps, focusFirstInvalidField, type FieldErrors } from "@/lib/form-validation";
 import {
   getProviderPresentationState,
@@ -295,13 +294,7 @@ export function ProviderOffersView({ product }: { product: AdminLoanType }) {
         header: "Provider",
         render: (provider) => (
           <div className="flex items-center gap-3">
-            <span className="relative flex h-9 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white">
-              {provider.logo_url && isAllowedAssetUrl(provider.logo_url) ? (
-                <Image src={provider.logo_url} alt="" fill sizes="56px" className="object-contain p-1" />
-              ) : (
-                <ImageIcon className="h-4 w-4 text-text-secondary" aria-hidden="true" />
-              )}
-            </span>
+            <ProviderLogo url={provider.logo_url} sizes="56px" className="h-9 w-14" />
             <DataTablePrimaryCell
               title={provider.name}
               subtitle={provider.provider_type.replaceAll("_", " ")}

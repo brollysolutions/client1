@@ -1,11 +1,10 @@
 import { BadgeIndianRupee, CalendarRange, FileText, Landmark } from "lucide-react";
-import Image from "next/image";
+import { ProviderLogo } from "@/components/provider-logo";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AddToCompareButton } from "@/features/loans/add-to-compare-button";
-import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import { formatINR } from "@/lib/format";
 import type { ProductCategory, ProviderOfferQuery, PublicProviderOfferList } from "@/lib/financial-catalog";
 
@@ -75,33 +74,13 @@ export function ProviderOfferList({
       {offers.items.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {offers.items.map((offer) => {
-            const initials = offer.provider.name
-              .split(/\s+/)
-              .slice(0, 2)
-              .map((part) => part[0])
-              .join("")
-              .toUpperCase();
             const minAmount = formatAmount(offer.min_amount);
             const maxAmount = formatAmount(offer.max_amount);
             const verifiedAt = formatVerifiedAt(offer.last_verified_at);
             return (
               <Card key={offer.id} className="h-full overflow-hidden pt-0">
                 <div className="flex items-center gap-4 border-b border-border bg-card px-5 py-4">
-                  <div className="relative flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-white">
-                    {offer.provider.logo_url && isAllowedAssetUrl(offer.provider.logo_url) ? (
-                      <Image
-                        src={offer.provider.logo_url}
-                        alt={`${offer.provider.name} logo`}
-                        fill
-                        sizes="80px"
-                        className="object-contain p-2"
-                      />
-                    ) : (
-                      <span className="text-base font-bold text-brand-cta" aria-hidden>
-                        {initials}
-                      </span>
-                    )}
-                  </div>
+                  <ProviderLogo url={offer.provider.logo_url} sizes="80px" className="h-12 w-20" />
                   <div className="min-w-0">
                     <h3 className="truncate text-base font-semibold text-text-primary">
                       {offer.provider.name}
@@ -122,7 +101,7 @@ export function ProviderOfferList({
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-3 text-sm">
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <BadgeIndianRupee className="h-4 w-4 text-brand-cta" aria-hidden />
+                    <BadgeIndianRupee className="h-4 w-4 text-brand-link" aria-hidden />
                     <p className="mt-2 text-xs text-text-secondary">Indicative amount</p>
                     <p className="mt-1 font-semibold text-text-primary">
                       {minAmount && maxAmount
@@ -131,7 +110,7 @@ export function ProviderOfferList({
                     </p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <Landmark className="h-4 w-4 text-brand-cta" aria-hidden />
+                    <Landmark className="h-4 w-4 text-brand-link" aria-hidden />
                     <p className="mt-2 text-xs text-text-secondary">Interest range</p>
                     <p className="mt-1 font-semibold text-text-primary">
                       {offer.min_interest_rate !== null
@@ -140,7 +119,7 @@ export function ProviderOfferList({
                     </p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <CalendarRange className="h-4 w-4 text-brand-cta" aria-hidden />
+                    <CalendarRange className="h-4 w-4 text-brand-link" aria-hidden />
                     <p className="mt-2 text-xs text-text-secondary">Tenure</p>
                     <p className="mt-1 font-semibold text-text-primary">
                       {offer.min_tenure_months !== null
@@ -149,7 +128,7 @@ export function ProviderOfferList({
                     </p>
                   </div>
                   <div className="rounded-xl bg-muted/40 p-3">
-                    <FileText className="h-4 w-4 text-brand-cta" aria-hidden />
+                    <FileText className="h-4 w-4 text-brand-link" aria-hidden />
                     <p className="mt-2 text-xs text-text-secondary">Processing fee</p>
                     <p className="mt-1 font-semibold text-text-primary">
                       {offer.processing_fee_text ?? "Lender assessed"}

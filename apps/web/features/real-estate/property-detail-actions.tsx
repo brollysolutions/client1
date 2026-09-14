@@ -92,7 +92,7 @@ export function PropertyDetailActions({
             city: listing.city,
           })
         }
-        className={cn("min-h-11 w-full", bookmarked && "border-brand-cta text-brand-cta")}
+        className={cn("min-h-11 w-full", bookmarked && "border-brand-cta text-brand-link")}
       >
         <Bookmark className={cn("h-4 w-4", bookmarked && "fill-current")} aria-hidden />
         {bookmarked ? "Saved" : "Save"}
@@ -102,7 +102,7 @@ export function PropertyDetailActions({
         variant="outline"
         aria-pressed={compared}
         onClick={toggleCompare}
-        className={cn("min-h-11 w-full", compared && "border-brand-cta text-brand-cta")}
+        className={cn("min-h-11 w-full", compared && "border-brand-cta text-brand-link")}
       >
         <Scale className="h-4 w-4" aria-hidden />
         {compared ? "In compare" : "Compare"}

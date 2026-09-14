@@ -95,7 +95,7 @@ export function AgentEarningsView() {
 
       {earnings.rows.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-text-secondary">
             <DASHBOARD_ICONS.earnings className="h-6 w-6" aria-hidden="true" />
           </span>
           <h2 className="mt-5 text-lg font-semibold text-text-primary">No commissions recorded yet</h2>
@@ -131,7 +131,7 @@ export function AgentEarningsView() {
                 {row.status === "paid" && row.payout_txn_uuid ? (
                   <Link
                     href="/dashboard/transactions"
-                    className="shrink-0 text-sm font-medium text-brand-cta hover:underline"
+                    className="shrink-0 text-sm font-medium text-brand-link hover:underline"
                   >
                     View in transactions
                   </Link>

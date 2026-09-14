@@ -151,12 +151,12 @@ function OperationalRow({ label, value, href }: { label: string; value: number; 
     <div className="sm:border-r sm:border-border sm:last:border-r-0">
       <Link
         href={href}
-        className="group flex h-full flex-col justify-between gap-2 p-5 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+        className="group flex h-full flex-col justify-between gap-2 p-5 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
         <dt className="text-sm text-text-secondary transition-colors group-hover:text-text-primary">
           {label}
         </dt>
-        <dd className="text-2xl font-semibold tabular-nums tracking-tight text-text-primary transition-colors group-hover:text-brand-cta">
+        <dd className="text-2xl font-semibold tabular-nums tracking-tight text-text-primary transition-colors group-hover:text-brand-link">
           {value}
         </dd>
       </Link>

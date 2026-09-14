@@ -158,7 +158,7 @@ export function LeadDetailsDialog({
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-label="Loading" />
+            <Loader2 className="h-6 w-6 animate-spin text-brand-heading" aria-label="Loading" />
           </div>
         ) : error || !details ? (
           <div className="rounded-lg border border-border p-4 text-sm text-text-secondary">

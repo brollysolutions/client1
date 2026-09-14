@@ -34,7 +34,7 @@ const LINE = {
     description:
       "Leave your number and we'll call you back to match you with the right lender.",
     triggerClass:
-      "bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]",
+      "bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring",
   },
   real_estate: {
     label: "Real Estate",
@@ -42,7 +42,7 @@ const LINE = {
     description:
       "Leave your number and we'll call you back about buying a property.",
     triggerClass:
-      "bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]",
+      "bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring",
   },
 } satisfies Record<
   LeadBusinessLine,
@@ -149,7 +149,7 @@ export function LeadDialog({
           asChild
           variant="outline"
           size={size}
-          className="w-full border-[var(--nav-primary)] text-[var(--nav-primary)] hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]"
+          className="w-full border-[var(--nav-primary)] text-brand-link hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]"
         >
           <Link href={href} aria-label={linkAriaLabel}>
             {triggerLabel}
@@ -162,7 +162,7 @@ export function LeadDialog({
         <Button
           asChild
           size={size}
-          className="w-full bg-white text-[var(--nav-primary)] hover:bg-white/90 focus-visible:ring-white sm:w-auto"
+          className="w-full bg-white text-brand-navy hover:bg-white/90 focus-visible:ring-white sm:w-auto"
         >
           <Link href={href} aria-label={linkAriaLabel}>
             {triggerLabel}
@@ -193,7 +193,7 @@ export function LeadDialog({
             variant="outline"
             size={size}
             aria-label={product ? `Enquire about ${product}` : triggerLabel}
-            className="w-full border-[var(--nav-primary)] text-[var(--nav-primary)] hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]"
+            className="w-full border-[var(--nav-primary)] text-brand-link hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]"
           >
             {triggerLabel}
           </Button>
@@ -201,7 +201,7 @@ export function LeadDialog({
           <Button
             size={size}
             aria-label={triggerLabel}
-            className="w-full bg-white text-[var(--nav-primary)] hover:bg-white/90 focus-visible:ring-white sm:w-auto"
+            className="w-full bg-white text-brand-navy hover:bg-white/90 focus-visible:ring-white sm:w-auto"
           >
             {triggerLabel}
           </Button>

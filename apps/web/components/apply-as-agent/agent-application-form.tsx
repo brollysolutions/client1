@@ -93,7 +93,7 @@ function SectionHeader({
         className="flex items-center gap-2 font-heading text-lg font-semibold text-foreground"
       >
         {Icon && (
-          <Icon className="h-5 w-5 shrink-0 text-[var(--nav-primary)]" aria-hidden />
+          <Icon className="h-5 w-5 shrink-0 text-brand-link" aria-hidden />
         )}
         {title}
       </h3>
@@ -292,7 +292,7 @@ export function AgentApplicationForm({
   if (done) {
     return (
       <div className="flex flex-col items-center gap-4 py-10 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--nav-tint)] text-[var(--nav-primary)]">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full text-brand-link">
           <Check className="h-7 w-7" aria-hidden />
         </span>
         <h3 className="font-heading text-xl font-semibold text-foreground">
@@ -306,7 +306,7 @@ export function AgentApplicationForm({
           type="button"
           variant="outline"
           onClick={() => setDone(false)}
-          className="border-[var(--nav-primary)] text-[var(--nav-primary)] hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]"
+          className="border-[var(--nav-primary)] text-brand-link hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]"
         >
           Submit another application
         </Button>
@@ -348,7 +348,7 @@ export function AgentApplicationForm({
         <button
           type="button"
           onClick={() => setStep("form")}
-          className="cursor-pointer text-center text-sm font-medium text-[var(--nav-primary)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline"
+          className="cursor-pointer text-center text-sm font-medium text-brand-link underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline"
         >
           Change number
         </button>
@@ -377,7 +377,7 @@ export function AgentApplicationForm({
           </>
         ) : (
           <>
-            <Loader2 className="h-8 w-8 animate-spin text-[var(--nav-primary)]" aria-hidden />
+            <Loader2 className="h-8 w-8 animate-spin text-brand-link" aria-hidden />
             <p className="text-text-secondary">
               {uploaded > 0
                 ? `Uploading document ${uploaded} of 4...`
@@ -428,7 +428,7 @@ export function AgentApplicationForm({
               disabled={submitting}
               className={cn(
                 "h-12 cursor-pointer rounded-lg border px-3 text-sm font-medium transition",
-                "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nav-primary)]/50",
+                "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                 "disabled:cursor-default disabled:opacity-50",
                 line === option.value
                   ? "border-[var(--nav-primary)] bg-[var(--nav-primary)] text-white"
@@ -649,7 +649,7 @@ export function AgentApplicationForm({
       <Button
         type="submit"
         disabled={submitting}
-        className="h-12 bg-[var(--nav-primary)] text-base text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
+        className="h-12 bg-[var(--nav-primary)] text-base text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring"
       >
         {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
         {submitting ? "Sending code..." : "Continue"}

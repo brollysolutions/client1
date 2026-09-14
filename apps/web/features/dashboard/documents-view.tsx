@@ -168,7 +168,7 @@ export function DocumentsView() {
 
       {groups.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-loans-soft text-loans-accent">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-brand-link">
             <ImageIcon className="h-5 w-5" aria-hidden="true" />
           </span>
           <h2 className="mt-4 text-base font-semibold text-text-primary">No loan media yet</h2>
@@ -218,7 +218,7 @@ export function DocumentsView() {
                             href={document.preview_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="relative block aspect-video overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-loans-accent"
+                            className="relative block aspect-video overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                             aria-label={`Open ${label} preview`}
                           >
                             <Image

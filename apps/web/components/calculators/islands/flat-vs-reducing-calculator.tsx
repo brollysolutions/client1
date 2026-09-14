@@ -91,7 +91,7 @@ export function FlatVsReducingCalculator() {
           sub={`${flat.toFixed(1)}% flat equals ${result.effectiveReducingRate.toFixed(2)}% reducing`}
         />
 
-        <div className="overflow-x-auto rounded-xl border border-[var(--nav-border)] bg-white">
+        <div className="overflow-x-auto rounded-xl border border-[var(--nav-border)] bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--nav-border)] text-left">
@@ -125,7 +125,7 @@ export function FlatVsReducingCalculator() {
               </tr>
               <tr>
                 <td className="px-5 py-3 text-text-secondary">Extra paid on flat</td>
-                <td className="px-5 py-3 font-semibold text-brand-blue" colSpan={2}>
+                <td className="px-5 py-3 font-semibold text-brand-link" colSpan={2}>
                   {formatINR(result.atSameRateReducing.extraPaidOnFlat)}
                 </td>
               </tr>

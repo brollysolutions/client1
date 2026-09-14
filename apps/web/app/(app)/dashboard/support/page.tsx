@@ -5,6 +5,9 @@ import Link from "next/link";
 import { Loader2, Headset } from "lucide-react";
 import { toast } from "sonner";
 
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { WORKSPACE_DIALOG_CLASS, WorkspaceDialogHeader } from "@/features/dashboard/workspace-dialog";
+import { DashboardHeader, DashboardPage } from "@/features/dashboard/dashboard-ui";
 import { Input } from "@/components/ui/input";
 import { FieldError, RequiredIndicator } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
@@ -42,6 +45,8 @@ function formatDate(iso: string): string {
 type Status = "loading" | "ready" | "error";
 
 export default function SupportPage() {
+  const ticketTriggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const [activeTicket, setActiveTicket] = React.useState<SupportTicket | null>(null);
   const [tickets, setTickets] = React.useState<SupportTicket[]>([]);
   const [status, setStatus] = React.useState<Status>("loading");
   const [error, setError] = React.useState<string | null>(null);
@@ -77,13 +82,8 @@ export default function SupportPage() {
   }, [reloadKey]);
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-6 lg:px-10">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">Support</h1>
-        <p className="text-sm text-text-secondary">
-          Raise a ticket and our team will get back to you.
-        </p>
-      </div>
+    <DashboardPage>
+      <DashboardHeader title="Support" description="Raise a ticket or open an existing request to see its complete details." />
 
       <NewTicketForm onCreated={(t) => setTickets((prev) => [t, ...prev])} />
 
@@ -96,7 +96,7 @@ export default function SupportPage() {
         </div>
         <Link
           href="/change-mobile"
-          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-brand-cta px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-cta/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
+          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-brand-cta px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-cta/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Start number change
         </Link>
@@ -110,7 +110,7 @@ export default function SupportPage() {
           <FetchError status={errorStatus} message={error} onRetry={retry} />
         ) : tickets.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center">
-            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-loans-soft text-loans-accent">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-brand-link">
               <Headset className="h-5 w-5" />
             </span>
             <p className="mt-4 text-sm text-text-secondary">
@@ -126,7 +126,7 @@ export default function SupportPage() {
                 <li key={t.id} className="rounded-xl border border-border bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-text-primary">{t.subject}</p>
+                      <button type="button" onClick={(event) => { ticketTriggerRef.current = event.currentTarget; setActiveTicket(t); }} className="min-h-11 max-w-full break-words text-left font-semibold text-brand-link underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{t.subject}</button>
                       <p className="mt-0.5 text-xs text-text-secondary">
                         {CATEGORY_LABEL[t.category]} · {formatDate(t.createdOn)}
                       </p>
@@ -149,7 +149,29 @@ export default function SupportPage() {
           </div>
         )}
       </section>
-    </div>
+      <Dialog open={activeTicket !== null} onOpenChange={(open) => !open && setActiveTicket(null)}>
+        <DialogContent className={WORKSPACE_DIALOG_CLASS} showCloseButton={false}
+          onCloseAutoFocus={(event) => {
+            if (ticketTriggerRef.current?.isConnected) {
+              event.preventDefault();
+              ticketTriggerRef.current.focus();
+            }
+          }}>
+          {activeTicket && (
+            <>
+              <WorkspaceDialogHeader
+                title={activeTicket.subject}
+                description={`${CATEGORY_LABEL[activeTicket.category]} · ${STATUS_STYLES[activeTicket.status].label} · ${formatDate(activeTicket.createdOn)}`}
+                closeLabel="Close ticket"
+              />
+              <div className="min-h-0 overflow-y-auto overscroll-contain">
+                <p className="max-w-4xl whitespace-pre-wrap break-words text-sm leading-7">{activeTicket.body}</p>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </DashboardPage>
   );
 }
 
@@ -277,7 +299,7 @@ function NewTicketForm({ onCreated }: { onCreated: (ticket: SupportTicket) => vo
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-loans-accent px-5 py-2.5 text-sm font-medium text-surface transition-colors hover:bg-loans-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-loans-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-loans-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-loans-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           {submitting ? "Sending..." : "Raise ticket"}

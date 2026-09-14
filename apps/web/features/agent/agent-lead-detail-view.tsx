@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { Check, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { DashboardPanel } from "@/features/dashboard/dashboard-ui";
+import { DashboardBackLink, DashboardPage, DashboardHeader, DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { formatMobile } from "@/lib/phone";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export function AgentLeadDetailView({ leadId }: { leadId: string }) {
+  const searchParams = useSearchParams();
+  const fromPage = Number(searchParams.get("page") ?? 1);
+  const backHref = Number.isSafeInteger(fromPage) && fromPage > 1 ? `/dashboard/leads?page=${fromPage}` : "/dashboard/leads";
   const { lead, status, error, errorStatus, retry, update } = useAgentLeadDetail(leadId);
   const [notes, setNotes] = React.useState("");
   const [saving, setSaving] = React.useState(false);
@@ -77,6 +81,7 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
   if (status === "loading") {
     return (
       <div className="mx-auto w-full max-w-3xl space-y-5 px-4 sm:px-6 lg:px-10">
+        <DashboardBackLink href={backHref}>Back to leads</DashboardBackLink>
         <Skeleton className="h-9 w-64 rounded-lg" />
         <Skeleton className="h-48 rounded-2xl" />
       </div>
@@ -86,6 +91,7 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
   if (status === "error" || !lead) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-10">
+        <DashboardBackLink href={backHref}>Back to leads</DashboardBackLink>
         <FetchError status={errorStatus} message={error} onRetry={retry} />
       </div>
     );
@@ -99,7 +105,9 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
         : "A telecaller is already working this lead, so it can no longer be edited here.";
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 sm:px-6 lg:px-10">
+    <DashboardPage className="max-w-4xl">
+      <DashboardBackLink href={backHref}>Back to leads</DashboardBackLink>
+      <DashboardHeader title={lead.name ?? "Lead details"} description="Registration, attribution and operational progress" />
       <DashboardPanel
         title={lead.name ?? "Unnamed lead"}
         description={formatMobile(lead.mobile)}
@@ -116,7 +124,7 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
       >
         <p className="text-sm text-text-secondary">
           {lead.registered
-            ? "This person has created an account."
+            ? "Registered: this person has verified their account. Your introduction and staff assignment are shown separately in their workspace."
             : "Not registered on the platform yet."}
         </p>
         {!lead.registered ? (
@@ -161,6 +169,6 @@ export function AgentLeadDetailView({ leadId }: { leadId: string }) {
           </>
         )}
       </DashboardPanel>
-    </div>
+    </DashboardPage>
   );
 }

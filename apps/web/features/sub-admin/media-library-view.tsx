@@ -191,7 +191,7 @@ export function MediaLibraryView() {
             <Archive className="h-4 w-4" aria-hidden />
             {showArchived ? "Archived shown" : "Show archived"}
           </Button>
-          <div className="flex items-center rounded-lg bg-[var(--nav-tint)] px-3 text-sm font-medium text-[var(--nav-primary)]">
+          <div className="flex items-center rounded-lg bg-[var(--nav-tint)] px-3 text-sm font-medium text-brand-link">
             {filtered.length} {filtered.length === 1 ? "asset" : "assets"}
           </div>
         </div>

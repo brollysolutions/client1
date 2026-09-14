@@ -31,7 +31,7 @@ export function SimilarPropertiesPanel({
       {cta ? (
         <Link
           href={cta.href}
-          className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[var(--nav-primary)] px-4 text-sm font-medium text-[var(--nav-primary)] transition-colors hover:bg-[var(--nav-tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2"
+          className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[var(--nav-primary)] px-4 text-sm font-medium text-brand-link transition-colors hover:bg-[var(--nav-tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           {cta.label}
           <ArrowRight className="h-4 w-4" aria-hidden />

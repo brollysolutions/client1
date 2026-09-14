@@ -128,7 +128,7 @@ export function CreditCardEmiCalculator() {
           />
         </div>
 
-        <div className="rounded-xl border border-[var(--nav-border)] bg-white px-5 py-3">
+        <div className="rounded-xl border border-[var(--nav-border)] bg-card px-5 py-3">
           <Row label="Interest" value={formatINR(result.totalInterest)} info={INFO.totalInterest} />
           <Row
             label="GST on interest"
@@ -149,7 +149,7 @@ export function CreditCardEmiCalculator() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
+        <div className="rounded-xl border border-[var(--nav-border)] bg-card p-5">
           <div className="flex items-center gap-1.5">
             <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
               If you kept revolving instead

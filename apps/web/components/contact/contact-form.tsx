@@ -108,7 +108,7 @@ export function ContactForm({
   if (done) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-10 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--nav-tint)] text-[var(--nav-primary)]">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full text-brand-link">
           <Check className="h-7 w-7" aria-hidden />
         </span>
         <h3 className="font-heading text-xl font-semibold text-foreground">
@@ -121,7 +121,7 @@ export function ContactForm({
           type="button"
           variant="outline"
           onClick={() => setDone(false)}
-          className="border-[var(--nav-primary)] text-[var(--nav-primary)] hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]"
+          className="border-[var(--nav-primary)] text-brand-link hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]"
         >
           Send another message
         </Button>
@@ -148,7 +148,7 @@ export function ContactForm({
       {initialProduct ? (
         <div className="grid gap-1.5">
           <span className="text-sm text-text-secondary">Enquiring about</span>
-          <span className="inline-flex w-fit max-w-full items-center rounded-full bg-[var(--nav-tint)] px-3 py-1 text-sm font-medium text-[var(--nav-primary)]">
+          <span className="inline-flex w-fit max-w-full items-center rounded-full bg-[var(--nav-tint)] px-3 py-1 text-sm font-medium text-brand-link">
             {initialProduct}
           </span>
         </div>
@@ -178,7 +178,7 @@ export function ContactForm({
                 disabled={submitting}
                 className={cn(
                   "h-12 cursor-pointer rounded-lg border px-2 text-sm font-medium transition",
-                  "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nav-primary)]/50",
+                  "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                   "disabled:cursor-default disabled:opacity-50",
                   topic === option.value
                     ? "border-[var(--nav-primary)] bg-[var(--nav-primary)] text-white"
@@ -272,7 +272,7 @@ export function ContactForm({
       <Button
         type="submit"
         disabled={submitting}
-        className="h-12 bg-[var(--nav-primary)] text-base text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
+        className="h-12 bg-[var(--nav-primary)] text-base text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring"
       >
         {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
         {submitting ? "Sending..." : "Send message"}

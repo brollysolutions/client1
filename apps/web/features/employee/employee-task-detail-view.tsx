@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Copy, Link2, Loader2, Phone, ShieldOff, Trash2 } from "lucide-react";
+import { ContactActions } from "@/components/contact-actions";
+import { Copy, Link2, Loader2, ShieldOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -26,10 +27,11 @@ import {
   type ContactShareLink,
   type EmployeeTaskUpdate,
 } from "@/lib/employee-api";
-import { formatMobile, toE164 } from "@/lib/phone";
+import { formatMobile } from "@/lib/phone";
 
 import { EmployeeTaskDocumentPanel } from "./employee-task-document-panel";
 import { EmployeeTaskFeedbackPanel } from "./employee-task-feedback-panel";
+import { ReopenTaskDialog } from "./reopen-task-dialog";
 import { useEmployeeTaskDetail } from "./use-employee-task-detail";
 
 type TaskStatusValue = NonNullable<EmployeeTaskUpdate["status"]>;
@@ -209,11 +211,7 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
         {task.lead_contact_mode === "allow" && task.lead_mobile ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm text-text-secondary">{formatMobile(task.lead_mobile)}</span>
-            <Button asChild size="icon" variant="outline" aria-label="Call" title="Call">
-              <a href={`tel:${toE164(task.lead_mobile)}`}>
-                <Phone className="h-4 w-4" aria-hidden="true" />
-              </a>
-            </Button>
+            <ContactActions mobile={task.lead_mobile} name={task.lead_name ?? "client"} />
           </div>
         ) : task.lead_contact_mode === "share_link" ? (
           <div className="space-y-3">
@@ -264,6 +262,7 @@ export function EmployeeTaskDetailView({ taskId }: { taskId: string }) {
       </DashboardPanel>
 
       <DashboardPanel title="Notes">
+        {task.status === "cancelled" && <div className="mb-4"><ReopenTaskDialog taskId={task.id} onReopened={retry} /></div>}
         <Textarea
           rows={4}
           maxLength={1000}

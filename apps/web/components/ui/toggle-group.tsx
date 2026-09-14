@@ -26,8 +26,8 @@ const ToggleGroupItem = React.forwardRef<
     ref={ref}
     data-slot="toggle-group-item"
     className={cn(
-      "inline-flex h-9 cursor-pointer items-center justify-center whitespace-nowrap rounded-full border border-border bg-surface px-4 text-sm font-medium text-text-primary transition-colors hover:border-brand-cta hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue disabled:pointer-events-none disabled:opacity-50",
-      "data-[state=on]:border-brand-cta data-[state=on]:bg-nav-tint data-[state=on]:text-brand-cta",
+      "inline-flex h-9 cursor-pointer items-center justify-center whitespace-nowrap rounded-full border border-border bg-surface px-4 text-sm font-medium text-text-primary transition-colors hover:border-brand-cta hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+      "data-[state=on]:border-brand-cta data-[state=on]:bg-nav-tint data-[state=on]:text-brand-link",
       className,
     )}
     {...props}

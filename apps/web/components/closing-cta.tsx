@@ -45,7 +45,7 @@ export function ClosingCta({
           {href ? (
             <Link
               href={href}
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-brand-sky px-5 py-3 text-sm font-semibold text-brand-navy transition-colors duration-150 hover:bg-brand-cta-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy motion-reduce:transition-none sm:w-auto"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-brand-sky px-5 py-3 text-sm font-semibold text-brand-navy transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy motion-reduce:transition-none sm:w-auto"
             >
               {ctaLabel}
             </Link>

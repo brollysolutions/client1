@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -32,10 +32,15 @@ export function PropertyRow({
   id?: string;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (animationRef.current !== null) cancelAnimationFrame(animationRef.current);
+  }, []);
 
   function page(direction: 1 | -1) {
     const el = scrollerRef.current;
     if (!el) return;
+    if (animationRef.current !== null) cancelAnimationFrame(animationRef.current);
     // Scroll by ~80% of the visible width so a couple of cards move per click.
     const delta = direction * el.clientWidth * 0.8;
     const max = el.scrollWidth - el.clientWidth;
@@ -61,30 +66,28 @@ export function PropertyRow({
       const p = Math.min(1, (ts - startTs) / duration);
       const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
       el!.scrollLeft = start + dist * eased;
-      if (p < 1) requestAnimationFrame(step);
+      animationRef.current = p < 1 ? requestAnimationFrame(step) : null;
     }
-    requestAnimationFrame(step);
+    animationRef.current = requestAnimationFrame(step);
   }
 
   return (
     <section id={id} aria-label={heading} className="w-full scroll-mt-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-7xl items-end justify-between gap-5 px-4 sm:px-6 lg:px-8">
+        <div className="min-w-0">
         <h2 className="font-heading text-2xl font-semibold text-[var(--nav-text)] sm:text-3xl">
           {heading}
         </h2>
         {types ? (
           <p className="mt-2 text-base text-text-secondary">{types}</p>
         ) : null}
-      </div>
-
-      <div className="relative mt-8">
-        {/* Chevron buttons on the sides (blue, same as the hero carousel).
-            Hidden below sm where native swipe is the primary affordance. */}
+        </div>
+        <div className="hidden shrink-0 gap-2 sm:flex">
         <button
           type="button"
           aria-label={`Scroll ${heading} left`}
           onClick={() => page(-1)}
-          className="absolute left-2 top-[38%] z-10 hidden h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-white text-brand-blue shadow-md ring-1 ring-[var(--nav-border)] transition hover:bg-[var(--nav-tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue sm:flex lg:left-4"
+          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-transparent text-brand-link hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ChevronLeft className="h-6 w-6" aria-hidden />
         </button>
@@ -92,11 +95,14 @@ export function PropertyRow({
           type="button"
           aria-label={`Scroll ${heading} right`}
           onClick={() => page(1)}
-          className="absolute right-2 top-[38%] z-10 hidden h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-white text-brand-blue shadow-md ring-1 ring-[var(--nav-border)] transition hover:bg-[var(--nav-tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue sm:flex lg:right-4"
+          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-transparent text-brand-link hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ChevronRight className="h-6 w-6" aria-hidden />
         </button>
+        </div>
+      </div>
 
+      <div className="relative mt-8">
         {/* Edge fades: cards dissolve into the band at both corners, hinting at
             more content off-screen. Sit above the cards, below the chevrons. */}
         <div
@@ -126,7 +132,7 @@ export function PropertyRow({
               href="/register"
               className="flex w-[280px] shrink-0 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[var(--nav-primary)]/40 bg-[var(--nav-tint)]/40 p-6 text-center transition hover:bg-[var(--nav-tint)] sm:w-[300px]"
             >
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--nav-primary)] text-white">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full text-brand-link">
                 <ArrowRight className="h-6 w-6" aria-hidden />
               </span>
               <span className="font-heading text-lg font-semibold text-[var(--nav-text)]">
@@ -135,7 +141,7 @@ export function PropertyRow({
               <span className="text-sm text-text-secondary">
                 Register to explore the full list of verified properties.
               </span>
-              <span className="mt-1 font-geist text-sm font-semibold text-brand-blue">
+              <span className="mt-1 font-geist text-sm font-semibold text-brand-link">
                 Create a free account
               </span>
             </Link>

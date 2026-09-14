@@ -41,7 +41,7 @@ function MarkdownLite({ content }: { content: string }) {
           return (
             <pre
               key={i}
-              className="overflow-x-auto rounded-lg border border-[var(--nav-border)] bg-white px-4 py-3 font-mono text-sm text-[var(--nav-text)]"
+              className="overflow-x-auto rounded-lg border border-[var(--nav-border)] bg-card px-4 py-3 font-mono text-sm text-[var(--nav-text)]"
             >
               <code>{code}</code>
             </pre>
@@ -53,7 +53,7 @@ function MarkdownLite({ content }: { content: string }) {
           return (
             <ul key={i} className="grid gap-1.5 pl-5">
               {lines.map((l, j) => (
-                <li key={j} className="list-disc marker:text-[var(--nav-primary)]">
+                <li key={j} className="list-disc marker:text-brand-link">
                   <InlineMarkdown text={l.slice(2)} />
                 </li>
               ))}
@@ -88,7 +88,7 @@ function InlineMarkdown({ text }: { text: string }) {
           return (
             <code
               key={i}
-              className="rounded bg-[var(--nav-tint)] px-1.5 py-0.5 font-mono text-[0.9em] text-[var(--nav-primary)]"
+              className="rounded bg-[var(--nav-tint)] px-1.5 py-0.5 font-mono text-[0.9em] text-brand-link"
             >
               {part.slice(1, -1)}
             </code>

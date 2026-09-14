@@ -21,7 +21,7 @@ function ApplyCta({ className }: { className?: string }) {
     <Link
       href="/dashboard/explore/loans"
       className={cn(
-        "inline-flex items-center gap-2 rounded-lg bg-loans-accent px-4 py-2 text-sm font-medium text-surface transition-colors hover:bg-loans-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-loans-accent focus-visible:ring-offset-2",
+        "inline-flex items-center gap-2 rounded-lg bg-loans-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-loans-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         className,
       )}
     >
@@ -137,7 +137,7 @@ export function LoansApplications() {
                     <td className="px-5 py-4 font-medium">
                       <Link
                         href={`/dashboard/loans/${a.id}`}
-                        className="text-text-primary transition-colors hover:text-loans-accent focus-visible:outline-none focus-visible:text-loans-accent"
+                        className="text-text-primary transition-colors hover:text-brand-link focus-visible:outline-none focus-visible:text-brand-link"
                       >
                         {a.loanTypeLabel}
                       </Link>
@@ -165,7 +165,7 @@ export function LoansApplications() {
                       <Link
                         href={`/dashboard/loans/${a.id}`}
                         aria-label={`View ${a.loanTypeLabel} details`}
-                        className="inline-flex text-text-secondary transition-colors hover:text-loans-accent focus-visible:outline-none focus-visible:text-loans-accent"
+                        className="inline-flex text-text-secondary transition-colors hover:text-brand-link focus-visible:outline-none focus-visible:text-brand-link"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Link>

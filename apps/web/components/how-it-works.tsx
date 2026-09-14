@@ -74,7 +74,7 @@ export function HowItWorks() {
               >
                 <span className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--nav-primary)] font-heading text-2xl font-semibold text-white ring-8 ring-[var(--nav-bg)]">
                   {step.n}
-                  <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--nav-tint)] text-brand-blue ring-1 ring-[var(--nav-border)]">
+                  <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--nav-tint)] text-brand-link ring-1 ring-[var(--nav-border)]">
                     <step.icon className="h-4 w-4" aria-hidden />
                   </span>
                 </span>

@@ -135,7 +135,7 @@ export function PrepaymentCalculator() {
         />
 
         {result.guardTriggered ? (
-          <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
+          <div className="rounded-xl border border-[var(--nav-border)] bg-card p-5">
             <p className="text-sm text-text-secondary">
               The EMI here is too low to model a prepayment cleanly. Try a larger loan, a shorter
               tenure, or a smaller lump sum.
@@ -144,7 +144,7 @@ export function PrepaymentCalculator() {
         ) : (
           <>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-white p-5">
+              <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-card p-5">
                 <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
                   Option A: Reduce tenure
                 </p>
@@ -159,12 +159,12 @@ export function PrepaymentCalculator() {
                   <p className="text-sm text-text-secondary">Interest saved</p>
                   <InfoHint label="Interest saved" text={INFO.interestSavedTenure} />
                 </div>
-                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-brand-blue">
+                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-brand-link">
                   {formatINR(result.reduceTenure.interestSaved)}
                 </p>
               </div>
 
-              <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-white p-5">
+              <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-card p-5">
                 <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
                   Option B: Reduce EMI
                 </p>
@@ -179,7 +179,7 @@ export function PrepaymentCalculator() {
                   <p className="text-sm text-text-secondary">Interest saved</p>
                   <InfoHint label="Interest saved" text={INFO.interestSavedEmi} />
                 </div>
-                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-brand-blue">
+                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-brand-link">
                   {formatINR(result.reduceEmi.interestSaved)}
                 </p>
               </div>

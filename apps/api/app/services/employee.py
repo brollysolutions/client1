@@ -28,10 +28,12 @@ from app.cache.redis_keys import (
     task_document_upload_key,
 )
 from app.core.config import settings
+from app.models.audit_log import AuditAction
 from app.models.lead import Lead
 from app.models.task import BgCheckOutcome, Task, TaskDocument, TaskStatus, TaskType
 from app.schemas.employee import EmployeeTaskUpdate
 from app.services import storage
+from app.services.audit_log import record as record_audit
 
 _TASK_DOCUMENT_KEY_PREFIX = "tasks/"
 # Well clear of the 300s presign TTL (services/storage.py::_PRESIGN_EXPIRE_SECONDS),
@@ -176,6 +178,27 @@ async def update_task(db: AsyncSession, task: Task, payload: EmployeeTaskUpdate)
     if payload.outcome is not None:
         task.outcome = BgCheckOutcome(payload.outcome)
 
+    await db.commit()
+    await db.refresh(task)
+    return task
+
+
+async def reopen_task(db: AsyncSession, *, task: Task, actor_uuid: UUID, reason: str) -> Task:
+    """Caller holds the own-assignment row lock; audit and transition commit together."""
+    if task.status != TaskStatus.CANCELLED:
+        raise IllegalTransition
+    task.status = TaskStatus.ASSIGNED
+    task.updated_at = datetime.now(UTC)
+    await record_audit(
+        db,
+        action=AuditAction.EMPLOYEE_TASK_REOPENED,
+        entity_type="task",
+        entity_uuid=task.id,
+        actor_uuid=actor_uuid,
+        actor_role="employee",
+        business_line=task.business_line,
+        detail={"from_status": "cancelled", "to_status": "assigned", "reason": reason},
+    )
     await db.commit()
     await db.refresh(task)
     return task

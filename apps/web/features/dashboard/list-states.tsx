@@ -38,10 +38,10 @@ export function ListEmptyState({
         className,
       )}
     >
-      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-cta-tint text-brand-navy">
+      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-brand-heading">
         <Icon className="h-6 w-6" aria-hidden="true" />
       </span>
-      <h2 className="mt-5 font-heading text-lg font-semibold text-brand-navy">{title}</h2>
+      <h2 className="mt-5 font-heading text-lg font-semibold text-brand-heading">{title}</h2>
       {description ? (
         <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">{description}</p>
       ) : null}
@@ -68,7 +68,7 @@ export function ListLoadingState({ rows = 5 }: { rows?: number }) {
 export function ListSpinner({ className }: { className?: string }) {
   return (
     <div className={cn("flex items-center justify-center py-12", className)} aria-busy="true">
-      <Loader2 className="h-6 w-6 animate-spin text-brand-cta" aria-hidden="true" />
+      <Loader2 className="h-6 w-6 animate-spin text-brand-link" aria-hidden="true" />
       <span className="sr-only">Loading</span>
     </div>
   );

@@ -15,7 +15,7 @@ export type StatusTone = "neutral" | "info" | "warning" | "success" | "danger";
 
 const TONE_CLASS: Record<StatusTone, string> = {
   neutral: "bg-muted text-text-secondary",
-  info: "bg-brand-cta-tint text-brand-cta",
+  info: "bg-brand-cta-tint text-brand-link",
   warning: "bg-warning/10 text-warning",
   success: "bg-success/10 text-success",
   danger: "bg-destructive/10 text-destructive",

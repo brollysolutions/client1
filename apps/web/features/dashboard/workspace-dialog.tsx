@@ -32,6 +32,9 @@ import { DESKTOP_VIEWPORT_WIDTH, ViewportFrame } from "./viewport-frame";
 export const WORKSPACE_DIALOG_CLASS =
   "!top-4 !left-4 !grid h-[calc(100dvh-2rem)] !w-[calc(100%-2rem)] !max-w-none !translate-x-0 !translate-y-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-xl p-3 sm:!max-w-none sm:p-6";
 
+export const REVIEW_WORKSPACE_CLASS =
+  "!top-4 !left-4 !grid h-[calc(100dvh-2rem)] !w-[calc(100%-2rem)] !max-w-none !translate-x-0 !translate-y-0 grid-rows-[auto_minmax(0,1fr)_auto] !overflow-hidden rounded-xl p-4 sm:!max-w-none sm:p-6";
+
 /** Same shape, with a third row for a filter bar between header and body. */
 export const WORKSPACE_DIALOG_FILTERED_CLASS =
   "!top-4 !left-4 !grid h-[calc(100dvh-2rem)] !w-[calc(100%-2rem)] !max-w-none !translate-x-0 !translate-y-0 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden rounded-xl p-3 sm:!max-w-none sm:p-6";
@@ -164,7 +167,7 @@ export function WorkspacePreviewFrame({
           ) : null}
         </div>
       </div>
-      <div className="rounded-xl border border-border bg-white p-3">
+      <div className="rounded-xl border border-border bg-card p-3">
         <ViewportFrame>{children}</ViewportFrame>
       </div>
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-secondary">
