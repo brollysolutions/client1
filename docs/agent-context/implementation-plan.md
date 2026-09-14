@@ -60,6 +60,50 @@ default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
 
+**Implemented — Next.js and sharp security audit remediation** (2026-09-14),
+on `feat/production-environment-evidence`, extending
+[PR #299](https://github.com/brollysolutions/client1/pull/299) from `66cbda4`.
+The selected `gpt-6-astra` / Extra High (`xhigh`) is unchanged. The production
+audit reproduced GHSA-p293-qw3h-jr36 and GHSA-2xp9-vwfh-vxw4 in Next.js 15.5.21,
+plus GHSA-rgj7-g3m4-5g8c in sharp 0.35.3. The Next.js and ESLint config minimums
+are raised to 15.5.24; the lockfile resolves both to 15.5.25, which retains AVIF
+optimization with patched sharp. The existing override now pins sharp 0.35.4
+and its native packages; the tested binary reports libheif 1.23.2. Audit
+thresholds, lifecycle-script permissions, other security overrides, application
+workflows, API/contracts and original image assets are unchanged.
+
+Fresh verification: `pnpm audit --prod --audit-level high` reports no known
+vulnerabilities. Frozen installs pass in the checkout and an isolated copy.
+Lint/typecheck and all 697 unit tests across 105 files pass. The initial isolated
+test run lacked the tracked production Compose example; after copying that test
+input, the complete suite passes. `pnpm build` exits 1 at `2026-09-14T02:34:17.590600+00:00`
+during Windows standalone packaging, after generating 84 static pages.
+All 939 copied source/configuration inputs match the
+checkout. Native PNG/JPEG/WebP/AVIF conversions pass. HTTP image optimization
+passes for the original PNG logo, WebP service art and a synthetic AVIF; an
+unapproved remote image host is rejected, anonymous dashboard navigation still
+redirects to login, and invitation noindex remains present. An initial runtime
+probe incorrectly assumed login had noindex; the inherited general auth/dashboard
+noindex gap is already recorded in `apps/web/e2e/UI-REFINEMENT.md`. The corrected
+probe verifies the implemented invitation control and retains the login gap.
+The four-suite browser run passes
+53 cases across public/auth/dashboard branding, all six sidebar roles,
+calculator loading/exports and published service navigation. Evidence is retained
+under `build/frontend-audit/dependency-security/`.
+
+Security, SEO and design review found no new change-owned defect in the scoped
+dependency diff and runtime checks. The Windows build failed with EPERM during standalone symlink creation after successful compilation, lint/type validation and all 84 static pages. Linux build/package verification remains pending in hosted CI.
+The full native Windows repository script remains unavailable because of its
+existing API greenlet import failure; API code is unchanged, and the prior
+`66cbda4` hosted main CI gate passed. Earlier performance/SEO/fixture findings
+remain separate release work; this patch does not claim fresh Lighthouse budgets.
+Requirement coverage remains unchanged. Next priority: existing performance and
+release evidence, plus an approved correction to local PR mapping. PR #299 stays
+open against upstream main, preserving its current ready-for-review status,
+with the existing upstream review head and origin
+contribution branch checked directly; the automatic checker still assumes origin
+is a fork. No merge, deployment, waiver or delivery-guard change is included.
+
 **Implemented — financial-product visibility, safe deletion and sidebar restoration**
 (2026-09-14), on `feat/production-environment-evidence`, extending
 [PR #299](https://github.com/brollysolutions/client1/pull/299) from `7b6d609`.
