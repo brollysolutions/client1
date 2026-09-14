@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Phone } from "lucide-react";
 import * as React from "react";
 
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -237,7 +236,6 @@ export function SiteHeader({ products = [] }: { products?: readonly PublicServic
               </Link>
             </Button>
           </div>
-          <ThemeSwitcher />
           <MobileNav items={items} />
         </div>
       </div>

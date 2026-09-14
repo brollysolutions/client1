@@ -27,10 +27,17 @@ export function SiteFooter({ products = [] }: { products?: readonly PublicServic
   } : column).filter((column) => column.links.length > 0);
 
   return (
-    <footer className="w-full border-t border-white/15 bg-brand-navy text-dash-foreground">
+    <footer className="mt-10 w-full border-t border-white/15 bg-brand-navy text-dash-foreground sm:mt-16">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        <div className="mb-8 w-fit rounded-xl bg-surface p-4">
-          <Logo className="w-52 sm:w-60" sizes="(min-width: 640px) 240px, 208px" />
+        <div className="mb-8 grid items-start gap-6 border-b border-white/15 pb-8 sm:mb-10 sm:pb-10 lg:grid-cols-[1fr_1.25fr] lg:gap-20">
+          <div>
+            <Logo tone="white" className="w-52 hover:bg-transparent sm:w-60" sizes="(min-width: 640px) 240px, 208px" />
+            <p className="mt-4 text-xs font-medium uppercase tracking-widest text-brand-sky">Financial services &amp; real estate</p>
+          </div>
+          <p className="max-w-xl text-sm leading-7 text-dash-muted sm:text-base">
+            <span className="block font-medium text-white">{TRUST_LINE.lead}</span>
+            {TRUST_LINE.rest}
+          </p>
         </div>
         {/* Link columns */}
         <nav aria-label="Footer">
@@ -93,36 +100,33 @@ export function SiteFooter({ products = [] }: { products?: readonly PublicServic
         </nav>
 
         {/* Contact + trust line */}
-        <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-white/15 pt-8 text-sm text-dash-foreground">
+        <div className="mt-10 grid gap-6 border-t border-white/15 pt-8 text-sm text-dash-foreground sm:grid-cols-2 lg:grid-cols-4">
           <a
             href={SITE_CONTACT.phoneHref}
-            className="inline-flex items-center gap-2 hover:text-brand-sky focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-sky"
+            className="inline-flex min-h-11 items-start gap-3 break-words hover:text-brand-sky focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-sky"
           >
-            <Phone className="h-4 w-4 text-brand-sky" aria-hidden />
-            {SITE_CONTACT.phone}
+            <Phone className="mt-1 h-4 w-4 shrink-0 text-brand-sky" aria-hidden />
+            <span><span className="mb-1 block text-xs text-dash-muted">Call us</span>{SITE_CONTACT.phone}</span>
           </a>
           <a
             href={SITE_CONTACT.emailHref}
-            className="inline-flex items-center gap-2 hover:text-brand-sky focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-sky"
+            className="inline-flex min-h-11 min-w-0 items-start gap-3 hover:text-brand-sky focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-sky"
           >
-            <Mail className="h-4 w-4 text-brand-sky" aria-hidden />
-            {SITE_CONTACT.email}
+            <Mail className="mt-1 h-4 w-4 shrink-0 text-brand-sky" aria-hidden />
+            <span className="min-w-0 break-words"><span className="mb-1 block text-xs text-dash-muted">Email us</span>{SITE_CONTACT.email}</span>
           </a>
-          <span className="inline-flex items-center gap-2">
-            <Clock className="h-4 w-4 text-brand-sky" aria-hidden />
-            {SITE_CONTACT.hours.join(", ")}
+          <span className="inline-flex items-start gap-3">
+            <Clock className="mt-1 h-4 w-4 shrink-0 text-brand-sky" aria-hidden />
+            <span><span className="mb-1 block text-xs text-dash-muted">Opening hours</span>{SITE_CONTACT.hours.join(", ")}</span>
           </span>
-          <span className="inline-flex items-center gap-2">
+          <span className="inline-flex items-start gap-3">
             <MapPin
-              className="h-4 w-4 text-brand-sky"
+              className="mt-1 h-4 w-4 shrink-0 text-brand-sky"
               aria-hidden
             />
-            {SITE_CONTACT.address.join(", ")}
+            <span><span className="mb-1 block text-xs text-dash-muted">Find us</span>{SITE_CONTACT.address.join(", ")}</span>
           </span>
         </div>
-        <p className="mt-4 max-w-3xl text-sm text-dash-muted">
-          {TRUST_LINE.lead} {TRUST_LINE.rest}
-        </p>
 
         {/* Bottom bar */}
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/15 pt-6 text-xs text-dash-muted sm:flex-row">
