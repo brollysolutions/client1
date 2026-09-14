@@ -79,6 +79,8 @@ export function ReferralsView() {
   const [filters, setFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
   const [activityFilters, setActivityFilters] = React.useState<FilterBarValue>(EMPTY_FILTERS);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [viewRule, setViewRule] = React.useState<ReferralBonusConfig | null>(null);
+  const [viewPayout, setViewPayout] = React.useState<ReferralPayoutActivity | null>(null);
   const [createDirty, setCreateDirty] = React.useState(false);
   const { confirm, confirmDialog } = useConfirm();
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -334,6 +336,8 @@ export function ReferralsView() {
                   columns={ruleColumns}
                   rows={rulesPage.pageRows}
                   rowKey={(config) => config.id}
+                  onRowClick={setViewRule}
+                  rowActionLabel="View bonus rule"
                   minWidth="min-w-[760px]"
                 />
                 <div className="px-5 pb-5">
@@ -377,6 +381,8 @@ export function ReferralsView() {
                   columns={activityColumns}
                   rows={activityPage.pageRows}
                   rowKey={(row) => row.id}
+                  onRowClick={setViewPayout}
+                  rowActionLabel="View payout activity"
                   minWidth="min-w-[720px]"
                 />
                 <div className="px-5 pb-5">
@@ -391,6 +397,35 @@ export function ReferralsView() {
           </DashboardPanel>
         </>
       )}
+
+      <Dialog open={viewRule !== null} onOpenChange={(open) => !open && setViewRule(null)}>
+        <DialogContent showCloseButton={false} className={PANEL_DIALOG_CLASS}>
+          <WorkspaceDialogHeader title="Bonus rule details" description="Eligibility and configuration for this referral bonus." closeLabel="Close bonus rule details" />
+          {viewRule ? <div className="min-h-0 space-y-6 overflow-y-auto p-1">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-text-secondary">Referral bonus</p><p className="mt-1 text-3xl font-semibold tabular-nums text-brand-link">₹{viewRule.bonus_amount}</p></div><StatusBadge tone={viewRule.active ? "success" : "neutral"}>{viewRule.active ? "Live" : "Retired"}</StatusBadge></div>
+            <dl className="grid gap-5 border-y border-border py-5 text-sm sm:grid-cols-2">
+              <ReferralDetail label="Business line" value={LINE_LABEL[viewRule.business_line] ?? viewRule.business_line} />
+              <ReferralDetail label="Last updated" value={formatDate(viewRule.updated_at)} />
+              <ReferralDetail label="History" value={viewRule.is_referenced ? "Used by existing referrals" : "Not used by a referral yet"} />
+            </dl>
+            <section><h3 className="font-semibold">Eligibility conditions</h3><p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-text-secondary">{ruleSummary(viewRule.rule)}</p></section>
+          </div> : null}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={viewPayout !== null} onOpenChange={(open) => !open && setViewPayout(null)}>
+        <DialogContent showCloseButton={false} className={PANEL_DIALOG_CLASS}>
+          <WorkspaceDialogHeader title="Payout activity details" description="Settlement history. Payouts are managed by Admin and finance." closeLabel="Close payout activity details" />
+          {viewPayout ? <div className="min-h-0 space-y-6 overflow-y-auto p-1">
+            <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-text-secondary">Payout amount · {viewPayout.currency}</p><p className="mt-1 text-3xl font-semibold tabular-nums text-brand-link">{formatPaise(viewPayout.amount_paise)}</p></div><StatusBadge tone={ACTIVITY_STATUS_META[viewPayout.status]?.tone ?? "neutral"}>{ACTIVITY_STATUS_META[viewPayout.status]?.label ?? viewPayout.status}</StatusBadge></div>
+            <p className="break-words text-sm leading-6">{viewPayout.description}</p>
+            <dl className="grid gap-5 border-t border-border pt-5 text-sm sm:grid-cols-2">
+              <ReferralDetail label="Business line" value={LINE_LABEL[viewPayout.business_line] ?? viewPayout.business_line} />
+              <ReferralDetail label="Created" value={formatDate(viewPayout.created_at)} />
+              <ReferralDetail label="Reference" value={viewPayout.id} />
+            </dl>
+          </div> : null}
+        </DialogContent>
+      </Dialog>
 
       {isAdmin ? null : (
         <>
@@ -445,4 +480,8 @@ export function ReferralsView() {
       )}
     </DashboardPage>
   );
+}
+
+function ReferralDetail({ label, value }: { label: string; value: string }) {
+  return <div className="min-w-0"><dt className="text-text-secondary">{label}</dt><dd className="mt-1 break-words font-medium">{value}</dd></div>;
 }

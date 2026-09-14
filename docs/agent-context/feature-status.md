@@ -2,6 +2,44 @@
 
 Status: **Derived living implementation ledger**
 
+**Implemented — dashboard interaction and detail repairs** (2026-09-14), on
+`feat/auth-actions-footer`. Campaign approval tabs wrap and identify the active
+panel; opening a notification updates its read state, badge and unread preview;
+loan rows support pointer and keyboard navigation. Bonus rules and recent payout
+activity have read-only detail windows. Media and property windows provide
+readable, scrollable details; property cards retain room for prices and actions.
+WhatsApp sharing uses its original green. The sidebar's existing small app icon
+loads directly beside the panel toggle, avoiding a stalled optimizer request.
+Telecallers can search property names and locations with at most 50 visible
+options. The complete synthetic property example validates against the API schema
+and is used only for reproducible design evidence, never seeded as a live listing.
+
+The browser connection policy now permits signed uploads to the exact configured
+storage origin. Server ownership, role/business-line boundaries, file validation
+and financial controls remain intact. No API, contract, migration or dependency
+change is included.
+
+Fresh verification: web lint and typecheck, all 706 unit tests in 108 files,
+the env-free production build and all 11 targeted Chromium journeys pass.
+Browser evidence covers 320/768/1440px layouts, property details in both themes,
+focus restoration, notification rollback, loan navigation, actual sidebar icon
+loading and a 1,200-property search. Design/Apple, source and security review found
+no remaining change-owned defects. Temporary test screenshots were removed after
+inspection; application artwork is retained. See
+`apps/web/e2e/DASHBOARD-REPAIRS.md` for the request map and evidence boundaries.
+
+Real storage uploads remain unverified because local Docker/WSL was unresponsive.
+The user requested preserving other running containers; no Docker restart was
+performed. The upload browser test intercepts synthetic multipart data and does
+not verify real storage confirmation. The task-owned web preview was refreshed
+at localhost:3001. Windows standalone tracing/public-data timeout warnings,
+other browser engines and fresh Lighthouse measurements remain limitations.
+Private-route indexing rules and existing release/requirement coverage are unchanged.
+
+<!-- dashboard-repairs-pr-links -->
+Next priority: verify real uploads when local storage is available, then address
+the existing release/performance evidence gaps. No PR merge or deployment is included.
+
 **Implemented — clear footer, auth header and shared press feedback**
 (2026-09-14), on `feat/auth-actions-footer`. The public footer has a separate
 white transparent brand row, two concise link groups, one contact area and

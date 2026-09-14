@@ -36,6 +36,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const [feedStatus, setFeedStatus] = React.useState<FeedStatus>("idle");
   const feedStatusRef = React.useRef<FeedStatus>("idle");
   const unreadCountRequestRef = React.useRef(0);
+  const pendingReads = React.useRef(new Set<string>());
   const [feedError, setFeedError] = React.useState<string | null>(null);
   const [feedErrorStatus, setFeedErrorStatus] = React.useState<number | null>(null);
 
@@ -90,14 +91,24 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const markRead = React.useCallback(
     async (id: string) => {
       const before = snapshotRef.current;
+      const original = before.items.find((item) => item.id === id);
+      if (pendingReads.current.has(id) || original?.readAt) return true;
+      pendingReads.current.add(id);
       unreadCountRequestRef.current += 1;
       const optimistic = markNotificationReadInSnapshot(before, id, new Date().toISOString());
       updateSnapshot(optimistic);
 
       const result = await markNotificationRead(id);
+      pendingReads.current.delete(id);
       if (!result.ok) {
-        updateSnapshot(before);
-        await refreshUnreadCount();
+        // Restore only this row: another notification may have been opened
+        // successfully while this request was in flight.
+        const current = snapshotRef.current;
+        updateSnapshot({
+          items: current.items.map((item) => item.id === id && original ? original : item),
+          unreadCount: current.unreadCount + (original?.readAt === null ? 1 : 0),
+        });
+        if (pendingReads.current.size === 0) await refreshUnreadCount();
         return false;
       }
 
@@ -106,7 +117,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           item.id === id ? result.data : item,
         )),
       );
-      await refreshUnreadCount();
+      if (pendingReads.current.size === 0) await refreshUnreadCount();
       return true;
     },
     [refreshUnreadCount, updateSnapshot],

@@ -1,0 +1,18 @@
+{
+  "kind": "project_residence",
+  "project_name": "Sample · Cedar Courtyard",
+  "project_area_acres": 3.5,
+  "number_of_towers": 4,
+  "total_units": 160,
+  "configurations": ["2_bhk", "3_bhk"],
+  "unit_or_plot_area_sqft": 1450,
+  "uds_sqft": 420,
+  "price_per_sqft_paise": 800000,
+  "sale_type": "new_sale",
+  "expected_handover_date": "2027-06-30",
+  "plot_facing": "east",
+  "entrance_facing": "north",
+  "local_approval": {"authority": "Sample planning authority", "reference_number": "DEMO-ONLY-001"},
+  "amenities_description": "This synthetic example includes a landscaped central courtyard with shaded seating and a walking path connecting the residential entrances. A separate children's play area sits beside the community lawn, with seating for accompanying adults. The example clubhouse contains a gym, a multipurpose room for residents and an indoor games area. These facilities illustrate how a detailed amenities description appears in the interface; they do not describe a property currently offered for sale.\n\nCovered resident parking and a marked visitor parking area are shown as separate facilities. Passenger lifts serve each sample tower, with access from the entrance lobby. The example includes power backup for lifts and common lighting, a security desk at the main entrance, designated waste collection points and rainwater collection infrastructure. Pedestrian paths are separated from the vehicle approach where possible. A utility area is reserved for building maintenance. Facility access hours, maintenance charges, parking allocation and the final equipment schedule would need to be confirmed from the actual project documentation before a buyer makes a decision.",
+  "about_project": "A synthetic design example of a three-bedroom apartment with a separate dining area, utility balcony and two bathrooms. The living room faces a shared landscaped courtyard. This example demonstrates the property information layout and is not a property advertisement."
+}

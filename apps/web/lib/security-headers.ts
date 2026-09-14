@@ -51,7 +51,10 @@ export function buildSecurityHeaders({
     production,
     strictPublicConfig,
   );
-  const connectSources = ["'self'", apiOrigin, ...(production ? [] : ["ws:", "wss:"])].filter(
+  // Signed multipart uploads go directly to the configured object-storage
+  // origin. img-src alone does not permit fetch; keep this an exact origin,
+  // never a wildcard or an origin taken from an individual API response.
+  const connectSources = ["'self'", apiOrigin, assetOrigin, ...(production ? [] : ["http://localhost:9000", "ws:", "wss:"])].filter(
     (source): source is string => Boolean(source),
   );
   const imageSources = ["'self'", "data:", "blob:", assetOrigin].filter(
