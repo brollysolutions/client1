@@ -36,7 +36,7 @@ at localhost:3001. Windows standalone tracing/public-data timeout warnings,
 other browser engines and fresh Lighthouse measurements remain limitations.
 Private-route indexing rules and existing release/requirement coverage are unchanged.
 
-<!-- dashboard-repairs-pr-links -->
+Reviews: [upstream](https://github.com/brollysolutions/client1/pull/303) and [origin](https://github.com/vamshisaideep9/client1/pull/9).
 Next priority: verify real uploads when local storage is available, then address
 the existing release/performance evidence gaps. No PR merge or deployment is included.
 
