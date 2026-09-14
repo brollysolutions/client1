@@ -92,11 +92,17 @@ test("footer branding stays white and closing CTA stays separate in both system 
       await expect(logo).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
       await expect(logo.locator("img")).toHaveCSS("filter", "brightness(0) invert(1)");
       const gap = await footer.evaluate((element) => element.getBoundingClientRect().top - document.querySelector("main")!.getBoundingClientRect().bottom);
-      expect(gap).toBeGreaterThanOrEqual(40);
+      expect(Math.abs(gap)).toBeLessThanOrEqual(1);
+      const cta = page.locator("main section").last();
+      expect(await cta.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(await footer.evaluate((element) => getComputedStyle(element).backgroundColor));
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      if (width < 1024) {
-        await footer.locator("summary").filter({ hasText: "Company" }).click();
-        await expect(footer.getByRole("link", { name: "Help Center" })).toBeVisible();
+      await expect(footer.getByRole("link", { name: "Help Center", exact: true })).toBeVisible();
+      if (width < 768) {
+        const office = footer.locator("details");
+        await expect(office.locator("address")).toBeHidden();
+        await office.locator("summary").press("Enter");
+        await expect(office.locator("address")).toBeVisible();
+        await office.locator("summary").press("Enter");
       }
       await footer.screenshot({ path: testInfo.outputPath(`footer-${colorScheme}-${width}.png`) });
     }
@@ -333,19 +339,22 @@ test("auth support offers recovery links and readable contact actions on mobile"
   await expect(support).toBeFocused();
 });
 
-test("fixed sky call-to-action surfaces retain navy text in both themes", async ({ page }, testInfo) => {
+test("closing call-to-action keeps contrasting text in both themes", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  const closing = page.locator('section[aria-labelledby="closing-cta-heading"]');
+  const closing = page.locator("section#get-started");
   const action = closing.getByRole("link", { name: "Get a callback" });
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
     await expect(page.locator("html")).toHaveClass(new RegExp(colorScheme));
     await action.scrollIntoViewIfNeeded();
-    await expect(action).toHaveCSS("color", "rgb(41, 54, 129)");
+    const foreground = colorScheme === "light" ? "rgb(255, 255, 255)" : "rgb(16, 27, 54)";
+    const background = colorScheme === "light" ? "rgb(41, 54, 129)" : "rgb(181, 202, 255)";
+    await expect(action).toHaveCSS("color", foreground);
+    await expect(action).toHaveCSS("background-color", background);
     await action.hover();
-    await expect(action).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await expect(action).toHaveCSS("color", "rgb(41, 54, 129)");
+    await expect(action).toHaveCSS("background-color", background);
+    await expect(action).toHaveCSS("color", foreground);
     await closing.screenshot({ path: testInfo.outputPath(`closing-${colorScheme}.png`) });
   }
 });

@@ -181,6 +181,41 @@
   }
 }
 
+/* Shared press feedback also covers native/Radix controls outside Button.
+   The independent scale property preserves translations used by positioned
+   controls. No event handlers: native activation, cancellation and focus stay
+   intact. Include scale even when a control uses a colour-only transition. */
+:where(button, input[type="button"], input[type="submit"], input[type="reset"], [role="button"], summary, .pressable) {
+  transition-property: background-color, border-color, color, box-shadow, filter, opacity, transform, translate, rotate, scale;
+}
+
+@layer base {
+  :where(button, input[type="button"], input[type="submit"], input[type="reset"], [role="button"], summary, .pressable) {
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(button, input[type="button"], input[type="submit"], input[type="reset"], [role="button"], summary, .pressable):active:not(:disabled):not([aria-disabled="true"]):not([data-disabled]) {
+    scale: 0.98;
+  }
+}
+
+:where(button, input[type="button"], input[type="submit"], input[type="reset"], [role="button"], summary, .pressable):is(:disabled, [aria-disabled="true"], [data-disabled]) {
+  scale: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(button, input[type="button"], input[type="submit"], input[type="reset"], [role="button"], summary, .pressable) {
+    transition: none;
+  }
+
+  :where(button, input[type="button"], input[type="submit"], input[type="reset"], [role="button"], summary, .pressable):active {
+    scale: none;
+  }
+}
+
 /* Keep native form editing at a readable size without iOS focus zoom. */
 @media (max-width: 767px) {
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
