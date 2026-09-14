@@ -40,7 +40,7 @@ export function CampaignPreviewPanel({
           Desktop · {DESKTOP_VIEWPORT_WIDTH}px
         </p>
       </div>
-      <div className="rounded-xl bg-white p-3">
+      <div className="rounded-xl bg-card p-3">
         <ViewportFrame>{children}</ViewportFrame>
       </div>
       <p className="text-xs text-text-secondary">

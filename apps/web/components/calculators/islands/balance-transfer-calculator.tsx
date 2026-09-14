@@ -142,7 +142,7 @@ export function BalanceTransferCalculator() {
       {/* Results */}
       <div className="grid content-start gap-6">
         {result.noBenefit ? (
-          <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
+          <div className="rounded-xl border border-[var(--nav-border)] bg-card p-5">
             <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
               This switch does not pay for itself
             </p>
@@ -170,7 +170,7 @@ export function BalanceTransferCalculator() {
               />
             ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-white p-5">
+              <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-card p-5">
                 <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
                   Option A: Lower the EMI
                 </p>
@@ -185,12 +185,12 @@ export function BalanceTransferCalculator() {
                   <p className="text-sm text-text-secondary">Saved after fees</p>
                   <InfoHint label="Saved after fees" text={INFO.btNetSaving} />
                 </div>
-                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-brand-blue">
+                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-brand-link">
                   {formatINR(result.sameTenure.netSaving)}
                 </p>
               </div>
 
-              <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-white p-5">
+              <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-card p-5">
                 <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
                   Option B: Keep the EMI
                 </p>
@@ -205,7 +205,7 @@ export function BalanceTransferCalculator() {
                   <p className="text-sm text-text-secondary">Saved after fees</p>
                   <InfoHint label="Saved after fees" text={INFO.btNetSaving} />
                 </div>
-                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-brand-blue">
+                <p className="mt-1 whitespace-nowrap font-heading text-xl font-semibold tabular-nums text-brand-link">
                   {formatINR(result.keepEmi.netSaving)}
                 </p>
               </div>

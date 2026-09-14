@@ -4,6 +4,7 @@ import { Space_Grotesk, Geist } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 
 // Space Grotesk is the body default (globals.css `body`) and every
 // `font-heading` utility (100+ sites). Inter (--font-body) and Newsreader
@@ -38,22 +39,19 @@ export const metadata: Metadata = {
     "A clear, secure way to explore loans and real estate and connect with the right partner.",
 };
 
-// This is a light-only design. Emitting <meta name="color-scheme" content="light">
-// stops browsers from auto-darkening pages (which was turning the sparse
-// dashboard near-black).
+// ThemeProvider keeps browser chrome synchronized with the chosen appearance.
 export const viewport: Viewport = {
-  colorScheme: "light",
+  colorScheme: "light dark",
   themeColor: "#F0F7FC",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${geist.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${spaceGrotesk.variable} ${geist.variable}`}>
       <body className="antialiased min-h-screen bg-background text-text-primary">
         {/* AuthProvider is mounted per route group ((auth) + (app)) so public
             marketing pages never fire a session refresh. Toaster stays global. */}
-        {children}
-        <Toaster />
+        <ThemeProvider>{children}<Toaster /></ThemeProvider>
       </body>
     </html>
   );

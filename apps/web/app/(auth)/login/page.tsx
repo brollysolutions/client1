@@ -125,7 +125,7 @@ function LoginPageContent() {
         panelTitle="One quick step."
         panelSubtitle="Your account uses a temporary password. Set a new one to finish signing in."
       >
-        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cta-tint text-brand-cta">
+        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-brand-link">
           <Lock className="h-6 w-6" />
         </span>
 

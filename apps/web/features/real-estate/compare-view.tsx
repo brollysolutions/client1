@@ -59,7 +59,7 @@ export function CompareView() {
 
       {listings.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-text-secondary">
             <Scale className="h-6 w-6" />
           </span>
           <h2 className="mt-5 text-lg font-semibold text-text-primary">Nothing to compare yet</h2>
@@ -68,7 +68,7 @@ export function CompareView() {
           </p>
           <Link
             href="/dashboard/explore"
-            className="mt-4 inline-block text-sm font-semibold text-brand-cta hover:underline"
+            className="mt-4 inline-block text-sm font-semibold text-brand-link hover:underline"
           >
             Explore properties
           </Link>
@@ -109,7 +109,7 @@ export function CompareView() {
                       className={cn(
                         "px-5 py-4",
                         label === "Price"
-                          ? "font-heading font-semibold text-brand-blue"
+                          ? "font-heading font-semibold text-brand-link"
                           : "text-text-primary",
                       )}
                     >
@@ -133,7 +133,7 @@ export function CompareView() {
                 key={listing.id}
                 type="button"
                 onClick={() => compare.add(listing.id)}
-                className="cursor-pointer rounded-full border border-border bg-card px-3 py-1.5 text-sm text-text-primary transition-colors hover:border-brand-cta hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+                className="cursor-pointer rounded-full border border-border bg-card px-3 py-1.5 text-sm text-text-primary transition-colors hover:border-brand-cta hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 + {listing.title}
               </button>

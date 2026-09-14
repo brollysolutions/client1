@@ -9,16 +9,15 @@ import {
   ExternalLink,
   FileText,
   Headset,
-  Languages,
   LogOut,
   Monitor,
   Moon,
-  Newspaper,
   Rocket,
   Settings,
   ShieldCheck,
   Sun,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
@@ -27,6 +26,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -39,28 +40,25 @@ import { cn } from "@/lib/utils";
 import { useLine } from "./line-provider";
 import { useMe } from "./me-provider";
 
-// Appearance + Language are placeholders for now (no persistence yet).
+// Appearance is persisted by the root theme provider.
 const APPEARANCE_OPTIONS = [
   { key: "light", label: "Light", icon: Sun },
   { key: "dark", label: "Dark", icon: Moon },
   { key: "system", label: "System", icon: Monitor },
 ] as const;
 
-const LANGUAGE_OPTIONS = ["Default", "Telugu", "Hindi", "Tinglish", "Hinglish", "English"] as const;
-
-// Internal routes stay in-app; the rest open the public marketing pages.
+// Help and legal destinations retain the authenticated workspace.
 const HELP_LINKS = [
-  { key: "get-started", label: "Get started", icon: Rocket, href: "/dashboard", external: false },
-  { key: "help-center", label: "Help center", icon: BookOpen, href: "/contact", external: true },
-  { key: "blog", label: "Blog", icon: Newspaper, href: "/", external: true },
+  { key: "get-started", label: "Get started", icon: Rocket, href: "/dashboard/get-started", external: false },
+  { key: "help-center", label: "Help center", icon: BookOpen, href: "/dashboard/help-center", external: false },
   { key: "support", label: "Customer support", icon: Headset, href: "/dashboard/support", external: false },
-  { key: "terms", label: "Terms of service", icon: FileText, href: "/terms", external: true },
-  { key: "privacy", label: "Privacy policy", icon: ShieldCheck, href: "/privacy", external: true },
+  { key: "terms", label: "Terms of service", icon: FileText, href: "/dashboard/terms", external: false },
+  { key: "privacy", label: "Privacy policy", icon: ShieldCheck, href: "/dashboard/privacy", external: false },
 ] as const;
 
 // Bottom-of-rail account menu. The whole profile block is the trigger; on hover
 // it glows and shows an up/down chevron. Clicking opens a menu above it with
-// settings, appearance/language (placeholders), help, and sign out. The surface
+// settings, appearance, help, and sign out. The surface
 // uses the app background with light-blue hover, matching the rail.
 export function AccountMenu({
   labeled,
@@ -70,6 +68,7 @@ export function AccountMenu({
   onNavigate?: () => void;
 }) {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const { clear } = useAuth();
   const { me } = useMe();
   const { activeLine } = useLine();
@@ -151,40 +150,24 @@ export function AccountMenu({
 
           <DropdownMenuSeparator />
 
-          {/* Appearance (placeholder) */}
+          {/* Appearance */}
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <Sun />
               <span className="flex flex-col">
                 <span>Appearance</span>
-                <span className="text-xs text-text-secondary">Light</span>
+                <span className="text-xs text-text-secondary">{theme === "dark" ? "Dark" : theme === "light" ? "Light" : "System"}</span>
               </span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
+              <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>
               {APPEARANCE_OPTIONS.map(({ key, label, icon: Icon }) => (
-                <DropdownMenuItem key={key} onSelect={(e) => e.preventDefault()}>
+                <DropdownMenuRadioItem key={key} value={key}>
                   <Icon />
                   {label}
-                </DropdownMenuItem>
+                </DropdownMenuRadioItem>
               ))}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-
-          {/* Language (placeholder) */}
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <Languages />
-              <span className="flex flex-col">
-                <span>Language</span>
-                <span className="text-xs text-text-secondary">Default</span>
-              </span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              {LANGUAGE_OPTIONS.map((lang) => (
-                <DropdownMenuItem key={lang} onSelect={(e) => e.preventDefault()}>
-                  {lang}
-                </DropdownMenuItem>
-              ))}
+              </DropdownMenuRadioGroup>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
 

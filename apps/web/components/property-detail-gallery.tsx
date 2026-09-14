@@ -49,7 +49,7 @@ export function PropertyDetailGallery({
         aria-roledescription={images.length > 1 ? "carousel" : undefined}
         tabIndex={images.length > 1 ? 0 : undefined}
         onKeyDown={handleKeyDown}
-        className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-[var(--nav-tint)] sm:aspect-[2/1] lg:rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]"
+        className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-[var(--nav-tint)] sm:aspect-[2/1] lg:rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {activeImage ? (
           <>
@@ -75,7 +75,7 @@ export function PropertyDetailGallery({
             />
           </>
         ) : (
-          <div className="absolute inset-0 grid place-items-center text-[var(--nav-primary)]">
+          <div className="absolute inset-0 grid place-items-center text-brand-link">
             <div className="text-center">
               <Building2 className="mx-auto h-14 w-14" aria-hidden />
               <p className="mt-3 text-sm font-medium">Photos coming soon</p>
@@ -88,7 +88,7 @@ export function PropertyDetailGallery({
               type="button"
               onClick={showPrev}
               aria-label="Show previous photo"
-              className="absolute left-3 top-1/2 z-10 grid min-h-11 min-w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 text-[var(--nav-primary)] shadow-md ring-1 ring-[var(--nav-border)] transition hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]"
+              className="absolute left-3 top-1/2 z-10 grid min-h-11 min-w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 text-brand-link shadow-md ring-1 ring-[var(--nav-border)] transition hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ChevronLeft className="h-5 w-5" aria-hidden />
             </button>
@@ -96,7 +96,7 @@ export function PropertyDetailGallery({
               type="button"
               onClick={showNext}
               aria-label="Show next photo"
-              className="absolute right-3 top-1/2 z-10 grid min-h-11 min-w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 text-[var(--nav-primary)] shadow-md ring-1 ring-[var(--nav-border)] transition hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]"
+              className="absolute right-3 top-1/2 z-10 grid min-h-11 min-w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 text-brand-link shadow-md ring-1 ring-[var(--nav-border)] transition hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ChevronRight className="h-5 w-5" aria-hidden />
             </button>
@@ -120,7 +120,7 @@ export function PropertyDetailGallery({
               aria-label={`Show photo ${index + 1} of ${images.length}`}
               aria-pressed={selected === index}
               className={cn(
-                "relative h-16 w-24 shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] sm:h-20 sm:w-28",
+                "relative h-16 w-24 shrink-0 cursor-pointer overflow-hidden rounded-xl border-2 bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-20 sm:w-28",
                 selected === index
                   ? "border-[var(--nav-primary)]"
                   : "border-transparent hover:border-[var(--nav-border)]",

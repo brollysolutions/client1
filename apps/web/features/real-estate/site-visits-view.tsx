@@ -14,7 +14,7 @@ import { cancelSiteVisit, type SiteVisit, type SiteVisitStatus } from "@/lib/sit
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLE: Record<SiteVisitStatus, string> = {
-  requested: "bg-brand-cta-tint text-brand-cta",
+  requested: "bg-brand-cta-tint text-brand-link",
   confirmed: "bg-warning/10 text-warning",
   done: "bg-success/10 text-success",
   cancelled: "bg-muted text-text-secondary",
@@ -101,7 +101,7 @@ export function SiteVisitsView() {
         <FetchError status={errorStatus} message={error} onRetry={retry} />
       ) : visits.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-text-secondary">
             <CalendarCheck className="h-6 w-6" />
           </span>
           <h2 className="mt-5 text-lg font-semibold text-text-primary">No site visits yet</h2>

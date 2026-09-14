@@ -31,7 +31,7 @@ export function ContactInvitationView({ token }: { token: string }) {
   return (
     <section className="mx-auto flex min-h-[55vh] max-w-2xl items-center px-4 py-16 sm:px-6">
       <div className="w-full rounded-3xl border border-border bg-card p-8 text-center sm:p-12">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-cta-tint text-brand-cta">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center text-brand-link">
           {valid ? (
             <CheckCircle2 className="h-7 w-7" aria-hidden="true" />
           ) : (

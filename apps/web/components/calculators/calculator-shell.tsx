@@ -38,10 +38,10 @@ export function CalculatorShell({
               <li>
                 <Link
                   href="/"
-                  className="group flex items-center gap-1.5 hover:text-[var(--nav-primary)]"
+                  className="group flex items-center gap-1.5 hover:text-brand-link"
                 >
                   <HomeIcon
-                    className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover:text-[var(--nav-primary)]"
+                    className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover:text-brand-link"
                     aria-hidden
                   />
                   Home
@@ -51,10 +51,10 @@ export function CalculatorShell({
               <li>
                 <Link
                   href="/calculators"
-                  className="group flex items-center gap-1.5 hover:text-[var(--nav-primary)]"
+                  className="group flex items-center gap-1.5 hover:text-brand-link"
                 >
                   <Calculator
-                    className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover:text-[var(--nav-primary)]"
+                    className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover:text-brand-link"
                     aria-hidden
                   />
                   Calculators

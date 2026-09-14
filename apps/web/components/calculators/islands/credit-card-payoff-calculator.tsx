@@ -26,7 +26,7 @@ function monthsHelper(months: number): string {
 
 function PathCard({ title, path, note }: { title: string; path: PayoffPath; note?: string }) {
   return (
-    <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-white p-5">
+    <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-card p-5">
       <p className="font-heading text-base font-semibold text-[var(--nav-text)]">{title}</p>
       <div className="mt-3 flex items-center gap-1.5">
         <p className="text-sm text-text-secondary">Debt-free in</p>
@@ -118,7 +118,7 @@ export function CreditCardPayoffCalculator() {
       {/* Results */}
       <div className="grid content-start gap-6">
         {result.fixed.neverClears ? (
-          <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
+          <div className="rounded-xl border border-[var(--nav-border)] bg-card p-5">
             <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
               This payment never clears the card
             </p>
@@ -144,7 +144,7 @@ export function CreditCardPayoffCalculator() {
             <div className="grid gap-4 sm:grid-cols-2">
               <PathCard title={`Paying ${formatINR(payment)} a month`} path={result.fixed} />
               {result.minDue.neverClears ? (
-                <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-white p-5">
+                <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-card p-5">
                   <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
                     Paying only the minimum due
                   </p>

@@ -54,7 +54,7 @@ const PANEL: Record<View, { title: string; subtitle: string; step: number }> = {
 
 function IconBadge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cta-tint text-brand-cta">
+    <span className="mb-4 flex h-12 w-12 items-center justify-center text-brand-link">
       {children}
     </span>
   );
@@ -121,7 +121,7 @@ export default function ForgotPasswordPage() {
     >
       {view === "loading" && (
         <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-brand-cta" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand-link" />
           <p className="text-sm text-text-secondary">Sending your code…</p>
         </div>
       )}

@@ -24,7 +24,7 @@ export default async function ExplorePage() {
     getCatalogueFacets(),
     getPublicFinancialProducts({ category: "credit_card", pageSize: 1 }),
   ]);
-  const soleCardProductSlug = shouldSkipCardsCategoryList("cards", cardsCatalogue.items.length)
+  const soleCardProductSlug = shouldSkipCardsCategoryList("cards", cardsCatalogue.total)
     ? cardsCatalogue.items[0].slug
     : null;
 

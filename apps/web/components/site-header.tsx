@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Phone } from "lucide-react";
 import * as React from "react";
 
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +31,7 @@ import { cn } from "@/lib/utils";
 // own hover — NavigationMenuList also sets `group`, which would otherwise fire
 // every link's underline when any sibling is hovered.
 const linkClass =
-  "group/navlink inline-flex h-9 flex-row items-center rounded-md px-3 text-base font-medium text-[var(--nav-text)] transition-colors hover:bg-transparent hover:text-[var(--nav-primary)] focus:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)]";
+  "group/navlink inline-flex h-9 flex-row items-center rounded-md px-3 text-base font-medium text-[var(--nav-text)] transition-colors hover:bg-transparent hover:text-brand-link focus:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)]";
 
 export function SiteHeader({ products = [] }: { products?: readonly PublicServiceLink[] }) {
   const items = publicNavItems(products);
@@ -84,7 +85,7 @@ export function SiteHeader({ products = [] }: { products?: readonly PublicServic
                     }}
                     className={cn(
                       "group/nav-trigger text-base text-[var(--nav-text)]",
-                      isActive && "text-[var(--nav-primary)]",
+                      isActive && "text-brand-link",
                     )}
                   >
                     <span
@@ -146,10 +147,10 @@ export function SiteHeader({ products = [] }: { products?: readonly PublicServic
                                       >
                                         <Link href={child.href} prefetch={false}>
                                           <child.icon
-                                            className="h-4 w-4 shrink-0 text-text-secondary transition-colors group-hover/item:text-[var(--nav-primary)]"
+                                            className="h-4 w-4 shrink-0 text-text-secondary transition-colors group-hover/item:text-brand-link"
                                             aria-hidden
                                           />
-                                          <span className="min-w-0 break-words text-sm font-medium leading-snug text-[var(--nav-text)] transition-colors group-hover/item:text-[var(--nav-primary)]">
+                                          <span className="min-w-0 break-words text-sm font-medium leading-snug text-[var(--nav-text)] transition-colors group-hover/item:text-brand-link">
                                             {child.label}
                                           </span>
                                         </Link>
@@ -166,7 +167,7 @@ export function SiteHeader({ products = [] }: { products?: readonly PublicServic
                       <div className="mt-3 border-t border-[var(--nav-border)] pt-1">
                         <NavigationMenuLink
                           asChild
-                          className="inline-flex w-auto flex-row items-center gap-1.5 px-2 py-2 text-sm font-medium text-[var(--nav-primary)] hover:bg-transparent hover:text-[var(--nav-primary-hover)]"
+                          className="inline-flex w-auto flex-row items-center gap-1.5 px-2 py-2 text-sm font-medium text-brand-link hover:bg-transparent hover:text-[var(--nav-primary-hover)]"
                         >
                           <Link href={item.menu.overview.href} prefetch={false}>
                             {item.menu.overview.label}
@@ -181,7 +182,7 @@ export function SiteHeader({ products = [] }: { products?: readonly PublicServic
                 <NavigationMenuItem key={item.href}>
                   <NavigationMenuLink
                     asChild
-                    className={cn(linkClass, isActive && "text-[var(--nav-primary)]")}
+                    className={cn(linkClass, isActive && "text-brand-link")}
                   >
                     <Link
                       href={item.href}
@@ -210,21 +211,21 @@ export function SiteHeader({ products = [] }: { products?: readonly PublicServic
               asChild
               variant="ghost"
               size="sm"
-              className="font-geist text-base text-[var(--nav-text)] hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary)] focus-visible:ring-[var(--nav-primary)]"
+              className="font-geist text-base text-[var(--nav-text)] hover:bg-[var(--nav-tint)] hover:text-brand-link focus-visible:ring-ring"
             >
               <Link href="/login" prefetch={false}>Login</Link>
             </Button>
             <Button
               asChild
               size="sm"
-              className="font-geist bg-[var(--nav-primary)] text-base text-white shadow-sm transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
+              className="font-geist bg-[var(--nav-primary)] text-base text-white shadow-sm transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring"
             >
               <Link href="/register" prefetch={false}>Register</Link>
             </Button>
             <Button
               asChild
               size="sm"
-              className="font-geist bg-[var(--nav-primary)] text-base text-white shadow-sm transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
+              className="font-geist bg-[var(--nav-primary)] text-base text-white shadow-sm transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring"
             >
               <Link
                 href="/contact"
@@ -236,6 +237,7 @@ export function SiteHeader({ products = [] }: { products?: readonly PublicServic
               </Link>
             </Button>
           </div>
+          <ThemeSwitcher />
           <MobileNav items={items} />
         </div>
       </div>

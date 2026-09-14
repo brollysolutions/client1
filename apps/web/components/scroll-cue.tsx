@@ -45,7 +45,7 @@ export function ScrollCue({ className }: { className?: string }) {
       <span className="text-[0.7rem] font-medium uppercase tracking-wide text-text-secondary">
         Scroll
       </span>
-      <span className="scroll-cue-bob text-[var(--nav-primary)]">
+      <span className="scroll-cue-bob text-brand-link">
         <ChevronDown className="h-5 w-5" />
       </span>
     </div>

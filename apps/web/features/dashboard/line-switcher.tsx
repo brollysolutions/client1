@@ -38,11 +38,11 @@ export function LineSwitcher() {
       title={`Switch to ${LABELS[other]}`}
       onClick={switchLine}
       className={cn(
-        "group inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-dash-border bg-surface px-3 py-1.5 text-sm font-medium text-text-secondary shadow-sm sm:min-h-0 sm:pr-3.5",
+        "group inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-dash-border bg-transparent px-3 py-1.5 text-sm font-medium text-text-secondary shadow-sm sm:min-h-0 sm:pr-3.5",
         "transition-[background-color,border-color,color,box-shadow,transform] duration-200 ease-out motion-reduce:transition-none",
-        "hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta hover:shadow-md",
+        "hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-link hover:shadow-md",
         "active:scale-[0.97]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
       )}
     >
       <Repeat2

@@ -2,6 +2,45 @@
 
 Status: **Derived living implementation ledger**
 
+**Implemented — dashboard themes, navigation and workflow refinement** (2026-09-14),
+on `feat/production-environment-evidence`. The approved 25-point brief now covers
+Light/Dark/System appearance, smooth shared sidebar branding, pale blue light
+navigation, flat decorative icons, reviewed bank artwork, four-column Explore,
+support workspaces, slash destinations, phone/WhatsApp/referral interfaces,
+loading states, in-dashboard legal pages and role-aware Get Started/Help Center.
+The announcement retains readable navy text on yellow in dark mode. Introducing
+agents appear separately from assigned staff immediately after registration in
+both business lines; employees can reopen their own cancelled tasks with an
+atomic audit. Completed tasks and commission permissions remain unchanged.
+
+The selected `gpt-6-astra` / Extra High was retained. Fresh web lint/typecheck,
+705 unit tests, the production build pass. 41 of 43 browser checks pass; two
+image-readiness checks still time out on the native sidebar-symbol optimizer. Browser evidence
+covers six roles, both lines, 320–1440px layouts, image readiness, persisted
+themes, focus restoration, reduced motion and keyboard navigation. API Ruff and
+format checks pass (513 files), and Alembic reports one head, `a4c6e8f0b2d4`.
+Repository checks report 199 tests with one existing skip. Generated contracts
+include the new contacts read and cancelled-task reopening action.
+
+The full API run printed 2,035 passes and one Redis-availability setup error;
+its container stalled after the summary, so a successful terminal exit is not
+claimed. A separate fresh-service attempt could not start PostgreSQL within
+90 seconds. The final audit-rollback test and document-preservation assertions
+remain unexecuted locally. The 47-URL SEO audit retains 52 existing findings and
+50 warnings; both new guide pages pass their metadata/content checks. Desktop
+Lighthouse reports 95/100/100/100 for both guides with load-time warnings; mobile
+Chrome sessions failed during `Page.enable`. No complete performance-budget or
+release-gate pass is claimed. Native image optimization required preview restart
+and cache warmup during visual review; Linux cold-image behavior remains pending.
+
+Security, design/accessibility and source review found no remaining
+change-owned correctness defect in the reviewed scope. These environment gaps
+are retained in the draft reviews: [Upstream PR #300](https://github.com/brollysolutions/client1/pull/300) and [origin PR #6](https://github.com/vamshisaideep9/client1/pull/6).
+See `apps/web/e2e/DASHBOARD-REFINEMENT.md` for the request map and detailed evidence.
+Existing requirement coverage remains unchanged. Next priority: the final Linux
+API/migration gate, cold-image verification, mobile performance evidence and
+the inherited SEO backlog. No merge, deployment or gate change is included.
+
 **Implemented — Next.js and sharp security audit remediation** (2026-09-14),
 on `feat/production-environment-evidence`, extending
 [PR #299](https://github.com/brollysolutions/client1/pull/299) from `66cbda4`.

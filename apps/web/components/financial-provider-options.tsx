@@ -1,6 +1,6 @@
 import * as React from "react";
 import { BadgeIndianRupee, CalendarRange, FileText, Landmark, Search, SlidersHorizontal } from "lucide-react";
-import Image from "next/image";
+import { ProviderLogo } from "@/components/provider-logo";
 import Link from "next/link";
 
 import { LeadDialog } from "@/components/lead-dialog";
@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import type { ProviderOfferQuery, ProviderType, PublicFinancialProduct, PublicProviderOfferList } from "@/lib/financial-catalog";
 import { boundedNumberFilter } from "@/lib/form-validation";
 import { contactHref } from "@/lib/leads";
@@ -141,7 +140,7 @@ export function FinancialProviderOptions({ product, query: offerQuery, offers: p
                   id="provider-type"
                   name="provider_type"
                   defaultValue={providerType ?? ""}
-                  className="h-11 rounded-md border border-input bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
+                  className="h-11 rounded-md border border-input bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="">All provider types</option>
                   {Object.entries(PROVIDER_TYPE_LABEL).map(([value, label]) => (
@@ -155,7 +154,7 @@ export function FinancialProviderOptions({ product, query: offerQuery, offers: p
                   id="provider-sort"
                   name="sort"
                   defaultValue={sort}
-                  className="h-11 rounded-md border border-input bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
+                  className="h-11 rounded-md border border-input bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <option value="recommended">Recommended order</option>
                   <option value="interest_rate">Lowest starting rate</option>
@@ -203,25 +202,13 @@ export function FinancialProviderOptions({ product, query: offerQuery, offers: p
           {offers.items.length > 0 ? (
             <div className="mt-5 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {offers.items.map((offer) => {
-                const initials = offer.provider.name
-                  .split(/\s+/)
-                  .slice(0, 2)
-                  .map((part) => part[0])
-                  .join("")
-                  .toUpperCase();
                 const minAmount = formatRupees(offer.min_amount);
                 const maxAmount = formatRupees(offer.max_amount);
                 const verifiedAt = formatVerifiedAt(offer.last_verified_at);
                 return (
                   <Card key={offer.id} className="h-full overflow-hidden pt-0">
-                    <div className="flex items-center gap-4 border-b border-border bg-white px-6 py-5">
-                      <div className="relative flex h-14 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-white">
-                        {offer.provider.logo_url && isAllowedAssetUrl(offer.provider.logo_url) ? (
-                          <Image src={offer.provider.logo_url} alt={`${offer.provider.name} logo`} fill sizes="96px" className="object-contain p-2" />
-                        ) : (
-                          <span className="text-lg font-bold text-brand-blue" aria-hidden>{initials}</span>
-                        )}
-                      </div>
+                    <div className="flex items-center gap-4 border-b border-border bg-card px-6 py-5">
+                      <ProviderLogo url={offer.provider.logo_url} sizes="96px" className="h-14 w-24" />
                       <div className="min-w-0">
                         <h3 className="truncate font-heading text-lg font-semibold text-foreground">{offer.provider.name}</h3>
                         <p className="text-xs text-text-secondary">{PROVIDER_TYPE_LABEL[offer.provider.provider_type]}</p>
@@ -238,22 +225,22 @@ export function FinancialProviderOptions({ product, query: offerQuery, offers: p
                     </CardHeader>
                     <CardContent className="grid grid-cols-2 gap-3 text-sm">
                       <div className="rounded-xl bg-surface p-3">
-                        <BadgeIndianRupee className="h-4 w-4 text-brand-blue" aria-hidden />
+                        <BadgeIndianRupee className="h-4 w-4 text-brand-link" aria-hidden />
                         <p className="mt-2 text-xs text-text-secondary">Indicative amount</p>
                         <p className="mt-1 font-semibold text-foreground">{minAmount && maxAmount ? `${minAmount} - ${maxAmount}` : maxAmount ?? minAmount ?? "Ask us"}</p>
                       </div>
                       <div className="rounded-xl bg-surface p-3">
-                        <Landmark className="h-4 w-4 text-brand-blue" aria-hidden />
+                        <Landmark className="h-4 w-4 text-brand-link" aria-hidden />
                         <p className="mt-2 text-xs text-text-secondary">Interest range</p>
                         <p className="mt-1 font-semibold text-foreground">{offer.min_interest_rate !== null ? `${offer.min_interest_rate}%${offer.max_interest_rate !== null ? ` - ${offer.max_interest_rate}%` : "+"}` : "Ask us"}</p>
                       </div>
                       <div className="rounded-xl bg-surface p-3">
-                        <CalendarRange className="h-4 w-4 text-brand-blue" aria-hidden />
+                        <CalendarRange className="h-4 w-4 text-brand-link" aria-hidden />
                         <p className="mt-2 text-xs text-text-secondary">Tenure</p>
                         <p className="mt-1 font-semibold text-foreground">{offer.min_tenure_months !== null ? `${offer.min_tenure_months}${offer.max_tenure_months !== null ? ` - ${offer.max_tenure_months}` : "+"} months` : "Ask us"}</p>
                       </div>
                       <div className="rounded-xl bg-surface p-3">
-                        <FileText className="h-4 w-4 text-brand-blue" aria-hidden />
+                        <FileText className="h-4 w-4 text-brand-link" aria-hidden />
                         <p className="mt-2 text-xs text-text-secondary">Processing fee</p>
                         <p className="mt-1 font-semibold text-foreground">{offer.processing_fee_text ?? "Provider assessed"}</p>
                       </div>

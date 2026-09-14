@@ -44,7 +44,7 @@ async def _client_profile_uuid(mobile: str, business_line: str) -> uuid.UUID:
 
 
 async def _seed_telecaller(
-    *, first_name: str = "Arjun", last_name: str = "Mehta"
+    *, first_name: str = "Arjun", last_name: str = "Mehta", business_line: str = "loans"
 ) -> tuple[str, str]:
     """Create an auth_user + telecaller StaffProfile. Returns (staff_profile_uuid, staff_code)."""
     import app.db.session as _session_mod
@@ -66,7 +66,7 @@ async def _seed_telecaller(
             auth_user_uuid=user.id,
             role=StaffRole.TELECALLER,
             scope=ProfileScope.LINE,
-            business_line="loans",
+            business_line=business_line,
             staff_code=staff_code,
             status=ProfileStatus.ACTIVE,
         )
@@ -75,7 +75,9 @@ async def _seed_telecaller(
         return str(profile.id), staff_code
 
 
-async def _seed_agent(*, first_name: str = "Priya", last_name: str = "Nair") -> tuple[str, str]:
+async def _seed_agent(
+    *, first_name: str = "Priya", last_name: str = "Nair", business_line: str = "real_estate"
+) -> tuple[str, str]:
     """Create an auth_user + AgentProfile. Returns (agent_profile_uuid, agent_code)."""
     import app.db.session as _session_mod
     from app.models.profile import AgentProfile, ProfileStatus
@@ -95,7 +97,7 @@ async def _seed_agent(*, first_name: str = "Priya", last_name: str = "Nair") -> 
         profile = AgentProfile(
             auth_user_uuid=user.id,
             agent_code=agent_code,
-            business_line="real_estate",
+            business_line=business_line,
             status=ProfileStatus.ACTIVE,
         )
         db.add(profile)
@@ -145,8 +147,19 @@ async def _property_id() -> uuid.UUID:
 
 
 @pytest.mark.asyncio
-async def test_no_officer_before_any_loan_application(client: AsyncClient) -> None:
-    token, _ = await full_registration(client, lines=["loans"])
+async def test_no_officer_when_registration_is_unassigned(client: AsyncClient) -> None:
+    token, mobile = await full_registration(client, lines=["loans"])
+    import app.db.session as sessions
+
+    async with sessions.AsyncSessionLocal() as db:
+        await db.execute(
+            text(
+                "UPDATE leads SET assigned_telecaller_profile_uuid=NULL "
+                "WHERE mobile=:mobile AND business_line='loans'"
+            ),
+            {"mobile": mobile},
+        )
+        await db.commit()
     res = await client.get("/api/v1/loans/officer", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200, res.text
     assert res.json() is None
@@ -326,3 +339,142 @@ async def test_officer_requires_auth(client: AsyncClient) -> None:
 async def test_agent_requires_auth(client: AsyncClient) -> None:
     res = await client.get("/api/v1/property-deals/agent")
     assert res.status_code == 401
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("line", ["loans", "real_estate"])
+async def test_registration_preserves_introducer_before_application(
+    client: AsyncClient, line: str
+) -> None:
+    """A real registration claims the agent's lead; staff assignment is separate."""
+    from datetime import UTC, datetime, timedelta
+
+    import app.db.session as sessions
+
+    agent_uuid, code = await _seed_agent(business_line=line)
+    mobile = unique_mobile()
+    async with sessions.AsyncSessionLocal() as db:
+        db.add(
+            Lead(
+                mobile=mobile,
+                business_line=line,
+                origin=LeadOrigin.AGENT,
+                origin_agent_profile_uuid=uuid.UUID(agent_uuid),
+                status=LeadStatus.NEW,
+                expires_at=datetime.now(UTC) + timedelta(days=30),
+            )
+        )
+        await db.commit()
+    token, _ = await full_registration(client, mobile=mobile, lines=["loans", "real_estate"])
+    response = await client.get(
+        f"/api/v1/client/lead-details/{line}/contacts", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "private, no-store"
+    assert response.json()["introducing_agent"] == {
+        "name": "Priya Nair",
+        "code": code,
+        "role": "agent",
+    }
+    # Automatic capacity assignment can occur during registration; it must never
+    # replace the introducing agent. An explicit assignment is returned separately.
+    staff_uuid, staff_code = await _seed_telecaller(business_line=line)
+    async with sessions.AsyncSessionLocal() as db:
+        await db.execute(
+            text(
+                "UPDATE leads SET assigned_telecaller_profile_uuid=:staff, "
+                "status='assigned' WHERE mobile=:mobile AND business_line=:line"
+            ),
+            {"staff": uuid.UUID(staff_uuid), "mobile": mobile, "line": line},
+        )
+        await db.commit()
+    response = await client.get(
+        f"/api/v1/client/lead-details/{line}/contacts", headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.json()["assigned_staff"] == {
+        "name": "Arjun Mehta",
+        "code": staff_code,
+        "role": "telecaller",
+    }
+    assert response.json()["introducing_agent"]["code"] == code
+    other = "real_estate" if line == "loans" else "loans"
+    response = await client.get(
+        f"/api/v1/client/lead-details/{other}/contacts",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.json()["introducing_agent"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("line", ["loans", "real_estate"])
+async def test_journey_contacts_isolate_owners_and_hide_expired_or_inactive_team(
+    client: AsyncClient, line: str
+) -> None:
+    from datetime import UTC, datetime
+
+    import app.db.session as sessions
+
+    token, mobile = await full_registration(client, lines=[line])
+    other_token, _ = await full_registration(client, lines=[line])
+    agent_uuid, _ = await _seed_agent(business_line=line)
+    staff_uuid, staff_code = await _seed_telecaller(business_line=line)
+    async with sessions.AsyncSessionLocal() as db:
+        await db.execute(
+            text(
+                "UPDATE leads SET origin_agent_profile_uuid=:agent, "
+                "assigned_telecaller_profile_uuid=:staff, agent_expired_at=:expired WHERE "
+                "mobile=:mobile AND business_line=:line"
+            ),
+            {
+                "agent": uuid.UUID(agent_uuid),
+                "staff": uuid.UUID(staff_uuid),
+                "expired": datetime.now(UTC),
+                "mobile": mobile,
+                "line": line,
+            },
+        )
+        await db.execute(
+            text("UPDATE staff_profiles SET status='inactive' WHERE id=:staff"),
+            {"staff": uuid.UUID(staff_uuid)},
+        )
+        await db.commit()
+    for access in [token, other_token]:
+        response = await client.get(
+            f"/api/v1/client/lead-details/{line}/contacts",
+            headers={"Authorization": f"Bearer {access}"},
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["introducing_agent"] is None
+        if access == token:
+            assert response.json()["assigned_staff"] is None
+        else:
+            assert (
+                response.json()["assigned_staff"] is None
+                or response.json()["assigned_staff"]["code"] != staff_code
+            )
+
+
+@pytest.mark.asyncio
+async def test_journey_contacts_require_client_session(client: AsyncClient) -> None:
+    from app.core.security import create_access_token
+
+    staff_uuid, _ = await _seed_telecaller()
+    import app.db.session as sessions
+
+    async with sessions.AsyncSessionLocal() as db:
+        user = await db.scalar(
+            text("SELECT auth_user_uuid FROM staff_profiles WHERE id=:id"),
+            {"id": uuid.UUID(staff_uuid)},
+        )
+    token = create_access_token(
+        {
+            "sub": str(user),
+            "role": "telecaller",
+            "staff_profile_uuid": staff_uuid,
+            "business_line": "loans",
+            "platform_scope": "false",
+        }
+    )
+    path = "/api/v1/client/lead-details/loans/contacts"
+    assert (await client.get(path)).status_code == 401
+    assert (await client.get(path, headers={"Authorization": f"Bearer {token}"})).status_code == 403

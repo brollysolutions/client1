@@ -36,7 +36,7 @@ export const CATEGORIES: SupportCategory[] = ["account_login", "otp", "lost_mobi
 
 export const STATUS_STYLES: Record<SupportStatus, { label: string; className: string }> = {
   open: { label: "Open", className: "bg-warning/10 text-warning" },
-  in_progress: { label: "In progress", className: "bg-loans-soft text-loans-accent" },
+  in_progress: { label: "In progress", className: "bg-loans-soft text-brand-link" },
   resolved: { label: "Resolved", className: "bg-success/10 text-success" },
   closed: { label: "Closed", className: "bg-muted text-text-secondary" },
 };

@@ -92,7 +92,7 @@ export function AdStrip({
               <Button
                 asChild
                 size="sm"
-                className="mt-2.5 h-auto min-h-11 max-w-full whitespace-normal py-2 text-center sm:min-h-9 bg-[var(--nav-primary)] px-3 text-xs text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:mt-3 sm:h-9 sm:px-5 sm:text-sm"
+                className="mt-2.5 h-auto min-h-11 max-w-full whitespace-normal py-2 text-center sm:min-h-9 bg-[var(--nav-primary)] px-3 text-xs text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring sm:mt-3 sm:h-9 sm:px-5 sm:text-sm"
               >
                 <Link href={banner.cta.href}>{banner.cta.label}</Link>
               </Button>

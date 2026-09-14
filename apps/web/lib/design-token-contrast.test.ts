@@ -8,14 +8,16 @@ const css = readFileSync(
   "utf8",
 );
 
-function tokenHex(name: string, seen = new Set<string>()): string {
+function tokenHex(name: string, seen = new Set<string>(), dark = false): string {
   if (seen.has(name)) throw new Error(`Circular color alias: ${name}`);
   seen.add(name);
-  const match = css.match(new RegExp(`${name}:\\s*([^;]+)`));
+  const pattern = new RegExp(`${name}:\\s*([^;]+)`);
+  const darkTokens = css.match(/:root\.dark\s*\{([^}]+)\}/)?.[1] ?? "";
+  const match = (dark ? darkTokens.match(pattern) : null) ?? css.match(pattern);
   if (!match) throw new Error(`Missing color token: ${name}`);
   const value = match[1].trim();
   const alias = value.match(/^var\((--[\w-]+)\)$/);
-  if (alias) return tokenHex(alias[1], seen);
+  if (alias) return tokenHex(alias[1], seen, dark);
   if (!/^#[0-9a-fA-F]{6}$/.test(value)) throw new Error(`Unsupported color token: ${name}`);
   return value;
 }
@@ -41,6 +43,27 @@ function contrastRatio(first: string, second: string): number {
 }
 
 describe("shared normal-text color contrast", () => {
+  it.each([false, true])("keeps announcement copy and chart segments distinct (dark=%s)", (dark) => {
+    const color = (name: string) => tokenHex(name, new Set(), dark);
+    expect(contrastRatio(color("--color-notice-foreground"), color("--color-notice"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(color("--color-brand-link"), color("--color-chart-interest"))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("keeps dark reading surfaces, actions and focus legible", () => {
+    const color = (name: string) => tokenHex(name, new Set(), true);
+    for (const surface of ["--background", "--card", "--popover", "--muted"]) {
+      for (const text of ["--foreground", "--muted-foreground", "--color-brand-heading", "--color-brand-link", "--color-success", "--color-warning", "--color-error", "--color-info"]) {
+        expect(contrastRatio(color(text), color(surface)), `${text} on ${surface}`).toBeGreaterThanOrEqual(4.5);
+      }
+      for (const control of ["--input", "--ring"]) {
+        expect(contrastRatio(color(control), color(surface)), `${control} on ${surface}`).toBeGreaterThanOrEqual(3);
+      }
+    }
+    for (const action of ["primary", "destructive"]) {
+      expect(contrastRatio(color(`--${action}`), color(`--${action}-foreground`))).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("uses one pale sky surface and one navy action across all page families", () => {
     for (const name of ["--background", "--nav-bg", "--nav-tint", "--color-brand-cta-tint", "--color-surface-silver", "--color-loans-soft", "--color-realestate-soft", "--secondary", "--muted"]) {
       expect(tokenHex(name), name).toBe(tokenHex("--color-surface-sky"));

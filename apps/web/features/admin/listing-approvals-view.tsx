@@ -505,7 +505,7 @@ export function ListingApprovalsView() {
                                 <li key={asset.id}>
                                   <a
                                     href={mediaUrls[asset.id]}
-                                    className="flex items-center gap-2 rounded-lg border border-border p-2 text-sm text-brand-cta hover:underline"
+                                    className="flex items-center gap-2 rounded-lg border border-border p-2 text-sm text-brand-link hover:underline"
                                     target="_blank"
                                     rel="noreferrer"
                                   >

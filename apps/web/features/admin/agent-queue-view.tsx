@@ -117,7 +117,7 @@ function DocumentTile({ document }: { document: AgentApplicationDocument & { dow
         href={document.download_url}
         target="_blank"
         rel="noreferrer"
-        className="flex items-center gap-2 border-t border-border px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+        className="flex items-center gap-2 border-t border-border px-3 py-2 text-sm font-medium text-text-primary transition-colors hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
         <Download className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span className="truncate">{label}</span>
@@ -522,7 +522,7 @@ export function AgentQueueView() {
                     {detailLoading ? (
                       <div className="flex items-center justify-center py-10">
                         <Loader2
-                          className="h-5 w-5 animate-spin text-brand-cta"
+                          className="h-5 w-5 animate-spin text-brand-link"
                           aria-hidden="true"
                         />
                       </div>

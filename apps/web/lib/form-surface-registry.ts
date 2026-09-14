@@ -7,6 +7,9 @@
 export type FormSurfaceKind = "mutation" | "filter" | "calculator" | "composite";
 
 export const FORM_SURFACE_REGISTRY = {
+  "components/help/help-center.tsx": "filter",
+  "features/employee/reopen-task-dialog.tsx": "mutation",
+  "features/sub-admin/destination-input.tsx": "composite",
   "app/(app)/dashboard/apply/page.tsx": "mutation",
   "app/(app)/dashboard/notifications/page.tsx": "filter",
   "app/(app)/dashboard/settings/page.tsx": "mutation",

@@ -155,7 +155,7 @@ export function EmiCalculator() {
             value={formatCompactINR(schedule.totalPayment)}
           />
         </div>
-        <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
+        <div className="rounded-xl border border-[var(--nav-border)] bg-card p-5">
           <DonutChart principal={amount} interest={schedule.totalInterest} />
         </div>
         <ExportShareBar buildExport={() => scheduleExport(schedule, `${TYPE_LABELS[state.type]} loan EMI schedule`)} filename={`emi-schedule-${state.type}.csv`} />

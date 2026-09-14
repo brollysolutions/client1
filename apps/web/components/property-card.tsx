@@ -30,7 +30,7 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
       <Link
         href={detailHref}
         aria-label={`View ${listing.title}`}
-        className="group relative aspect-[4/3] w-full bg-[var(--nav-tint)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--nav-primary)]"
+        className="group relative aspect-[4/3] w-full bg-[var(--nav-tint)]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
           {listing.image ? (
             <Image
@@ -60,7 +60,7 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
 
       <CardHeader className="flex-1 gap-2 pt-6">
         <CardTitle className="font-heading text-lg text-foreground">
-          <Link href={detailHref} className="rounded-sm hover:text-[var(--nav-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]">
+          <Link href={detailHref} className="rounded-sm hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             {listing.title}
           </Link>
         </CardTitle>
@@ -77,7 +77,7 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
       </CardHeader>
 
       <CardContent className="pt-1">
-        <p className="font-heading text-xl font-semibold text-brand-blue">
+        <p className="font-heading text-xl font-semibold text-brand-link">
           {listing.price}
         </p>
       </CardContent>
@@ -85,7 +85,7 @@ export function PropertyCard({ listing }: { listing: PropertyListing }) {
       <CardFooter className="flex flex-col gap-2 pt-5">
         <Link
           href={detailHref}
-          className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--nav-primary)] px-4 text-sm font-medium text-white transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2"
+          className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-[var(--nav-primary)] px-4 text-sm font-medium text-white transition-colors hover:bg-[var(--nav-primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           View property
         </Link>

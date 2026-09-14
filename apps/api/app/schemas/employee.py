@@ -58,6 +58,19 @@ class EmployeeTaskUpdate(BaseModel):
         return self
 
 
+class EmployeeTaskReopen(BaseModel):
+    reason: Annotated[str, Field(min_length=3, max_length=500)]
+
+    @model_validator(mode="after")
+    def validate_reason(self) -> EmployeeTaskReopen:
+        from app.schemas.mobile_change import _normalize_pii_free
+
+        self.reason = _normalize_pii_free(self.reason)
+        if len(self.reason) < 3:
+            raise ValueError("Explain why this task should be reopened.")
+        return self
+
+
 class EmployeeHomeResponse(BaseModel):
     tasks_today: list[EmployeeTaskRead]
     overdue_count: int

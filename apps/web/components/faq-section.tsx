@@ -131,7 +131,7 @@ function FaqCard({
           >
             <span className={cn(questionNoWrap && "truncate")}>{item.q}</span>
             <ChevronDown
-              className="h-5 w-5 shrink-0 text-brand-blue transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-180 motion-reduce:transition-none"
+              className="h-5 w-5 shrink-0 text-brand-link transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-180 motion-reduce:transition-none"
               aria-hidden
             />
           </summary>

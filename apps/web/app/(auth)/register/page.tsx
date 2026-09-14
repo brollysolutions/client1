@@ -533,7 +533,7 @@ function RegisterPageContent() {
                       className={cn(
                         "h-12 rounded-lg border px-4 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                         selected
-                          ? "border-brand-blue bg-brand-blue/10 text-brand-navy"
+                          ? "border-brand-blue bg-brand-blue/10 text-brand-heading"
                           : "border-border bg-background text-text-primary hover:bg-muted",
                       )}
                     >
@@ -623,7 +623,7 @@ function RegisterPageContent() {
             Back
           </button>
 
-          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cta-tint text-brand-cta">
+          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-brand-link">
             <Smartphone className="h-6 w-6" />
           </span>
 
@@ -673,7 +673,7 @@ function RegisterPageContent() {
 
       {step === 2 && (
         <>
-          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cta-tint text-brand-cta">
+          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-brand-link">
             <Lock className="h-6 w-6" />
           </span>
 
@@ -713,7 +713,7 @@ function RegisterPageContent() {
 
       {step === 3 && (
         <>
-          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cta-tint text-brand-cta">
+          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-brand-link">
             <UserRound className="h-6 w-6" aria-hidden="true" />
           </span>
 

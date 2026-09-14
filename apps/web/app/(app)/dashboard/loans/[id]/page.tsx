@@ -91,7 +91,7 @@ function LoanDetail({ application: a }: { application: LoanApplication }) {
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-cta hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-link hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               All loans
@@ -178,7 +178,7 @@ function LoanDetail({ application: a }: { application: LoanApplication }) {
                     className={cn(
                       "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2",
                       done && "border-loans-accent bg-loans-accent text-white",
-                      current && "border-loans-accent text-loans-accent",
+                      current && "border-loans-accent text-brand-link",
                       !done && !current && "border-border text-text-secondary",
                     )}
                   >
@@ -203,7 +203,7 @@ function LoanDetail({ application: a }: { application: LoanApplication }) {
                   <p
                     className={cn(
                       "text-sm font-medium",
-                      current ? "text-loans-accent" : done ? "text-text-primary" : "text-text-secondary",
+                      current ? "text-brand-link" : done ? "text-text-primary" : "text-text-secondary",
                     )}
                   >
                     {STATUS_STYLES[stage].label}

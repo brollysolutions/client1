@@ -119,7 +119,7 @@ export function JourneyDetailsCard() {
   return (
     <form onSubmit={save} className="space-y-5 rounded-xl border border-border bg-card p-6">
       <div className="flex items-start gap-3">
-        <FilePenLine className="mt-0.5 h-5 w-5 text-brand-blue" aria-hidden="true" />
+        <FilePenLine className="mt-0.5 h-5 w-5 text-brand-link" aria-hidden="true" />
         <div>
           <h2 className="text-sm font-semibold text-text-primary">Journey details</h2>
           <p className="mt-1 text-sm text-text-secondary">

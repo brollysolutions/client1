@@ -13,7 +13,7 @@ export default function PublicLoading() {
     <LoadingRegion label="Loading home" className="w-full bg-[var(--nav-bg)]">
       {/* Same responsive height and copy position as the original banner. */}
       <section className="relative min-h-[24rem] w-full sm:h-[calc(100svh-4rem)] sm:min-h-[420px]">
-        <Skeleton className="absolute inset-y-10 right-10 hidden w-[42%] rounded-2xl sm:block" />
+        <Skeleton className="absolute inset-y-0 right-0 hidden w-3/5 rounded-none sm:block [mask-image:linear-gradient(to_right,transparent,black_60%)]" />
         <div className="relative flex min-h-[inherit] items-center px-5 py-16 sm:h-full sm:px-16 sm:py-10 lg:px-28">
           <div className="w-full space-y-5 sm:max-w-md lg:max-w-xl">
             <Skeleton className="h-12 w-4/5 sm:h-16" />

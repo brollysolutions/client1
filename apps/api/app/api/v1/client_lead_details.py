@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import CurrentUser, get_active_user
 from app.db.session import get_db
-from app.schemas.lead_details import LeadDetailsPatch, LeadDetailsRead
+from app.schemas.lead_details import JourneyContactsRead, LeadDetailsPatch, LeadDetailsRead
+from app.services.contacts import get_journey_contacts
 from app.services.lead_details import (
     DetailActor,
     LeadDetailsForbidden,
@@ -26,6 +27,17 @@ router = APIRouter()
 def _require_client(user: CurrentUser) -> None:
     if user.role != "client":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Client access required.")
+
+
+@router.get("/{business_line}/contacts", response_model=JourneyContactsRead)
+async def get_contacts(
+    business_line: Literal["loans", "real_estate"],
+    response: Response,
+    current_user: CurrentUser = Depends(get_active_user),
+) -> JourneyContactsRead:
+    _require_client(current_user)
+    response.headers["Cache-Control"] = "private, no-store"
+    return await get_journey_contacts(current_user.id, business_line)
 
 
 async def _resolve(

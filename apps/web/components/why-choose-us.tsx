@@ -71,8 +71,8 @@ function IconChip({
     <span
       className={
         large
-          ? "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--nav-primary)]/10 text-[var(--nav-primary)] ring-1 ring-[var(--nav-primary)]/20"
-          : "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nav-tint)] text-brand-blue ring-1 ring-[var(--nav-border)]"
+          ? "flex h-14 w-14 shrink-0 items-center justify-center text-brand-link"
+          : "flex h-11 w-11 shrink-0 items-center justify-center text-brand-link"
       }
     >
       <Icon className={large ? "h-7 w-7" : "h-5 w-5"} aria-hidden />
@@ -119,7 +119,7 @@ export function WhyChooseUs() {
                     Compare, apply, and close both from one login. The same team
                     stays with you, whether it is a loan or a home.
                   </p>
-                  <p className="mt-4 text-sm font-medium text-[var(--nav-primary)]">
+                  <p className="mt-4 text-sm font-medium text-brand-link">
                     Loans and property, one account.
                   </p>
                 </div>
@@ -162,7 +162,7 @@ export function WhyChooseUs() {
             grid's auto-rows-fr (which would stretch it to match the tall
             anchor row). Sits between the grid and the closing CTA band. */}
         <article className="mt-5 flex flex-col gap-3 rounded-2xl border border-[var(--nav-border)] bg-surface px-6 py-6 shadow-sm sm:flex-row sm:items-center sm:gap-6">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--nav-tint)] text-brand-blue ring-1 ring-[var(--nav-border)]">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-brand-link">
             <Gift className="h-4 w-4" aria-hidden />
           </span>
           <div className="flex-1">
@@ -176,7 +176,7 @@ export function WhyChooseUs() {
           </div>
           <Link
             href="/earn-with-us#refer-and-earn"
-            className="flex shrink-0 items-center gap-1 text-sm font-semibold text-[var(--nav-primary)] hover:underline"
+            className="flex shrink-0 items-center gap-1 text-sm font-semibold text-brand-link hover:underline"
           >
             See how it works
             <ArrowRight className="h-4 w-4" aria-hidden />
@@ -197,7 +197,7 @@ export function WhyChooseUs() {
             <Button
               asChild
               size="lg"
-              className="w-full bg-white text-[var(--nav-primary)] shadow-sm hover:bg-white/90 focus-visible:ring-white sm:w-auto"
+              className="w-full bg-white text-brand-navy shadow-sm hover:bg-white/90 focus-visible:ring-white sm:w-auto"
             >
               <Link href="/register">
                 Get started

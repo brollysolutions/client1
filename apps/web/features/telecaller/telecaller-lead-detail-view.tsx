@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, MessageCircle, Phone } from "lucide-react";
+import { ContactActions } from "@/components/contact-actions";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,7 @@ import {
   focusFirstInvalidField,
   type FieldErrors,
 } from "@/lib/form-validation";
-import { formatMobile, toE164, toWaHref } from "@/lib/phone";
+import { formatMobile } from "@/lib/phone";
 import type { LeadActivityCreate } from "@/lib/telecaller-api";
 import { cn } from "@/lib/utils";
 
@@ -173,25 +174,7 @@ export function TelecallerLeadDetailView({ leadId }: { leadId: string }) {
         title={leadName}
         description={`${formatMobile(lead.mobile)} · Review progress, record the next action, and keep follow-ups current.`}
         actions={
-          <>
-            <Button asChild variant="outline" size="sm">
-              <a href={`tel:${toE164(lead.mobile)}`} aria-label={`Phone ${leadName}`}>
-                <Phone className="h-4 w-4" aria-hidden="true" />
-                Phone
-              </a>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <a
-                href={toWaHref(lead.mobile)}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`WhatsApp ${leadName}`}
-              >
-                <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                WhatsApp
-              </a>
-            </Button>
-          </>
+          <ContactActions mobile={lead.mobile} name={leadName} />
         }
       />
 

@@ -69,7 +69,7 @@ export function PropertyRow({
           type="button"
           aria-label={`Scroll ${heading} left`}
           onClick={() => page(-1)}
-          className="absolute -left-3 top-[42%] z-10 hidden h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-card text-brand-blue shadow-md ring-1 ring-border transition hover:bg-loans-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue sm:flex"
+          className="absolute -left-3 top-[42%] z-10 hidden h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-card text-brand-link shadow-md ring-1 ring-border transition hover:bg-loans-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex"
         >
           <ChevronLeft className="h-5 w-5" aria-hidden />
         </button>
@@ -77,7 +77,7 @@ export function PropertyRow({
           type="button"
           aria-label={`Scroll ${heading} right`}
           onClick={() => page(1)}
-          className="absolute -right-3 top-[42%] z-10 hidden h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-card text-brand-blue shadow-md ring-1 ring-border transition hover:bg-loans-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue sm:flex"
+          className="absolute -right-3 top-[42%] z-10 hidden h-9 w-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-card text-brand-link shadow-md ring-1 ring-border transition hover:bg-loans-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex"
         >
           <ChevronRight className="h-5 w-5" aria-hidden />
         </button>

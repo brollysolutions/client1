@@ -74,7 +74,7 @@ export function SetPasswordForm({
     tone === "success"
       ? "text-success"
       : tone === "blue"
-        ? "text-brand-blue"
+        ? "text-brand-link"
         : "text-destructive";
   const toneBar =
     tone === "success"
