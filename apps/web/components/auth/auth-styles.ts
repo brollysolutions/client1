@@ -17,4 +17,4 @@ export const AUTH_LINK_CLASS = "text-brand-cta hover:text-brand-cta-hover";
 // "Back to home" / "Back to login" link: muted by default, lights up sky on
 // hover/focus to match the home navbar accent.
 export const AUTH_BACK_LINK_CLASS =
-  "min-h-11 rounded-sm text-text-secondary transition-colors hover:text-brand-cta focus-visible:text-brand-cta focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2";
+  "pressable min-h-11 rounded-sm text-text-secondary transition-colors hover:text-brand-cta focus-visible:text-brand-cta focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2";

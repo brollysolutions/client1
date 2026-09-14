@@ -34,7 +34,7 @@ const LINE = {
     description:
       "Leave your number and we'll call you back to match you with the right lender.",
     triggerClass:
-      "bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring",
+      "bg-primary text-primary-foreground hover:brightness-95 focus-visible:ring-ring",
   },
   real_estate: {
     label: "Real Estate",
@@ -42,7 +42,7 @@ const LINE = {
     description:
       "Leave your number and we'll call you back about buying a property.",
     triggerClass:
-      "bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring",
+      "bg-primary text-primary-foreground hover:brightness-95 focus-visible:ring-ring",
   },
 } satisfies Record<
   LeadBusinessLine,

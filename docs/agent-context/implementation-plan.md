@@ -60,6 +60,41 @@ default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
 
+**Implemented — clear footer, auth header and shared press feedback**
+(2026-09-14), on `feat/auth-actions-footer`. The public footer has a separate
+white transparent brand row, two concise link groups, one contact area and
+native office-details disclosure on mobile. Catalogue-level lists and duplicate
+help actions are removed; financial-service visibility still follows published
+products. A shared, theme-aware CTA meets the footer without a blank spacer
+on Home, Loans, Real Estate, Earn with Us and calculator pages. Existing enquiry
+destinations and business-line context are preserved.
+
+The auth logo and Support share one row above the back link. Native buttons,
+shared button links and navigation actions have restrained press/release
+feedback, with disabled and reduced-motion states and native activation intact.
+Public/auth system appearance and dashboard Settings preferences are unchanged.
+
+Fresh verification: web lint, typecheck, all 704 unit tests and the env-free
+production build pass. Fifteen targeted Chromium journeys pass across the main
+run (14) and a focused rerun (1); the motion test now awaits dialog closure before
+changing media preferences. Auth geometry covers 320/768/1024/1440px in both
+themes, and the footer/CTA covers 320/768/1440px. Screenshots and keyboard,
+pointer, disclosure, focus, disabled and reduced-motion behavior were reviewed
+with the design/Apple guidance. Source/security review found no change-owned
+authorization or data-handling regression. All 11 local demo logins and
+authenticated identities pass without reseeding the user's current demo data.
+
+The 47-page SEO audit retains exactly the existing 52 failures and 50 warnings;
+no new failures were introduced. Full link crawling, a fresh Lighthouse run and
+non-Chromium browsers were not verified. The Windows build retains tracing and
+local public-data timeout warnings. Existing dark auth text-link contrast and
+broader release/performance gaps remain outside this footer/header change.
+No API, contract, migration, dependency or production configuration changed.
+
+Reviews: [upstream](https://github.com/brollysolutions/client1/pull/302) and [origin](https://github.com/vamshisaideep9/client1/pull/8).
+Next priority: inherited SEO/accessibility, performance and release-evidence
+gaps. No PR merge or production deployment is included.
+
 **Implemented — system appearance and distinct public footer** (2026-09-14),
 on `feat/production-environment-evidence`. Public/auth always follow the device;
 dashboard Settings offers Light/Dark/System for all six roles, defaults to
