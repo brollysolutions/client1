@@ -41,7 +41,7 @@ function renderCard(listing: REListing = LISTING) {
 }
 
 describe("dashboard PropertyCard", () => {
-  it("keeps the browse summary compact and sends primary action to the details page", () => {
+  it("keeps a compact summary, a preview action, and full-page links", () => {
     const markup = renderCard();
 
     expect(markup).toContain("Baner Heights");
@@ -49,6 +49,7 @@ describe("dashboard PropertyCard", () => {
     expect(markup).toContain("1,100 sq ft");
     expect(markup).toContain("Ready");
     expect(markup).toContain("View details");
+    expect(markup).toContain('aria-haspopup="dialog"');
     expect(markup).toContain('/dashboard/properties/11111111-1111-4111-8111-111111111111');
     expect(markup).not.toContain("Property preview");
     expect(markup).not.toContain("Enquire");

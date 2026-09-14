@@ -47,10 +47,10 @@ export function PropertyDetailsDialog({ title, details }: { title: string; detai
       <DialogTrigger asChild>
         <Button type="button" variant="outline" className="w-full">View property details</Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-h-[85dvh] !max-w-3xl overflow-y-auto rounded-2xl">
+        <DialogHeader className="border-b border-border pb-5 pr-8 text-left">
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>Verified listing facts supplied for this property type.</DialogDescription>
+          <DialogDescription>Property specifications and project information supplied with this listing.</DialogDescription>
         </DialogHeader>
         <PropertyDetailsSummary details={details} />
       </DialogContent>
