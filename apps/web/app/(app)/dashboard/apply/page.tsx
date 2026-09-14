@@ -235,7 +235,7 @@ function ApplyPageContent() {
               type="button"
               onClick={changeProduct}
               disabled={submitting}
-              className="text-sm font-medium text-brand-cta underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+              className="text-sm font-medium text-brand-link underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
             >
               Change product
             </button>
@@ -272,7 +272,7 @@ function ApplyPageContent() {
             />
 
             <div className="grid gap-2">
-              <Button type="submit" disabled={submitting} className="h-12 bg-brand-cta text-base text-white hover:bg-brand-cta-hover focus-visible:ring-brand-cta">
+              <Button type="submit" disabled={submitting} className="h-12 bg-brand-cta text-base text-white hover:bg-brand-cta-hover focus-visible:ring-ring">
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
                 {submitting
                   ? "Submitting…"

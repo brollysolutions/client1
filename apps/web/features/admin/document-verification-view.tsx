@@ -78,7 +78,7 @@ function DocumentPreview({ document }: { document: VerifiableDocument }) {
             href={document.download_url}
             target="_blank"
             rel="noreferrer"
-            className="font-medium text-brand-cta hover:underline"
+            className="font-medium text-brand-link hover:underline"
           >
             Open it in a new tab
           </a>
@@ -101,7 +101,7 @@ function DocumentPreview({ document }: { document: VerifiableDocument }) {
             href={document.download_url}
             target="_blank"
             rel="noreferrer"
-            className="text-sm font-medium text-brand-cta hover:underline"
+            className="text-sm font-medium text-brand-link hover:underline"
           >
             Open this PDF in a new tab
           </a>
@@ -452,7 +452,7 @@ export function DocumentVerificationView() {
                             href={document.download_url}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-cta hover:underline"
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-link hover:underline"
                           >
                             Open the original
                             <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />

@@ -45,7 +45,7 @@ export function ReferralList({ referrals, embedded = false }: { referrals: Refer
   if (referrals.length === 0) {
     return (
       <div className={cn("rounded-2xl border border-dashed border-border px-6 py-14 text-center", embedded ? "bg-muted/20" : "bg-card")}>
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-text-secondary">
           <Users className="h-6 w-6" />
         </span>
         <h2 className="mt-5 text-lg font-semibold text-text-primary">No referrals yet</h2>

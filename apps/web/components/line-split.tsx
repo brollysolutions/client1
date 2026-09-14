@@ -106,7 +106,7 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
           >
             <h2
               id={`${line.id}-heading`}
-              className="font-heading text-3xl font-semibold leading-tight tracking-tight text-brand-navy sm:text-4xl lg:text-5xl"
+              className="font-heading text-3xl font-semibold leading-tight tracking-tight text-brand-heading sm:text-4xl lg:text-5xl"
             >
               {line.title}
             </h2>
@@ -117,7 +117,7 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
               {line.benefits.map((benefit) => (
                 <li key={benefit} className="flex items-start gap-3">
                   <CheckIcon
-                    className="mt-0.5 h-6 w-6 shrink-0 text-brand-blue"
+                    className="mt-0.5 h-6 w-6 shrink-0 text-brand-link"
                     aria-hidden
                   />
                   <span className="text-base text-foreground sm:text-lg">
@@ -129,7 +129,7 @@ function Band({ line, paddingClassName }: { line: Line; paddingClassName: string
             <div className="mt-6 flex justify-center lg:justify-start">
               <Button
                 asChild
-                className="w-full bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:w-auto"
+                className="w-full bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring sm:w-auto"
               >
                 <Link href={line.ctaHref}>{line.ctaLabel}</Link>
               </Button>

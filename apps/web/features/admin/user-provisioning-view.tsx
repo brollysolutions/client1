@@ -582,7 +582,7 @@ function StaffAccessContent({
   if (status === "restricted") {
     return (
       <div className="flex min-h-48 items-start gap-3 rounded-xl border border-border bg-muted/30 p-4">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-cta-tint text-brand-cta">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-brand-link">
           <ShieldCheck className="h-5 w-5" aria-hidden="true" />
         </span>
         <div>
@@ -656,7 +656,7 @@ function StaffAccessContent({
                     {entry.role === "sub_admin" ? "Sub Admin" : "Admin"}
                   </Badge>
                   {entry.is_primary_admin ? (
-                    <Badge className="bg-brand-cta-tint text-brand-cta">Main</Badge>
+                    <Badge className="bg-brand-cta-tint text-brand-link">Main</Badge>
                   ) : null}
                 </div>
               </div>
@@ -699,7 +699,7 @@ function StaffAccessContent({
         <div className="flex flex-wrap gap-1.5">
           <Badge variant="outline">{entry.role === "sub_admin" ? "Sub Admin" : "Admin"}</Badge>
           {entry.is_primary_admin ? (
-            <Badge className="bg-brand-cta-tint text-brand-cta">Main</Badge>
+            <Badge className="bg-brand-cta-tint text-brand-link">Main</Badge>
           ) : null}
         </div>
       ),

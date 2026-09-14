@@ -29,7 +29,7 @@ function MethodCard({
   note: string;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-white p-5">
+    <div className="min-w-0 rounded-xl border border-[var(--nav-border)] bg-card p-5">
       <div className="flex items-center gap-1.5">
         <p className="font-heading text-base font-semibold text-[var(--nav-text)]">{title}</p>
         <InfoHint label={title} text={info} />
@@ -160,7 +160,7 @@ export function TermInsuranceCalculator() {
       {/* Results */}
       <div className="grid content-start gap-6">
         {result.adequatelyCovered ? (
-          <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
+          <div className="rounded-xl border border-[var(--nav-border)] bg-card p-5">
             <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
               You look adequately covered
             </p>

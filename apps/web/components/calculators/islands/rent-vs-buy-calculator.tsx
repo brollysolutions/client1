@@ -214,7 +214,7 @@ export function RentVsBuyCalculator() {
         <h2 className="font-heading text-xl font-semibold text-[var(--nav-text)]">
           Year by year
         </h2>
-        <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--nav-border)] bg-white">
+        <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--nav-border)] bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[var(--nav-border)] text-left">
@@ -252,7 +252,7 @@ export function RentVsBuyCalculator() {
                   </td>
                   <td
                     className={`px-4 py-2.5 text-right font-medium ${
-                      y.buyAdvantage >= 0 ? "text-brand-blue" : "text-text-secondary"
+                      y.buyAdvantage >= 0 ? "text-brand-link" : "text-text-secondary"
                     }`}
                   >
                     {formatINR(y.buyAdvantage)}

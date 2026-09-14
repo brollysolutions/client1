@@ -108,7 +108,7 @@ export default function TransactionsPage() {
         <FetchError status={errorStatus} message={error} onRetry={retry} />
       ) : transactions.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-text-secondary">
             <Wallet className="h-6 w-6" />
           </span>
           <h2 className="mt-5 text-lg font-semibold text-text-primary">No transactions yet</h2>
@@ -153,7 +153,7 @@ export default function TransactionsPage() {
                               "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
                               isReversal
                                 ? "bg-destructive/10 text-destructive"
-                                : "bg-loans-soft text-loans-accent",
+                                : "bg-loans-soft text-brand-link",
                             )}
                           >
                             <Icon className="h-4 w-4" />

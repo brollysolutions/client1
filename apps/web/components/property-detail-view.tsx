@@ -144,7 +144,7 @@ export function PropertyDetailView({
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <Link
           href={backHref}
-          className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium text-text-secondary transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)]"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-medium text-text-secondary transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
           {backLabel}
@@ -175,7 +175,7 @@ export function PropertyDetailView({
                 <MapPin className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
                 {listing.location}
               </p>
-              <p className="mt-5 font-heading text-3xl font-semibold text-[var(--nav-primary)]">
+              <p className="mt-5 font-heading text-3xl font-semibold text-brand-link">
                 {listing.price}
               </p>
               {listing.meta ? (
@@ -206,7 +206,7 @@ export function PropertyDetailView({
                   {facts.map(({ label, value, icon: Icon }) => (
                     <div key={label} className="rounded-2xl border border-border bg-card p-4">
                       <dt className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-text-secondary">
-                        <Icon className="h-4 w-4 text-[var(--nav-primary)]" aria-hidden />
+                        <Icon className="h-4 w-4 text-brand-link" aria-hidden />
                         {label}
                       </dt>
                       <dd className="mt-2 font-semibold text-foreground">{value}</dd>
@@ -218,7 +218,7 @@ export function PropertyDetailView({
 
             <section aria-labelledby="details-heading" className="rounded-2xl border border-border bg-card p-5 sm:p-6">
               <div className="mb-5 flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--nav-tint)] text-[var(--nav-primary)]">
+                <span className="grid h-10 w-10 place-items-center rounded-xl text-brand-link">
                   <Building2 className="h-5 w-5" aria-hidden />
                 </span>
                 <div>

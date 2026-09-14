@@ -14,7 +14,7 @@ export function FormProgress({ value }: { value: number }) {
         </span>
         <span
           aria-live="polite"
-          className="text-sm font-medium tabular-nums text-[var(--nav-primary)]"
+          className="text-sm font-medium tabular-nums text-brand-link"
         >
           {value}% complete
         </span>

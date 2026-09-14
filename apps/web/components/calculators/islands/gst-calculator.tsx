@@ -73,7 +73,7 @@ export function GstCalculator() {
         />
 
         {type === "ready" ? (
-          <p className="rounded-xl border border-[var(--nav-border)] bg-white p-4 text-sm text-text-secondary">
+          <p className="rounded-xl border border-[var(--nav-border)] bg-card p-4 text-sm text-text-secondary">
             Ready to move homes with a completion certificate do not attract GST, so the figures
             below stay at zero.
           </p>

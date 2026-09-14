@@ -119,7 +119,7 @@ export function LoanComparisonCalculator() {
           return (
             <div
               key={index}
-              className="grid content-start gap-6 rounded-xl border border-[var(--nav-border)] bg-white p-5"
+              className="grid content-start gap-6 rounded-xl border border-[var(--nav-border)] bg-card p-5"
             >
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-heading text-lg font-semibold text-[var(--nav-text)]">
@@ -195,7 +195,7 @@ export function LoanComparisonCalculator() {
       />
 
       {/* Comparison table */}
-      <div className="overflow-x-auto rounded-xl border border-[var(--nav-border)] bg-white">
+      <div className="overflow-x-auto rounded-xl border border-[var(--nav-border)] bg-card">
         <table className="w-full min-w-[640px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-[var(--nav-border)]">

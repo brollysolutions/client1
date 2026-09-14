@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ShieldCheck } from "lucide-react";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ResponsiveArtwork } from "@/components/responsive-artwork";
 import {
@@ -36,6 +37,7 @@ export function HeroCarousel({
 }) {
   const [api, setApi] = useState<CarouselApi>();
   const [selected, setSelected] = useState(0);
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(() => new Set());
   const [count, setCount] = useState(0);
   const [interactionPaused, setInteractionPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -175,8 +177,12 @@ export function HeroCarousel({
                   {/* Media layer: real landscape image fills the card; otherwise
                       a cream placeholder that matches the NavBar (no gray seam). */}
                   {banner.image ? (
+                    <>
+                    {!loadedImages.has(banner.image) && <Skeleton data-banner-loading aria-hidden="true" className="absolute inset-y-0 right-0 hidden w-3/5 rounded-none sm:block [mask-image:linear-gradient(to_right,transparent,black_60%)]" />}
                     <ResponsiveArtwork
                       src={banner.image}
+                      onLoad={(event) => { if (!event.currentTarget.currentSrc.startsWith("data:")) setLoadedImages((current) => new Set(current).add(banner.image!)); }}
+                      onError={() => setLoadedImages((current) => new Set(current).add(banner.image!))}
                       media="(min-width: 640px)"
                       fill
                       loading={i === 0 ? "eager" : "lazy"}
@@ -188,6 +194,7 @@ export function HeroCarousel({
                       // storage host may not resolve from the web container.
                       unoptimized={!banner.image.startsWith("/banner-templates/")}
                     />
+                    </>
                   ) : (
                     <div className="absolute inset-0 bg-[var(--nav-bg)]" />
                   )}
@@ -241,7 +248,7 @@ export function HeroCarousel({
                         <Button
                           asChild={interactive}
                           disabled={!interactive}
-                          className="mt-5 h-auto min-h-11 max-w-full whitespace-normal bg-[var(--nav-primary)] px-4 py-2 text-center text-sm text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)] sm:min-h-10"
+                          className="mt-5 h-auto min-h-11 max-w-full whitespace-normal bg-[var(--nav-primary)] px-4 py-2 text-center text-sm text-white shadow-sm hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring sm:min-h-10"
                         >
                           {interactive ? <Link
                             href={banner.cta.href}
@@ -272,7 +279,7 @@ export function HeroCarousel({
               variant="ghost"
               onClick={goPrev}
               className={cn(
-                "left-2 h-12 w-12 cursor-pointer rounded-full border-none bg-white/90 text-brand-blue shadow-md transition-[background-color,color,box-shadow] duration-300 hover:bg-white hover:text-brand-blue [&_svg]:size-7 sm:left-3 sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-4",
+                "left-2 h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-link transition-[background-color,color,box-shadow] duration-300 hover:bg-accent hover:text-brand-link [&_svg]:size-7 sm:left-3 sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:left-4",
                 // Keep arrows clear of mobile copy; swipe and accessible dots
                 // provide navigation for both banner variants on phones.
                 "hidden sm:flex",
@@ -282,7 +289,7 @@ export function HeroCarousel({
               variant="ghost"
               onClick={goNext}
               className={cn(
-                "right-2 h-12 w-12 cursor-pointer rounded-full border-none bg-white/90 text-brand-blue shadow-md transition-[background-color,color,box-shadow] duration-300 hover:bg-white hover:text-brand-blue [&_svg]:size-7 sm:right-3 sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-4",
+                "right-2 h-12 w-12 cursor-pointer rounded-full border-none bg-transparent text-brand-link transition-[background-color,color,box-shadow] duration-300 hover:bg-accent hover:text-brand-link [&_svg]:size-7 sm:right-3 sm:h-14 sm:w-14 sm:[&_svg]:size-8 lg:right-4",
                 "hidden sm:flex",
               )}
             />
@@ -294,16 +301,16 @@ export function HeroCarousel({
         <a
           href="#page-overview"
           aria-label="Scroll to page overview"
-          className="absolute bottom-0 left-1/2 z-20 grid h-11 w-11 -translate-x-1/2 translate-y-1/2 place-items-center rounded-full border border-brand-blue/20 bg-[var(--nav-bg)] text-brand-blue shadow-[0_8px_18px_-12px_rgba(10,56,88,0.8)] transition-[background-color,box-shadow] hover:bg-[#eaf3f7] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 motion-reduce:transition-none"
+          className="absolute bottom-0 left-1/2 z-20 grid h-11 w-11 -translate-x-1/2 translate-y-1/2 place-items-center rounded-full border border-border bg-transparent text-brand-link transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transition-none"
         >
           <span className="sr-only">Scroll to page overview</span>
           <ChevronDown
             aria-hidden
-            className="section-scroll-cue-first absolute h-4 w-4 -translate-y-1 text-brand-blue"
+            className="section-scroll-cue-first absolute h-4 w-4 -translate-y-1 text-brand-link"
           />
           <ChevronDown
             aria-hidden
-            className="section-scroll-cue-second absolute h-4 w-4 translate-y-1 text-brand-blue"
+            className="section-scroll-cue-second absolute h-4 w-4 translate-y-1 text-brand-link"
           />
         </a>
       ) : null}
@@ -320,7 +327,7 @@ export function HeroCarousel({
               aria-label={`Go to slide ${i + 1}`}
               aria-current={i === selected}
               className={cn(
-                "flex h-11 w-11 items-center justify-center rounded-full after:h-2 after:rounded-full after:transition-[width,background-color] motion-reduce:after:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2",
+                "flex h-11 w-11 items-center justify-center rounded-full after:h-2 after:rounded-full after:transition-[width,background-color] motion-reduce:after:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 i === selected
                   ? "after:w-6 after:bg-brand-blue"
                   : "after:w-2 after:bg-brand-blue/40 hover:after:bg-brand-blue"

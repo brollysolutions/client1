@@ -62,7 +62,7 @@ export function PersonalizationSettingsCard() {
   return (
     <section className="space-y-5 rounded-xl border border-border bg-card p-6">
       <div className="flex items-start gap-3">
-        <Sparkles className="mt-0.5 h-5 w-5 text-blue-700" aria-hidden="true" />
+        <Sparkles className="mt-0.5 h-5 w-5 text-info" aria-hidden="true" />
         <div>
           <h2 className="text-sm font-semibold text-text-primary">Personalized dashboard</h2>
           <p className="mt-1 text-sm text-text-secondary">

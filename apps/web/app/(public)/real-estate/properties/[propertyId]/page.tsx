@@ -130,7 +130,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
                 Contact team
               </Link>
             </Button>
-            <Button asChild variant="outline" className="min-h-11 w-full border-[var(--nav-primary)] text-[var(--nav-primary)] hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]">
+            <Button asChild variant="outline" className="min-h-11 w-full border-[var(--nav-primary)] text-brand-link hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary-hover)]">
               <Link href={dashboardHref}>
                 <ExternalLink className="h-4 w-4" aria-hidden />
                 <span className="sm:hidden">Open app</span>

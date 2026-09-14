@@ -41,7 +41,7 @@ function ServiceCard({ product }: { product: ServiceDirectoryItem }) {
         {/* Decorative: the whole card is already the link to `href`, so this
             stays a span to avoid a duplicate link for screen readers. */}
         {href ? (
-          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-blue">
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-link">
             <span>Explore</span>
             <ArrowRight
               className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
@@ -68,7 +68,7 @@ function ServiceCard({ product }: { product: ServiceDirectoryItem }) {
         <Link
           href={href}
           aria-label={`Explore ${product.label}`}
-          className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+          className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         />
       ) : null}
     </article>

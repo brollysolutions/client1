@@ -46,7 +46,7 @@ function ProductFacts({ product }: { product: PublicFinancialProduct }) {
       {sections.map((section) => (
         <Card key={section.title} className="h-full">
           <CardHeader>
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-blue/10 text-brand-blue">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-blue/10 text-brand-link">
               <section.icon className="h-5 w-5" aria-hidden />
             </span>
             <CardTitle className="mt-3 font-heading text-xl">{section.title}</CardTitle>
@@ -56,7 +56,7 @@ function ProductFacts({ product }: { product: PublicFinancialProduct }) {
               <ul className="space-y-3 text-sm text-text-secondary">
                 {section.items.map((item) => (
                   <li key={item} className="flex gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" aria-hidden />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-link" aria-hidden />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -164,7 +164,7 @@ export default async function FinancialServicePage({ params, searchParams }: Pag
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
           <Link
             href="/loans#financial-services-catalogue"
-            className="inline-flex items-center gap-2 text-sm font-medium text-brand-blue hover:underline"
+            className="inline-flex items-center gap-2 text-sm font-medium text-brand-link hover:underline"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden />
             All financial services

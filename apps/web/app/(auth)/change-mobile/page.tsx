@@ -127,7 +127,7 @@ export default function ChangeMobilePage() {
             <ArrowLeft className="h-4 w-4" />
             {isAuthenticated ? "Back to support" : "Back to login"}
           </Link>
-          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cta-tint text-brand-cta">
+          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-brand-link">
             <Smartphone className="h-6 w-6" />
           </span>
           <div className="space-y-2">
@@ -218,7 +218,7 @@ export default function ChangeMobilePage() {
             <ArrowLeft className="h-4 w-4" />
             Change number
           </button>
-          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cta-tint text-brand-cta">
+          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-brand-link">
             <Smartphone className="h-6 w-6" />
           </span>
           <div className="mb-5 space-y-2">
@@ -251,7 +251,7 @@ export default function ChangeMobilePage() {
 
       {view === "submitted" ? (
         <div className="text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/10 text-success">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full text-success">
             <CheckCircle2 className="h-7 w-7" />
           </span>
           <h1 className="mt-5 font-heading text-3xl font-bold text-text-primary">

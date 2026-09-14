@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ------------------------------------------------------------------ *
  * Brand design tokens — project source of truth.
@@ -31,6 +32,9 @@
 
   --color-text-primary: #20242E;
   --color-text-secondary: #5C5C5C;
+  --color-brand-heading: #293681;
+  --color-brand-link: #293681;
+  --color-chart-interest: #95CCDD;
 
   --color-cta: var(--color-brand-navy);
   --color-cta-hover: var(--color-dash-rail-hover);
@@ -49,12 +53,13 @@
 
   /* Announcement/notice bar — global site chrome, not a line accent. */
   --color-notice: #F3BB1B;
+  --color-notice-foreground: #293681;
 
   /* Navy navigation chrome, with sky feedback. Reading surfaces stay light;
      business-line identity is still carried by labels, not status colors. */
   --color-dash-rail: var(--color-brand-navy);
   --color-dash-rail-hover: #374893;
-  --color-dash-foreground: var(--color-surface);
+  --color-dash-foreground: #FFFFFF;
   --color-dash-muted: var(--color-brand-sky);
   --color-dash-border: var(--border);
 
@@ -83,9 +88,7 @@
  * on-brand instead of the shadcn default (near-black) theme.
  * ------------------------------------------------------------------ */
 :root {
-  /* This is a light-only design. Declaring the scheme stops browsers (Chrome
-     Auto Dark Mode in particular) from auto-darkening sparse pages like the
-     dashboard to near-black. */
+  /* The persisted theme class controls the native browser colour scheme. */
   color-scheme: light;
 
   --radius: 0.625rem;
@@ -100,7 +103,7 @@
   --popover-foreground: #20242E;
 
   --primary: var(--color-brand-navy);
-  --primary-foreground: var(--color-surface);
+  --primary-foreground: #FFFFFF;
 
   --secondary: var(--color-surface-sky);
   --secondary-foreground: #20242E;
@@ -192,6 +195,62 @@
 :root {
   --scrollbar-thumb: var(--input);
   --scrollbar-hover: var(--color-brand-navy);
+}
+
+/* Theme overrides use semantic surfaces; original brand/artwork colours remain fixed. */
+:root.dark {
+  color-scheme: dark;
+  --color-surface: #152033;
+  --color-surface-sky: #0D1626;
+  --color-text-primary: #EDF2FA;
+  --color-text-secondary: #B3C0D2;
+  --color-brand-heading: #D8E4FF;
+  --color-brand-link: #B5CAFF;
+  --color-chart-interest: #587089;
+  --color-dash-rail: #111A39;
+  --color-dash-rail-hover: #26365B;
+  --color-success: #86D9A5;
+  --color-warning: #F6C97A;
+  --color-error: #FFAAA7;
+  --color-info: #9BC6FF;
+  --background: #0D1626;
+  --foreground: #EDF2FA;
+  --card: #152033;
+  --card-foreground: #EDF2FA;
+  --popover: #19263C;
+  --popover-foreground: #EDF2FA;
+  --primary: #B5CAFF;
+  --primary-foreground: #101B36;
+  --secondary: #23324A;
+  --secondary-foreground: #EDF2FA;
+  --muted: #23324A;
+  --muted-foreground: #B3C0D2;
+  --accent: #283C5C;
+  --accent-foreground: #EDF2FA;
+  --destructive: #FFAAA7;
+  --destructive-foreground: #381314;
+  --border: #36465D;
+  --input: #71839E;
+  --ring: #B5CAFF;
+  --nav-text: #D8E4FF;
+  --nav-info-tint: #392C18;
+  --nav-info-text: #F6C97A;
+}
+
+/* Tab rails remain scrollable with touch, wheel and Radix keyboard navigation. */
+@media (prefers-reduced-motion: reduce) {
+  /* Radix's state selectors outrank a plain motion-reduce utility. Keep
+     opening and closing overlays static when the user requests less motion. */
+  [data-state="open"], [data-state="closed"] { animation: none !important; }
+}
+
+[data-slot="tabs-list"] { scrollbar-width: none; }
+[data-slot="tabs-list"]::-webkit-scrollbar { display: none; }
+[data-sidebar-scroll] { --scrollbar-thumb: rgb(149 204 221 / 35%); --scrollbar-hover: rgb(149 204 221 / 70%); }
+[data-sidebar-scroll]::-webkit-scrollbar { width: 4px; }
+@media (forced-colors: active) {
+  [data-slot="tabs-list"] { scrollbar-width: auto; }
+  [data-slot="tabs-list"]::-webkit-scrollbar { display: block; }
 }
 
 .bg-dash-rail {

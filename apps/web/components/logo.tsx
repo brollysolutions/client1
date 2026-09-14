@@ -21,7 +21,7 @@ export function Logo({ className, variant = "horizontal", tone = "original", hre
     "inline-flex shrink-0 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
     tone === "white"
       ? "transition-colors duration-150 hover:bg-dash-rail-hover focus-visible:ring-brand-sky focus-visible:ring-offset-brand-navy motion-reduce:transition-none"
-      : "focus-visible:ring-brand-blue focus-visible:ring-offset-surface",
+      : "focus-visible:ring-ring focus-visible:ring-offset-surface",
     variant === "symbol" ? "h-10 w-10" : variant === "stacked" ? "w-48" : "w-36 sm:w-44",
     className,
   );
@@ -35,7 +35,8 @@ export function Logo({ className, variant = "horizontal", tone = "original", hre
       className={cn(
         "h-auto w-full object-contain",
         tone === "white" && "brightness-0 invert",
-        tone === "navy" && "[filter:brightness(0)_saturate(100%)_invert(20%)_sepia(31%)_saturate(2761%)_hue-rotate(211deg)_brightness(93%)_contrast(97%)]",
+        tone !== "white" && "dark:brightness-0 dark:invert",
+        tone === "navy" && "[filter:brightness(0)_saturate(100%)_invert(20%)_sepia(31%)_saturate(2761%)_hue-rotate(211deg)_brightness(93%)_contrast(97%)] dark:[filter:brightness(0)_invert(1)]",
       )}
     />
   );

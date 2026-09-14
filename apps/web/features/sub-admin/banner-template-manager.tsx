@@ -137,7 +137,7 @@ export function BannerTemplateManager() {
     <>
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-5">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-brand-blue">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg text-brand-link">
             <Layers3 className="h-5 w-5" aria-hidden />
           </span>
           <div>

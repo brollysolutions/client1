@@ -46,7 +46,7 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
         <Link
           href={`/dashboard/properties/${listing.id}`}
           aria-label={`View ${listing.title}`}
-          className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+          className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
           <ListingArtwork listing={listing} sizes="(min-width: 640px) 300px, 280px" />
           {reraVerified ? <ReraVerifiedCorner /> : null}
@@ -66,8 +66,8 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
             aria-pressed={bookmarked}
             title={bookmarked ? "Remove bookmark" : "Bookmark this property"}
             className={cn(
-              "grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-card/95 text-text-secondary shadow-sm ring-1 ring-border transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
-              bookmarked && "text-brand-cta",
+              "grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-card/95 text-text-secondary shadow-sm ring-1 ring-border transition-colors hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              bookmarked && "text-brand-link",
             )}
           >
             <Bookmark className={cn("h-4 w-4", bookmarked && "fill-current")} aria-hidden="true" />
@@ -79,8 +79,8 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
             aria-pressed={inCompare}
             title={inCompare ? "Remove from compare" : "Add to compare"}
             className={cn(
-              "grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-card/95 text-text-secondary shadow-sm ring-1 ring-border transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue",
-              inCompare && "text-brand-cta",
+              "grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-card/95 text-text-secondary shadow-sm ring-1 ring-border transition-colors hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              inCompare && "text-brand-link",
             )}
           >
             <Scale className="h-4 w-4" aria-hidden="true" />
@@ -103,7 +103,7 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
         <CardTitle className="min-h-11 font-heading text-lg leading-snug text-foreground">
           <Link
             href={`/dashboard/properties/${listing.id}`}
-            className="line-clamp-2 rounded-sm transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+            className="line-clamp-2 rounded-sm transition-colors hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {listing.title}
           </Link>
@@ -127,7 +127,7 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
             ))}
           </ul>
         ) : null}
-        <p className="mt-auto pt-3 font-heading text-xl font-semibold text-brand-blue">
+        <p className="mt-auto pt-3 font-heading text-xl font-semibold text-brand-link">
           {listing.price}
         </p>
       </CardContent>
@@ -135,7 +135,7 @@ export function PropertyCard({ listing, fluid = false }: { listing: REListing; f
       <CardFooter className="px-4 pb-4 pt-0">
         <Link
           href={`/dashboard/properties/${listing.id}`}
-          className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-brand-blue px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2"
+          className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-brand-blue px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           View details
         </Link>
@@ -148,7 +148,7 @@ export function PropertyMiniCard({ listing }: { listing: REListing }) {
   return (
     <Link
       href={`/dashboard/properties/${listing.id}`}
-      className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+      className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="relative hidden h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-loans-soft/50 lg:block">
         <ListingArtwork listing={listing} sizes="64px" />
@@ -157,7 +157,7 @@ export function PropertyMiniCard({ listing }: { listing: REListing }) {
         <p className="truncate font-medium text-text-primary">{listing.title}</p>
         <p className="truncate text-xs text-text-secondary">{listing.location}</p>
       </div>
-      <p className="shrink-0 font-heading text-sm font-semibold text-brand-blue">{listing.price}</p>
+      <p className="shrink-0 font-heading text-sm font-semibold text-brand-link">{listing.price}</p>
     </Link>
   );
 }

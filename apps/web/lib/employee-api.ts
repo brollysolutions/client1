@@ -10,6 +10,10 @@ import { apiRequest, type ApiResponse } from "@/lib/api/client";
 type Schemas = components["schemas"];
 export type EmployeeTask = Schemas["EmployeeTaskRead"];
 export type EmployeeTaskUpdate = Schemas["EmployeeTaskUpdate"];
+export type EmployeeTaskReopen = Schemas["EmployeeTaskReopen"];
+export function reopenEmployeeTask(taskId: string, payload: EmployeeTaskReopen) {
+  return apiRequest<EmployeeTask>(`/api/v1/employee/tasks/${taskId}/reopen`, { method: "POST", body: payload });
+}
 export type EmployeeHome = Schemas["EmployeeHomeResponse"];
 export type TaskDocument = Schemas["TaskDocumentRead"];
 export type TaskDocumentPresignRequest = Schemas["TaskDocumentPresignRequest"];

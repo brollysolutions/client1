@@ -79,7 +79,7 @@ export function DashboardOfferCard({ offer, interactive = true }: { offer: Authe
       <div className="relative aspect-[16/7] bg-[var(--nav-tint)]">{imageUrl ? <Image src={imageUrl} alt="" fill sizes="(min-width: 1024px) 33vw, 100vw" className="object-cover" /> : null}</div>
       <div className="space-y-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--nav-primary)]"><DASHBOARD_ICONS.offers className="h-4 w-4" aria-hidden="true" />{offer.partner_name}</span>
+          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-link"><DASHBOARD_ICONS.offers className="h-4 w-4" aria-hidden="true" />{offer.partner_name}</span>
           <Badge variant="secondary">{offer.discount_type === "percentage" ? `${offer.discount_value}% off` : offer.discount_type === "cashback-tie" ? "Cashback" : `₹${offer.discount_value} off`}</Badge>
         </div>
         <h2 className="font-semibold text-text-primary">{offer.title}</h2>
@@ -91,7 +91,7 @@ export function DashboardOfferCard({ offer, interactive = true }: { offer: Authe
         <p className="text-xs leading-5 text-text-secondary">Copy the code, open the partner checkout, and enter it before payment. Dhanadhara does not apply or track redemption.</p>
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild={interactive} disabled={!interactive} size="sm">{interactive ? <a href={offer.redemption_url} target="_blank" rel="noopener noreferrer">Use offer<ExternalLink className="h-4 w-4" aria-hidden="true" /></a> : <>Use offer<ExternalLink className="h-4 w-4" aria-hidden="true" /></>}</Button>
-          {offer.terms_url ? interactive ? <a href={offer.terms_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-[var(--nav-primary)] underline-offset-4 hover:underline">Full terms</a> : <span className="text-xs font-medium text-[var(--nav-primary)]">Full terms</span> : null}
+          {offer.terms_url ? interactive ? <a href={offer.terms_url} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-brand-link underline-offset-4 hover:underline">Full terms</a> : <span className="text-xs font-medium text-brand-link">Full terms</span> : null}
         </div>
         <p className="text-xs text-text-secondary">{offer.terms_summary}</p>
       </div>
@@ -107,7 +107,7 @@ export function DashboardBannerCard({ banner, interactive = true }: { banner: Au
       {banner.banner_type === "action" ? <Badge className="mb-3 bg-white/15 text-white hover:bg-white/15">Next step</Badge> : null}
       <h2 className="max-w-2xl text-xl font-semibold sm:text-2xl">{banner.title}</h2>
       {banner.subtitle ? <p className="mt-2 max-w-2xl text-sm text-blue-100">{banner.subtitle}</p> : null}
-      {hasAction ? interactive ? <Link href={banner.deep_link!} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-navy transition-colors hover:bg-surface-sky">{banner.cta_label}<ArrowRight className="h-4 w-4" aria-hidden="true" /></Link> : <span className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-navy">{banner.cta_label}<ArrowRight className="h-4 w-4" aria-hidden="true" /></span> : null}
+      {hasAction ? interactive ? <Link href={banner.deep_link!} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-surface-sky">{banner.cta_label}<ArrowRight className="h-4 w-4" aria-hidden="true" /></Link> : <span className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">{banner.cta_label}<ArrowRight className="h-4 w-4" aria-hidden="true" /></span> : null}
     </article>
   );
 }

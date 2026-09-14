@@ -37,7 +37,7 @@ export function PartnerCta() {
 
             <ul className="mt-6 max-w-md space-y-4">
               <li className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-brand-blue">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-brand-link">
                   <Handshake className="h-5 w-5" aria-hidden />
                 </span>
                 <p className="text-base text-foreground sm:text-lg">
@@ -47,7 +47,7 @@ export function PartnerCta() {
                 </p>
               </li>
               <li className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--nav-tint)] text-brand-blue">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-brand-link">
                   <Gift className="h-5 w-5" aria-hidden />
                 </span>
                 <p className="text-base text-foreground sm:text-lg">

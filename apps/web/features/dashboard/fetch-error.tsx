@@ -24,7 +24,7 @@ export function FetchError({
 
   return (
     <div className="rounded-xl border border-border bg-card p-8 text-center">
-      <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-muted text-text-secondary">
+      <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full text-text-secondary">
         <AlertTriangle className="h-5 w-5" />
       </span>
       <p className="mx-auto mt-4 max-w-sm text-sm text-text-secondary">{copy}</p>

@@ -51,7 +51,7 @@ from app.services.financial_catalog import (
     get_public_product,
     list_public_products,
     list_public_provider_offers,
-    provider_logo_url,
+    provider_logo_metadata,
 )
 from app.services.properties import media_by_property, media_urls_by_property
 from app.services.property_submissions import format_inr_amount
@@ -197,11 +197,7 @@ async def list_financial_product_providers_public(
                     name=provider.name,
                     legal_name=provider.legal_name,
                     provider_type=provider.provider_type,
-                    logo_url=(
-                        provider_logo_url(provider.logo_key)
-                        if provider.logo_verified_at is not None
-                        else None
-                    ),
+                    logo_url=provider_logo_metadata(provider)[0],
                 ),
                 min_amount=offer.min_amount,
                 max_amount=offer.max_amount,

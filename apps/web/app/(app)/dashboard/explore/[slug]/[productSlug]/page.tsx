@@ -68,7 +68,7 @@ export default async function ExploreProductPage({ params, searchParams }: PageP
     <DashboardPage>
       <Link
         href={`/dashboard/explore/${slug}`}
-        className="inline-flex items-center gap-1.5 rounded text-sm text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+        className="inline-flex items-center gap-1.5 rounded text-sm text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         Back to {category.label}

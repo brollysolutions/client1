@@ -341,7 +341,7 @@ function FacetSection({
           {summary ? (
             <span className="text-sm font-normal text-text-secondary">{summary}</span>
           ) : count ? (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-cta-tint px-1.5 text-xs font-medium text-brand-cta">
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-cta-tint px-1.5 text-xs font-medium text-brand-link">
               {count}
             </span>
           ) : null}

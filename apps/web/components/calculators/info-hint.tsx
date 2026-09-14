@@ -33,7 +33,7 @@ export function InfoHint({
             type="button"
             aria-label={`What is ${label}?`}
             className={cn(
-              "inline-flex size-4 shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:text-[var(--nav-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-1",
+              "inline-flex size-4 shrink-0 items-center justify-center rounded-full text-text-secondary transition-colors hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
               className,
             )}
           >

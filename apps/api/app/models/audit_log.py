@@ -97,6 +97,7 @@ class AuditAction(enum.StrEnum):
     AGENT_LEAD_EXPIRED = "agent_lead_expired"
     LEAD_ASSIGNED = "lead_assigned"
     EMPLOYEE_WORK_ASSIGNED = "employee_work_assigned"
+    EMPLOYEE_TASK_REOPENED = "employee_task_reopened"
     LEAD_DETAILS_UPDATED = "lead_details_updated"
     FIELD_VISIBILITY_UPDATED = "field_visibility_updated"
     MOBILE_CHANGE_VERIFIED = "mobile_change_verified"

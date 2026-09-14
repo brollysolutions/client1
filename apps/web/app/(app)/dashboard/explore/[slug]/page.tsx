@@ -39,7 +39,16 @@ export default async function ExploreCategoryPage({
     ? await getPublicFinancialProducts({ category: loansCategory.category, pageSize: 100 })
     : null;
 
-  if (loansCategory && catalogue && shouldSkipCardsCategoryList(loansCategory.slug, catalogue.items.length)) {
+  // Keep every published product available when the category exceeds one API page.
+  if (loansCategory && catalogue) {
+    for (let page = 2; page <= Math.ceil(catalogue.total / 100); page += 1) {
+      const next = await getPublicFinancialProducts({ category: loansCategory.category, pageSize: 100, page });
+      if (!next.items.length) break;
+      catalogue.items.push(...next.items);
+    }
+  }
+
+  if (loansCategory && catalogue && shouldSkipCardsCategoryList(loansCategory.slug, catalogue.total)) {
     // A streamed server redirect clears the page while its destination loads.
     // Retain the same replacement navigation with a visible loading region.
     return <DashboardRedirect href={`/dashboard/explore/${loansCategory.slug}/${catalogue.items[0].slug}`} label="Opening credit cards" />;
@@ -49,7 +58,7 @@ export default async function ExploreCategoryPage({
     <DashboardPage>
       <Link
         href="/dashboard/explore"
-        className="inline-flex items-center gap-1.5 rounded text-sm text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+        className="inline-flex items-center gap-1.5 rounded text-sm text-text-secondary transition-colors hover:text-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         Back to Explore
@@ -72,8 +81,7 @@ export default async function ExploreCategoryPage({
 
 // Loans/insurance/credit-card category: the Admin-published products in this
 // category from the anonymous public financial-products catalogue (same
-// source /loans reads). pageSize is generous since a category realistically
-// holds a handful of products, not paginated volume.
+// source /loans reads), including subsequent API pages when available.
 function LoansCategoryProducts({
   category,
   catalogue,
@@ -90,7 +98,7 @@ function LoansCategoryProducts({
       <DashboardHeader title={label} description={blurb} />
 
       {catalogue.items.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {catalogue.items.map((product) => (
             <ExploreArtCard
               key={product.id}

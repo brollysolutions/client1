@@ -74,6 +74,7 @@ import {
   propertyMatchesCampaign,
 } from "@/lib/banner-properties";
 import { getAdminProperties, type AdminProperty } from "@/lib/properties-api";
+import { DestinationInput } from "./destination-input";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
 
 import { audienceSummary } from "./audience-rule-fields";
@@ -212,7 +213,7 @@ export function BannersView({
                 className="h-12 w-20 shrink-0 rounded-lg border border-border object-cover"
               />
             ) : (
-              <span className="grid h-12 w-20 shrink-0 place-items-center rounded-lg border border-border bg-muted text-text-secondary">
+              <span className="grid h-12 w-20 shrink-0 place-items-center rounded-lg border border-border text-text-secondary">
                 <ImageIcon className="h-5 w-5" aria-hidden="true" />
               </span>
             )}
@@ -607,12 +608,15 @@ export function BannersView({
                         </div>
                         <div>
                           <Label htmlFor="banner-link">Internal destination</Label>
-                          <Input
+                          <DestinationInput
                             id="banner-link"
+                            dashboard={active.placement === "dashboard"}
+                            businessLine={active.business_line as "loans" | "real_estate" | "both"}
+                            audienceRoles={active.audience_rules?.user_types}
                             value={selectedProperty ? propertyCampaignHref(selectedProperty) : draft.deepLink}
                             disabled={!canEdit || Boolean(selectedProperty)}
                             maxLength={1000}
-                            onChange={(event) => { setDraft({ ...draft, deepLink: event.target.value }); setFieldErrors((current) => ({ ...current, deepLink: undefined })); }}
+                            onValueChange={(value) => { setDraft({ ...draft, deepLink: value }); setFieldErrors((current) => ({ ...current, deepLink: undefined })); }}
                             aria-invalid={Boolean(fieldErrors.deepLink)}
                             aria-describedby={fieldErrors.deepLink ? "banner-edit-link-error" : undefined}
                           />

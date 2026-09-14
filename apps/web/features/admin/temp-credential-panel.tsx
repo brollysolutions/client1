@@ -147,7 +147,7 @@ export function TempCredentialPanel({
       {canCreateLink ? (
         <div>
           <div className="flex items-start gap-2">
-            <Link2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-cta" aria-hidden="true" />
+            <Link2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-link" aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-text-primary">
                 Account setup link
@@ -223,7 +223,7 @@ export function TempCredentialPanel({
       {tempPassword ? (
         <div className={canCreateLink ? "border-t border-brand-cta/20 pt-4" : undefined}>
           <div className="flex items-start gap-2">
-            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-brand-cta" aria-hidden="true" />
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-brand-link" aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-text-primary">Legacy password fallback</p>
               <p className="mt-1 text-xs text-text-secondary">

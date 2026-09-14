@@ -88,7 +88,7 @@ export function PropertyCampaignSelect({
                 />
                 <span className="min-w-0 flex-1 truncate">{property.title} · {property.location}</span>
                 {property.active ? (
-                  <span className="inline-flex shrink-0 items-center gap-1 text-xs text-amber-800">
+                  <span className="inline-flex shrink-0 items-center gap-1 text-xs text-warning">
                     <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
                     RERA
                   </span>

@@ -47,12 +47,12 @@ export function PropertyFilterSheet({
         {/* Light-blue (sky) hover, no blue focus-border. */}
         <Button
           variant="outline"
-          className="h-14 gap-2 rounded-xl px-5 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:ring-brand-cta"
+          className="h-14 gap-2 rounded-xl px-5 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-link focus-visible:ring-ring"
         >
           <SlidersHorizontal className="h-4 w-4" />
           Filters
           {activeCount > 0 ? (
-            <Badge className="ml-0.5 bg-brand-cta text-surface">{activeCount}</Badge>
+            <Badge className="ml-0.5 bg-brand-cta text-white">{activeCount}</Badge>
           ) : null}
         </Button>
       </SheetTrigger>
@@ -78,13 +78,13 @@ export function PropertyFilterSheet({
             variant="ghost"
             onClick={clearAll}
             disabled={activeCount === 0}
-            className="text-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:ring-brand-cta"
+            className="text-brand-link hover:bg-brand-cta-tint hover:text-brand-link focus-visible:ring-ring"
           >
             Clear all
           </Button>
           <Button
             onClick={() => setOpen(false)}
-            className="w-full bg-brand-cta text-surface hover:bg-brand-cta-hover focus-visible:ring-brand-cta sm:w-auto"
+            className="w-full bg-brand-cta text-white hover:bg-brand-cta-hover focus-visible:ring-ring sm:w-auto"
           >
             Show {resultCount} home{resultCount === 1 ? "" : "s"}
           </Button>

@@ -10,7 +10,7 @@ type Tone = "navy" | "light" | "sky";
 // legacy dark-panel palette; `light` is the cream form header on small screens.
 const CIRCLE: Record<Tone, { filled: string; empty: string }> = {
   navy: { filled: "bg-brand-sky text-brand-navy", empty: "border border-white/30 text-white/50" },
-  sky: { filled: "bg-white text-brand-cta", empty: "border border-white/50 text-white/70" },
+  sky: { filled: "bg-white text-brand-navy", empty: "border border-white/50 text-white/70" },
   light: { filled: "bg-brand-navy text-white", empty: "border border-border text-text-secondary" },
 };
 const LABEL: Record<Tone, { active: string; done: string; pending: string }> = {

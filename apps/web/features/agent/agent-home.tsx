@@ -151,7 +151,7 @@ export function AgentHome() {
               <button
                 type="button"
                 onClick={retryEarnings}
-                className="font-medium text-brand-cta hover:underline"
+                className="font-medium text-brand-link hover:underline"
               >
                 Retry
               </button>

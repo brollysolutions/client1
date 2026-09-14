@@ -68,7 +68,7 @@ function SortableHeader({
         type="button"
         onClick={() => onSortChange(column.key)}
         className={cn(
-          "group flex w-full items-center gap-1.5 px-5 py-3 text-xs font-medium uppercase tracking-wide text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue",
+          "group flex w-full items-center gap-1.5 px-5 py-3 text-xs font-medium uppercase tracking-wide text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           column.align === "right" && "justify-end",
         )}
       >
@@ -76,7 +76,7 @@ function SortableHeader({
         <Icon
           className={cn(
             "h-3.5 w-3.5 shrink-0 transition-colors",
-            active ? "text-brand-cta" : "text-text-secondary/70 group-hover:text-text-secondary",
+            active ? "text-brand-link" : "text-text-secondary/70 group-hover:text-text-secondary",
           )}
           aria-hidden="true"
         />
@@ -123,7 +123,7 @@ export function DataTable<Row>({
               aria-label={`Sort by ${column.header}${sort.key === column.key ? `, ${sort.dir === "asc" ? "ascending" : "descending"}` : ""}`}
               aria-pressed={sort.key === column.key}
               onClick={() => onSortChange(column.key)}
-              className="inline-flex min-h-11 max-w-full items-center gap-1 rounded-md border border-border px-3 py-2 text-sm text-text-secondary aria-pressed:bg-brand-cta-tint aria-pressed:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+              className="inline-flex min-h-11 max-w-full items-center gap-1 rounded-md border border-border px-3 py-2 text-sm text-text-secondary aria-pressed:bg-brand-cta-tint aria-pressed:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {column.header}
               {sort.key === column.key ? (sort.dir === "asc" ? <ArrowUp className="h-4 w-4 shrink-0" aria-hidden /> : <ArrowDown className="h-4 w-4 shrink-0" aria-hidden />) : null}
@@ -190,7 +190,7 @@ export function DataTable<Row>({
               className={cn(
                 "group block rounded-xl border border-border bg-card transition-colors xl:table-row xl:rounded-none xl:border-x-0 xl:border-t-0 xl:bg-transparent xl:last:border-b-0",
                 interactive &&
-                  "cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue",
+                  "cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               )}
             >
               {columns.map((column) => (
@@ -210,7 +210,7 @@ export function DataTable<Row>({
               {interactive ? (
                 <td className="hidden px-3 py-4 xl:table-cell">
                   <ChevronRight
-                    className="h-4 w-4 text-text-secondary/60 transition-[color,transform] group-hover:translate-x-0.5 group-hover:text-brand-cta motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
+                    className="h-4 w-4 text-text-secondary/60 transition-[color,transform] group-hover:translate-x-0.5 group-hover:text-brand-link motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
                     aria-hidden="true"
                   />
                 </td>
@@ -237,7 +237,7 @@ export function DataTablePrimaryCell({
 }) {
   return (
     <div className="min-w-0">
-      <p className="truncate max-xl:whitespace-normal max-xl:[overflow-wrap:anywhere] font-medium text-text-primary transition-colors group-hover:text-brand-cta">
+      <p className="truncate max-xl:whitespace-normal max-xl:[overflow-wrap:anywhere] font-medium text-text-primary transition-colors group-hover:text-brand-link">
         {title}
       </p>
       {subtitle ? <p className="truncate max-xl:whitespace-normal max-xl:[overflow-wrap:anywhere] text-xs text-text-secondary">{subtitle}</p> : null}

@@ -90,25 +90,25 @@ export default function CalculatorsHubPage() {
               <div className="mt-8 flex flex-wrap gap-3">
                 <a
                   href="#loans"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-card px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-brand-link"
                 >
                   Loans
                 </a>
                 <a
                   href="#real-estate"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-card px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-brand-link"
                 >
                   Property
                 </a>
                 <a
                   href="#credit-cards"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-card px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-brand-link"
                 >
                   Credit cards
                 </a>
                 <a
                   href="#insurance"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-white px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-[var(--nav-primary)]"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-lg border border-[var(--nav-border)] bg-card px-5 py-3 text-sm font-semibold text-[var(--nav-text)] transition-colors hover:border-[var(--nav-primary)]/40 hover:text-brand-link"
                 >
                   Insurance
                 </a>

@@ -20,7 +20,7 @@ export function CalculatorIsland({ slug }: { slug: CalculatorSlug }) {
   return Island ? (
     <Island />
   ) : (
-    <p className="rounded-xl border border-[var(--nav-border)] bg-white p-6 text-text-secondary">
+    <p className="rounded-xl border border-[var(--nav-border)] bg-card p-6 text-text-secondary">
       This calculator is being finalized. In the meantime, leave your number below and our
       team will help you directly.
     </p>

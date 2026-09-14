@@ -47,3 +47,15 @@ class LeadDetailsRead(BaseModel):
     field_owners: dict[str, LeadDetailOwner]
     editable_fields: list[Literal["name", "requirement.notes"]]
     updated_at: datetime
+
+
+class JourneyContactRead(BaseModel):
+    name: str
+    code: str
+    role: Literal["agent", "telecaller"]
+
+
+class JourneyContactsRead(BaseModel):
+    business_line: Literal["loans", "real_estate"]
+    introducing_agent: JourneyContactRead | None = None
+    assigned_staff: JourneyContactRead | None = None

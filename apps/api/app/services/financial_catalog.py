@@ -28,6 +28,7 @@ from app.services.media_processing import (
     ScannerUnavailable,
     canonicalize_object,
 )
+from app.services.provider_logos import BUILT_IN_LOGO_REVIEWED_AT, BUILT_IN_PROVIDER_LOGOS
 
 PROVIDER_LOGO_MAX_BYTES = 1024 * 1024
 _LOGO_STAGING_PREFIX = "private/provider-logos/staging/"
@@ -38,10 +39,8 @@ _LOGO_EXTENSIONS = {
     "image/webp": ".webp",
 }
 _SAFE_FILENAME = re.compile(r"[^A-Za-z0-9._-]")
-# Repository SVGs must be reviewed and added here in the same code change as
-# the asset. The manifest remains empty until the supplied names have approved
-# canonical identities plus trademark/source provenance.
-_REVIEWED_BUILT_IN_LOGO_KEYS: frozenset[str] = frozenset()
+# Every key is paired with exact identity and source provenance in the registry.
+_REVIEWED_BUILT_IN_LOGO_KEYS = frozenset(key for key, _ in BUILT_IN_PROVIDER_LOGOS.values())
 _MANAGED_LOGO_KEY = re.compile(
     r"^public/provider-logos/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
     r"[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -86,6 +85,20 @@ def provider_logo_url(logo_key: str | None) -> str | None:
     if _MANAGED_LOGO_KEY.fullmatch(logo_key):
         return storage.public_asset_url(logo_key)
     return None
+
+
+def provider_logo_metadata(bank: Bank) -> tuple[str | None, str | None, datetime | None]:
+    if bank.logo_key is not None:
+        url = provider_logo_url(bank.logo_key) if bank.logo_verified_at is not None else None
+        return url, bank.logo_source, bank.logo_verified_at
+    reviewed = (
+        BUILT_IN_PROVIDER_LOGOS.get(bank.name.strip().casefold())
+        if bank.provider_type == "bank"
+        else None
+    )
+    if reviewed:
+        return reviewed[0], reviewed[1], BUILT_IN_LOGO_REVIEWED_AT
+    return None, bank.logo_source, bank.logo_verified_at
 
 
 def validate_provider_logo_key(logo_key: str | None) -> None:

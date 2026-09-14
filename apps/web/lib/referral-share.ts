@@ -39,6 +39,6 @@ export function buildRegisterUrl(origin: string, code: string): string {
  */
 export function buildWaMeUrl(origin: string, code: string): string {
   const registerUrl = buildRegisterUrl(origin, code);
-  const message = `Join me on this app! Use my referral code ${code} when you sign up: ${registerUrl}`;
+  const message = `Explore loans and real estate with Dhanadhara. Use my referral code ${code} when you sign up: ${registerUrl}`;
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
 }
