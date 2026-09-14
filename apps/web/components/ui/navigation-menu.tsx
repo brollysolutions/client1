@@ -75,7 +75,7 @@ function NavigationMenuTrigger({
     >
       {children}{" "}
       <ChevronDown
-        className="relative top-[1px] ml-1 h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]:rotate-180"
+        className="relative top-[1px] ml-1 h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]:rotate-180 motion-reduce:transition-none"
         aria-hidden="true"
       />
     </NavigationMenuPrimitive.Trigger>
@@ -90,7 +90,7 @@ function NavigationMenuContent({
     <NavigationMenuPrimitive.Content
       data-slot="navigation-menu-content"
       className={cn(
-        "left-0 top-0 w-full p-2 data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52 md:absolute md:w-auto",
+        "left-0 top-0 w-full p-2 data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in data-[motion^=to-]:fade-out data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52 motion-reduce:animate-none md:absolute md:w-auto",
         className
       )}
       {...props}
@@ -122,14 +122,14 @@ function NavigationMenuViewport({
     // Centered under the nav list rather than left-0: the nav list sits in the
     // header's centered middle grid column (site-header.tsx), so a left-0
     // anchor opens the panel flush with the list's left edge, not the
-    // viewport's. A wide mega-panel (Financial Services, ~820px) then clips
+    // viewport's. A wide mega-panel then clips
     // off-screen at exactly the lg breakpoint (1024px). SiteHeader is this
     // primitive's only consumer, so centering here is safe for every trigger.
     <div className={cn("absolute left-1/2 top-full isolate z-50 flex -translate-x-1/2 justify-center")}>
       <NavigationMenuPrimitive.Viewport
         data-slot="navigation-menu-viewport"
         className={cn(
-          "origin-top-center relative mt-2 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-lg border border-border bg-background text-text-primary shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 md:w-[var(--radix-navigation-menu-viewport-width)]",
+          "origin-top-center relative mt-2 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-xl border border-border bg-surface text-text-primary shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-90 motion-reduce:animate-none md:w-[var(--radix-navigation-menu-viewport-width)]",
           className
         )}
         {...props}

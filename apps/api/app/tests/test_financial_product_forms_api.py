@@ -80,8 +80,8 @@ async def test_catalogue_is_ordered_and_contains_distinct_workflows(client: Asyn
     token, _ = await full_registration(client, lines=["loans"])
     products = await _products(client, token)
 
-    assert len(products) == 16
-    assert [product["display_order"] for product in products] == list(range(1, 17))
+    assert len(products) == 17
+    assert [product["display_order"] for product in products] == list(range(1, 18))
     assert {product["category"] for product in products} == {
         "loan",
         "credit_card",

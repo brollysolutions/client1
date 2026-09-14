@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { CALCULATORS_MENU } from "@/components/navbars/calculators-menu";
 import { FINANCIAL_SERVICES_MENU } from "@/components/navbars/financial-services-menu";
 import { NAV_ITEMS } from "@/components/navbars/nav-items";
 import { PROPERTIES_MENU } from "@/components/navbars/properties-menu";
+import { CALCULATORS } from "@/lib/calculators/registry";
 
-// The public header and mobile drawer both render from NAV_ITEMS, and neither
-// has Playwright coverage, so a drift here reaches production unnoticed. The
+// The public header and mobile drawer both render from NAV_ITEMS. The
 // case this guards specifically: the finance item's label ("Financial Services")
 // intentionally does not match its route (/loans), which invites a later
 // "consistency" edit that points it at a path with no page behind it.
@@ -28,9 +29,27 @@ describe("public NAV_ITEMS integrity", () => {
     expect(new Set(hrefs).size).toBe(hrefs.length);
   });
 
-  it("gives Financial Services and Properties governed mega-menus", () => {
+  it("gives Financial Services, Properties and Calculators governed mega-menus", () => {
     const withMenu = NAV_ITEMS.filter((item) => item.menu);
-    expect(withMenu.map((item) => item.label)).toEqual(["Financial Services", "Properties"]);
+    expect(withMenu.map((item) => item.label)).toEqual(["Financial Services", "Properties", "Calculators"]);
+  });
+
+  it("places Calculators before Earn with Us and links every registered calculator exactly once", () => {
+    const index = NAV_ITEMS.findIndex((item) => item.href === "/calculators");
+    expect(NAV_ITEMS[index + 1].href).toBe("/earn-with-us");
+    expect(NAV_ITEMS[index].menu?.columns).toBe(CALCULATORS_MENU);
+    const groups = CALCULATORS_MENU.flatMap((column) => column.groups);
+    const links = groups.flatMap((group) => group.items);
+    expect(links).toHaveLength(CALCULATORS.length);
+    expect(new Set(links.map((item) => item.href)).size).toBe(CALCULATORS.length);
+    for (const calculator of CALCULATORS) {
+      const group = groups.find((item) => item.key === `calculator-${calculator.group}`);
+      expect(group?.items.find((item) => item.href === `/calculators/${calculator.slug}`)).toMatchObject({ label: calculator.navLabel });
+    }
+    for (const item of links) {
+      expect(item.icon).toBeDefined();
+      expect(item.illustration).toBeUndefined();
+    }
   });
 
   it("wires the Financial Services menu to FINANCIAL_SERVICES_MENU, not a hand-duplicated copy", () => {

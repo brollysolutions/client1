@@ -38,7 +38,7 @@ export function DashboardHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
       <div className="min-w-0 max-w-3xl break-words">
-        <h1 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-[1.75rem]">
+        <h1 className="font-heading text-2xl font-semibold leading-tight tracking-tight text-brand-navy sm:text-3xl">
           {title}
         </h1>
         {description ? (
@@ -79,7 +79,7 @@ export function MetricCard({
     >
       <div className="min-w-0">
         <p className="text-sm font-medium text-text-secondary">{label}</p>
-        <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-text-primary">
+        <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-brand-navy">
           {value}
         </p>
         {hint ? <p className="mt-1 text-xs text-text-secondary">{hint}</p> : null}
@@ -121,9 +121,9 @@ export function DashboardPanel({
 }) {
   return (
     <section className={cn("min-w-0 overflow-hidden rounded-xl border border-border bg-card shadow-sm", className)}>
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-brand-cta-tint/30 px-4 py-4 sm:px-5">
         <div className="min-w-0 break-words">
-          <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+          <h2 className="font-heading text-lg font-semibold leading-snug text-brand-navy">{title}</h2>
           {description ? <p className="mt-0.5 text-sm text-text-secondary">{description}</p> : null}
         </div>
         {action}
@@ -145,7 +145,7 @@ export function DashboardSection({
   return (
     <section>
       <div className="mb-3">
-        <h2 className="text-base font-semibold text-text-primary">{title}</h2>
+        <h2 className="font-heading text-lg font-semibold leading-snug text-brand-navy">{title}</h2>
         {description ? <p className="mt-0.5 text-sm text-text-secondary">{description}</p> : null}
       </div>
       {children}

@@ -48,14 +48,14 @@ export function AdStrip({
       aria-label="Sponsored"
       data-layout="ad-strip"
       data-presentation="split-sponsor-card"
-      className="relative isolate min-h-[152px] w-full overflow-hidden border-y border-brand-blue/15 bg-[#f7f2e9] px-1.5 py-1.5 sm:h-[176px] sm:px-2 sm:py-2 lg:h-[208px]"
+      className="relative isolate min-h-[152px] w-full overflow-hidden border-y border-brand-blue/15 bg-surface-sky px-1.5 py-1.5 sm:h-[176px] sm:px-2 sm:py-2 lg:h-[208px]"
     >
-      <div className="relative flex h-full w-full overflow-hidden rounded-xl border border-brand-blue/15 bg-[linear-gradient(135deg,#eef6f8_0%,#f7f2e9_55%,#e2eef3_100%)] shadow-[0_12px_28px_-22px_rgba(10,56,88,0.8)] sm:rounded-2xl">
+      <div className="relative flex h-full w-full overflow-hidden rounded-xl border border-brand-blue/15 bg-surface shadow-[0_12px_28px_-22px_rgba(10,56,88,0.8)] sm:rounded-2xl">
         <div
           aria-hidden
           className="sponsor-accent-sweep pointer-events-none absolute -top-px left-0 z-20 h-0.5 w-[28%] bg-brand-blue/80"
         />
-        <div className="relative hidden shrink-0 sm:block bg-[#dcecf2] sm:aspect-video sm:h-full sm:w-[284px] lg:w-[341px]">
+        <div className="relative hidden shrink-0 sm:block bg-surface-sky sm:aspect-video sm:h-full sm:w-[284px] lg:w-[341px]">
           {banner.image ? (
             <Image
               src={banner.image}
@@ -70,7 +70,7 @@ export function AdStrip({
               unoptimized
             />
           ) : null}
-          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[#f7f2e9]/90 to-transparent sm:w-12" />
+          <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-surface/90 to-transparent sm:w-12" />
         </div>
         <div className="flex min-w-0 flex-1 items-center px-4 py-3 pr-12 sm:px-8 sm:py-5 sm:pr-16 lg:px-12">
           <div className="min-w-0 max-w-2xl">

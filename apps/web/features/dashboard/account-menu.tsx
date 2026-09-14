@@ -97,14 +97,14 @@ export function AccountMenu({
   }
 
   return (
-    <div className="mt-auto border-t border-dash-border pt-3">
+    <div className="mt-auto shrink-0 border-t border-white/15 pt-3">
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label="Open account menu"
           className={cn(
-            "group/acct relative flex cursor-pointer items-center rounded-lg text-left transition-[background-color,box-shadow] motion-reduce:transition-none focus-visible:outline-none",
-            "hover:bg-dash-rail-hover hover:shadow-sm hover:ring-1 hover:ring-brand-blue/25",
-            "data-[state=open]:bg-dash-rail-hover data-[state=open]:ring-1 data-[state=open]:ring-brand-blue/25",
+            "group/acct relative flex cursor-pointer items-center rounded-lg text-left transition-[background-color,box-shadow] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-sky",
+            "hover:bg-dash-rail-hover hover:shadow-sm hover:ring-1 hover:ring-brand-sky/30",
+            "data-[state=open]:bg-dash-rail-hover data-[state=open]:ring-1 data-[state=open]:ring-brand-sky/30",
             labeled ? "w-full gap-3 px-2 py-2" : "mx-auto h-12 w-12 justify-center",
           )}
         >
@@ -112,16 +112,16 @@ export function AccountMenu({
           {labeled && (
             <>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-text-primary">
+                <span className="block truncate text-sm font-medium text-dash-foreground">
                   {fullName}
                 </span>
                 {customerCode && (
-                  <span className="block truncate font-mono text-xs text-text-secondary">
+                  <span className="block truncate font-mono text-xs text-dash-muted">
                     {customerCode}
                   </span>
                 )}
               </span>
-              <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 text-text-secondary opacity-0 transition-opacity group-hover/acct:opacity-100 group-data-[state=open]/acct:opacity-100" />
+              <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 text-dash-muted opacity-0 transition-opacity group-hover/acct:opacity-100 group-focus-visible/acct:opacity-100 group-data-[state=open]/acct:opacity-100" />
             </>
           )}
         </DropdownMenuTrigger>
@@ -130,7 +130,7 @@ export function AccountMenu({
           side="top"
           align="start"
           sideOffset={8}
-          className="w-72 bg-background"
+          className="w-72 bg-surface"
         >
           {/* Account header */}
           <div className="flex items-center gap-3 px-2.5 py-2">

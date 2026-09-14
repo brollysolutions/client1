@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { LoadingRegion } from "@/components/ui/loading-region";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -197,10 +199,9 @@ export function MediaLibraryView() {
         {error ? <FetchError status={null} message={error} onRetry={() => void load()} /> : null}
 
         {loading ? (
-          <div className="grid min-h-52 place-items-center">
-            <Loader2 className="h-6 w-6 animate-spin text-brand-blue" aria-hidden />
-            <span className="sr-only">Loading artwork</span>
-          </div>
+          <LoadingRegion label="Loading artwork" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="aspect-[4/3] w-full rounded-xl" />)}
+          </LoadingRegion>
         ) : null}
 
         {!loading && !error && filtered.length === 0 ? (

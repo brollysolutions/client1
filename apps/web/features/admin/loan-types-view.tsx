@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, PackageOpen, Pencil, Plus } from "lucide-react";
+import { Loader2, PackageOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ import { useFilteredPage } from "@/features/dashboard/use-filtered-page";
 import { getProviderPresentationState } from "@/lib/loan-config";
 import {
   createLoanType,
+  deleteLoanType,
   listProviderOffers,
   updateLoanType,
   type AdminLoanType,
@@ -118,11 +119,10 @@ export function LoanTypesView() {
   const [sort, setSort] = React.useState<SortState>({ key: "order", dir: "asc" });
   const [stateBusy, setStateBusy] = React.useState<string | null>(null);
   const [deactivating, setDeactivating] = React.useState<AdminLoanType | null>(null);
+  const [deleting, setDeleting] = React.useState<AdminLoanType | null>(null);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const createFormRef = React.useRef<HTMLFormElement>(null);
 
-  // There is no delete for a financial product by design: historical applications
-  // keep the exact form version they were submitted against, so a product is
-  // retired by clearing its `active` flag rather than removed.
   const setProductActive = React.useCallback(
     async (product: AdminLoanType, active: boolean) => {
       setStateBusy(product.id);
@@ -140,6 +140,21 @@ export function LoanTypesView() {
     },
     [reload],
   );
+
+  async function onDelete() {
+    if (!deleting || stateBusy) return;
+    setDeleteError(null);
+    setStateBusy(deleting.id);
+    const response = await deleteLoanType(deleting.id);
+    setStateBusy(null);
+    if (!response.ok) {
+      setDeleteError(response.error);
+      return;
+    }
+    toast.success("Financial product deleted");
+    setDeleting(null);
+    void reload();
+  }
 
   const reloadOffers = React.useCallback(async () => {
     const response = await listProviderOffers();
@@ -234,7 +249,12 @@ export function LoanTypesView() {
         key: "version",
         header: "Form",
         sortable: true,
-        render: (product) => <span className="tabular-nums">v{product.form_version}</span>,
+        render: (product) => (
+          <DataTablePrimaryCell
+            title={`v${product.form_version}`}
+            subtitle={`${product.form_schema.sections.reduce((total, section) => total + section.fields.length, 0)} fields`}
+          />
+        ),
       },
       {
         key: "submissions",
@@ -262,8 +282,8 @@ export function LoanTypesView() {
             <StatusBadge tone={product.active ? "success" : "neutral"}>
               {product.active ? "Active" : "Disabled"}
             </StatusBadge>
-            <StatusBadge tone={product.public_visible ? "info" : "neutral"}>
-              {product.public_visible ? "Public" : "Dashboard only"}
+            <StatusBadge tone={product.active && product.public_visible ? "info" : "neutral"}>
+              {product.active && product.public_visible ? "Public" : product.public_visible ? "Hidden while inactive" : "Dashboard only"}
             </StatusBadge>
           </div>
         ),
@@ -299,6 +319,16 @@ export function LoanTypesView() {
               ) : (
                 "Activate"
               )}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-error hover:bg-error/5 hover:text-error"
+              disabled={stateBusy !== null}
+              onClick={() => { setDeleteError(null); setDeleting(product); }}
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Delete
             </Button>
           </div>
         ),
@@ -360,7 +390,7 @@ export function LoanTypesView() {
         kindLabel="Categories"
         showLine={false}
         showDates={false}
-        note="Open a row to edit its details, application form, and providers. Deactivate retires a product without losing its history."
+        note="Open a row to edit its form and publication settings. Deactivate preserves history; delete is available only for unused products."
       />
 
       <DashboardPanel
@@ -524,6 +554,28 @@ export function LoanTypesView() {
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               ) : null}
               Deactivate product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={deleting !== null} onOpenChange={(open) => !open && stateBusy === null && setDeleting(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete {deleting?.label}?</DialogTitle>
+            <DialogDescription>
+              This permanently removes the product and its application form from the catalogue.
+              Products with applications, enquiries or provider offers cannot be deleted;
+              deactivate them to preserve their records.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError ? <p role="alert" className="text-sm text-error">{deleteError}</p> : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleting(null)} disabled={stateBusy !== null}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => void onDelete()} disabled={stateBusy !== null}>
+              {stateBusy !== null ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}
+              {stateBusy !== null ? "Deleting…" : "Delete product"}
             </Button>
           </DialogFooter>
         </DialogContent>

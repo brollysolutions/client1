@@ -158,7 +158,7 @@ export function PropertyDetailView({
           <article className="min-w-0 space-y-8">
             <header className="border-b border-border pb-7">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-semibold text-text-secondary">
                   {listing.listingIntent === "rent" ? "For rent / lease" : "For sale"}
                 </span>
                 {listing.reraNumber && listing.reraVerificationStatus === "verified" ? (

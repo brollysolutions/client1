@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { DashboardPageSkeleton } from "@/features/dashboard/dashboard-page-skeleton";
 
 import { useAuth } from "@/components/auth/session-provider";
 import { OffersView } from "@/features/sub-admin/offers-view";
@@ -22,10 +22,7 @@ export default function OffersPage() {
 
   if (isLoading || !allowed) {
     return (
-      <div className="grid min-h-[50vh] place-items-center">
-        <Loader2 className="h-6 w-6 animate-spin text-brand-blue" aria-hidden="true" />
-        <span className="sr-only">Loading offers</span>
-      </div>
+      <DashboardPageSkeleton label="Loading offers" />
     );
   }
   return <OffersView />;

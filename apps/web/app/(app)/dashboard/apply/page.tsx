@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardPageSkeleton } from "@/features/dashboard/dashboard-page-skeleton";
 import { DashboardHeader, DashboardPage, DashboardPanel } from "@/features/dashboard/dashboard-ui";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import {
@@ -35,7 +36,7 @@ function findActiveApplication(applications: LoanApplication[]): LoanApplication
 
 export default function ApplyPage() {
   return (
-    <React.Suspense fallback={<div className="min-h-[24rem]" />}>
+    <React.Suspense fallback={<DashboardPageSkeleton label="Loading application" />}>
       <ApplyPageContent />
     </React.Suspense>
   );

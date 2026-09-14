@@ -31,7 +31,7 @@ export function CalculatorShell({
   return (
     <>
       {/* Hero */}
-      <section className="relative w-full overflow-hidden bg-[var(--nav-bg)]">
+      <section className="relative w-full overflow-hidden bg-brand-cta-tint">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
           <nav aria-label="Breadcrumb" className="text-base text-text-secondary">
             <ol className="flex flex-wrap items-center gap-1.5">
@@ -76,7 +76,7 @@ export function CalculatorShell({
               the rest are 1:1, so without a floor the EMI band collapses. */}
           <div className="mt-6 grid items-center gap-8 lg:min-h-[460px] lg:grid-cols-[1fr_auto]">
             <div>
-              <h1 className="font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl">
+              <h1 className="font-heading text-3xl font-semibold leading-tight tracking-tight text-[var(--nav-text)] sm:text-5xl">
                 {def.h1}
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-[var(--nav-text)]">{def.intro}</p>
@@ -124,7 +124,7 @@ export function CalculatorShell({
       ) : null}
 
       {/* Lead CTA */}
-      <section className="w-full bg-[var(--nav-primary)]">
+      <section className="w-full bg-brand-navy">
         <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
           <h2 className="font-heading text-3xl font-semibold text-white sm:text-4xl">
             {def.leadCta.heading}

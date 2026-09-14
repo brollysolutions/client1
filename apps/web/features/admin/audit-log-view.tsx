@@ -178,6 +178,11 @@ const ACTION_META: Record<AuditAction, { label: string; icon: LucideIcon; tone: 
     icon: Landmark,
     tone: "bg-loans-soft text-loans-accent",
   },
+  loan_type_deleted: {
+    label: "Financial product deleted",
+    icon: Eraser,
+    tone: "bg-error/10 text-error",
+  },
   bank_updated: {
     label: "Bank updated",
     icon: Landmark,

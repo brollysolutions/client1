@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 
-import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardPageSkeleton } from "@/features/dashboard/dashboard-page-skeleton";
 import { FetchError } from "@/features/dashboard/fetch-error";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import {
@@ -78,12 +78,7 @@ export function TelecallerHome() {
   }, [activeLine, reloadKey]);
 
   if (status === "loading") {
-    return (
-      <DashboardPage className="space-y-5">
-        <Skeleton className="h-9 w-48 rounded-lg" />
-        <Skeleton className="h-64 rounded-2xl" />
-      </DashboardPage>
-    );
+    return <DashboardPageSkeleton overview />;
   }
 
   if (status === "error" || !home) {

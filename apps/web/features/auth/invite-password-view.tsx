@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CheckCircle2, Link2Off, Loader2, LockKeyhole } from "lucide-react";
+import { CheckCircle2, Link2Off, LockKeyhole } from "lucide-react";
 
 import { AuthShell } from "@/components/auth/auth-shell";
+import { FormSkeleton } from "@/components/form-skeleton";
 import { SetPasswordForm } from "@/components/auth/set-password-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,10 +80,7 @@ function InvitePasswordView<Preview extends { first_name: string | null }>({
       activeStep={state === "loading" || state === "invalid" ? 0 : 1}
     >
       {state === "loading" ? (
-        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-brand-cta" aria-hidden="true" />
-          <p className="text-sm text-text-secondary">Checking your invitation…</p>
-        </div>
+        <FormSkeleton fields={2} label="Checking your invitation…" />
       ) : null}
 
       {state === "valid" && preview ? (

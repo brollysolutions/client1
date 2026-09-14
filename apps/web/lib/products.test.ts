@@ -88,15 +88,19 @@ describe("catalogueIllustration", () => {
   // category plate; these cases lock the ones we do ship art for.
   it("resolves marketing products through LOAN_PRODUCTS", () => {
     expect(catalogueIllustration("personal-loan")).toBe(
-      "/illustrations/products/personal-loan.svg",
+      "/images/services/personal-loan.webp",
     );
   });
 
   it("covers equipment-financing, which is published but is not a marketing product", () => {
     expect(LOAN_PRODUCTS.some((p) => p.id === "equipment-financing")).toBe(false);
     const resolved = catalogueIllustration("equipment-financing");
-    expect(resolved).toBe("/illustrations/products/equipment-financing.svg");
+    expect(resolved).toBe("/images/services/equipment-financing.webp");
     expect(existsSync(join(PUBLIC_DIR, resolved!.replace(/^\//, "")))).toBe(true);
+  });
+
+  it("shares credit card artwork with the singular published product slug", () => {
+    expect(catalogueIllustration("credit-card")).toBe(catalogueIllustration("credit-cards"));
   });
 
   it("returns undefined for an unknown slug rather than a dead image path", () => {

@@ -12,6 +12,7 @@ import {
   AUTH_SUBMIT_CLASS,
 } from "@/components/auth/auth-styles";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthPageSkeleton } from "@/components/auth/auth-page-skeleton";
 import { MobileInput } from "@/components/auth/mobile-input";
 import { PasswordField } from "@/components/auth/password-field";
 import { SetPasswordForm } from "@/components/auth/set-password-form";
@@ -30,7 +31,7 @@ import { dashboardReturnTo } from "@/lib/auth-return";
 
 export default function LoginPage() {
   return (
-    <React.Suspense fallback={<div className="min-h-screen bg-[var(--nav-bg)]" />}>
+    <React.Suspense fallback={<AuthPageSkeleton fields={2} />}>
       <LoginPageContent />
     </React.Suspense>
   );

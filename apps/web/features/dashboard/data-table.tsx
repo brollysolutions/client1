@@ -112,7 +112,7 @@ export function DataTable<Row>({
   const interactive = onRowClick != null;
 
   return (
-    <div className={cn("animate-in fade-in-0 overflow-visible duration-200 motion-reduce:animate-none xl:overflow-x-auto", className)}>
+    <div className={cn("relative animate-in fade-in-0 overflow-visible duration-200 motion-reduce:animate-none xl:overflow-x-auto", className)}>
       {sort && onSortChange ? (
         <div className="flex flex-wrap items-center gap-2 border-b border-border p-3 xl:hidden" role="group" aria-label="Sort records">
           <span className="text-xs text-text-secondary">Sort by</span>
@@ -132,7 +132,7 @@ export function DataTable<Row>({
         </div>
       ) : null}
       <table className={cn("block w-full text-left text-sm max-xl:!min-w-0 xl:table", minWidth)}>
-        <thead className="hidden border-b border-border text-text-secondary xl:table-header-group">
+        <thead className="hidden border-b border-border bg-brand-cta-tint/40 text-text-secondary xl:table-header-group">
           <tr>
             {columns.map((column) =>
               column.sortable && sort && onSortChange ? (
@@ -156,8 +156,7 @@ export function DataTable<Row>({
               ),
             )}
             {interactive ? (
-              // No header label — this column only ever holds the chevron every
-              // row ends in, so it is not sortable and not announced.
+              // Keep a screen-reader label for the visually empty action column.
               <th scope="col" className="w-10 px-3 py-3">
                 <span className="sr-only">{rowActionLabel}</span>
               </th>

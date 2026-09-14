@@ -5,9 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Check, Copy, ExternalLink } from "lucide-react";
 
-import { useAuth } from "@/components/auth/session-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LoadingRegion } from "@/components/ui/loading-region";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isAllowedAssetUrl } from "@/lib/allowed-asset-url";
 import {
@@ -22,35 +22,9 @@ import { DASHBOARD_ICONS } from "./dashboard-icons";
 
 type BusinessLine = "loans" | "real_estate";
 
-function fallbackBanner(role: string, line: BusinessLine): AuthenticatedBanner {
-  const agent = role === "agent";
-  return {
-    id: `fallback-${role}-${line}`,
-    banner_type: "default",
-    title: agent
-      ? line === "loans"
-        ? "Turn every conversation into progress"
-        : "Help buyers find the right property"
-      : line === "loans"
-        ? "Your financial journey, in one place"
-        : "Your property journey starts here",
-    subtitle: agent
-      ? "Keep your active work moving from your dashboard."
-      : "Track each next step securely from your dashboard.",
-    cta_label: null,
-    deep_link: null,
-    image_url: null,
-  };
-}
-
-export function PersonalizedPlacements({
-  businessLine,
-  showBanners = true,
-}: {
-  businessLine: BusinessLine;
-  showBanners?: boolean;
-}) {
-  const { session } = useAuth();
+// Dashboard workspaces show eligible offer cards without promotional banners.
+// The banner renderer below remains available to the campaign editing preview.
+export function PersonalizedPlacements({ businessLine }: { businessLine: BusinessLine }) {
   const [placement, setPlacement] = React.useState<AuthenticatedPlacement | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -68,21 +42,19 @@ export function PersonalizedPlacements({
   }, [businessLine]);
 
   if (loading) {
-    return <div className="mx-auto mb-6 w-full max-w-[1440px] px-4 sm:px-6 lg:px-8"><Skeleton className="h-36 rounded-2xl" /></div>;
+    return (
+      <LoadingRegion label="Loading offers" className="mx-auto mb-6 grid w-full max-w-[1440px] gap-3 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-3 lg:px-8">
+        {Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-64 rounded-2xl" />)}
+      </LoadingRegion>
+    );
   }
 
-  const banners = showBanners
-    ? placement?.banners.length
-      ? placement.banners
-      : [fallbackBanner(session?.role ?? "client", businessLine)]
-    : [];
   const offers = placement?.offers ?? [];
-  if (!banners.length && !offers.length) return null;
+  if (!offers.length) return null;
 
   return (
     <section aria-label="Dashboard highlights" className="mx-auto mb-6 w-full max-w-[1440px] space-y-3 px-4 sm:px-6 lg:px-8">
-      {banners.map((banner) => <DashboardBannerCard key={banner.id} banner={banner} />)}
-      {offers.length ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Offers for you">{offers.map((offer) => <DashboardOfferCard key={offer.id} offer={offer} />)}</div> : null}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Offers for you">{offers.map((offer) => <DashboardOfferCard key={offer.id} offer={offer} />)}</div>
     </section>
   );
 }
@@ -135,7 +107,7 @@ export function DashboardBannerCard({ banner, interactive = true }: { banner: Au
       {banner.banner_type === "action" ? <Badge className="mb-3 bg-white/15 text-white hover:bg-white/15">Next step</Badge> : null}
       <h2 className="max-w-2xl text-xl font-semibold sm:text-2xl">{banner.title}</h2>
       {banner.subtitle ? <p className="mt-2 max-w-2xl text-sm text-blue-100">{banner.subtitle}</p> : null}
-      {hasAction ? interactive ? <Link href={banner.deep_link!} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-navy transition-colors hover:bg-blue-50">{banner.cta_label}<ArrowRight className="h-4 w-4" aria-hidden="true" /></Link> : <span className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-navy">{banner.cta_label}<ArrowRight className="h-4 w-4" aria-hidden="true" /></span> : null}
+      {hasAction ? interactive ? <Link href={banner.deep_link!} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-navy transition-colors hover:bg-surface-sky">{banner.cta_label}<ArrowRight className="h-4 w-4" aria-hidden="true" /></Link> : <span className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand-navy">{banner.cta_label}<ArrowRight className="h-4 w-4" aria-hidden="true" /></span> : null}
     </article>
   );
 }

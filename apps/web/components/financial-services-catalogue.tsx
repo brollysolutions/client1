@@ -1,70 +1,32 @@
-import { ArrowRight, CreditCard, Landmark, ShieldCheck, type LucideIcon } from "lucide-react";
-import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 
 import { FinancialServicesFilters } from "@/components/financial-services-filters";
 import { LeadDialog } from "@/components/lead-dialog";
+import { ServiceArtwork } from "@/components/service-artwork";
 import { Button } from "@/components/ui/button";
-import type {
-  CatalogueFacets,
-  PublicFinancialProduct,
-  PublicFinancialProductList,
-} from "@/lib/financial-catalog";
+import type { CatalogueFacets } from "@/lib/financial-catalog";
 import {
   CATALOGUE_ANCHOR,
   catalogueAnchorHref,
-  type CatalogueCategory,
   type CatalogueQuery,
 } from "@/lib/financial-catalogue-url";
 import { contactHref } from "@/lib/leads";
-import { catalogueIllustration } from "@/lib/products";
+import type { ServiceDirectoryItem, ServiceDirectoryPage } from "@/lib/service-directory";
 
-// Category glyph for a published service that has no spot illustration yet.
-// Drawn into the same tinted plate the artwork sits on so an unmapped slug
-// reads as a designed state rather than a broken image.
-const FALLBACK_ICON: Record<CatalogueCategory, LucideIcon> = {
-  loan: Landmark,
-  credit_card: CreditCard,
-  insurance: ShieldCheck,
-};
-
-function CardArtwork({ product }: { product: PublicFinancialProduct }) {
-  const illustration = catalogueIllustration(product.slug);
-  const Icon = FALLBACK_ICON[product.category];
+function ServiceCard({ product }: { product: ServiceDirectoryItem }) {
+  const href = product.detailHref;
 
   return (
-    <div className="relative aspect-[4/3] overflow-hidden bg-[var(--nav-tint)]/60">
-      {illustration ? (
-        // The assets are authored at exactly 4:3 to match this plate, so
-        // object-contain fills it edge to edge without cropping or padding.
-        <Image
-          src={illustration}
-          alt=""
-          aria-hidden
-          fill
-          sizes="(min-width:1280px) 300px, (min-width:1024px) 31vw, (min-width:640px) 47vw, 92vw"
-          className="object-contain transition-transform duration-300 group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-        />
-      ) : (
-        <div aria-hidden className="relative h-full w-full">
-          {/* Mirrors the illustration family's backdrop disc and ground shadow. */}
-          <span className="absolute bottom-[15%] left-1/2 h-2.5 w-[52%] -translate-x-1/2 rounded-[50%] bg-brand-navy/[0.08]" />
-          <span className="absolute left-1/2 top-[46%] flex aspect-square h-[52%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-brand-aqua/50">
-            <Icon className="h-1/2 w-1/2 text-brand-navy/60" strokeWidth={1.5} />
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ServiceCard({ product }: { product: PublicFinancialProduct }) {
-  const href = `/loans/${product.slug}`;
-
-  return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-[var(--nav-bg)] shadow-sm transition duration-200 hover:-translate-y-1 hover:border-brand-blue/40 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0">
-      <CardArtwork product={product} />
+    <article
+      id={product.id}
+      className="group relative flex h-full scroll-mt-64 flex-col overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-surface shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-brand-cta hover:shadow-md motion-reduce:transition-none"
+    >
+      {product.legacyAnchorId ? (
+        <span id={product.legacyAnchorId} className="absolute top-0 scroll-mt-64" />
+      ) : null}
+      <ServiceArtwork slug={product.slug} />
 
       <div className="flex flex-1 flex-col px-5 pt-5">
         <h3 className="font-heading text-lg font-semibold leading-snug text-foreground">
@@ -78,13 +40,17 @@ function ServiceCard({ product }: { product: PublicFinancialProduct }) {
       <div className="mt-5 flex items-center justify-between gap-3 border-t border-[var(--nav-border)] px-5 py-4">
         {/* Decorative: the whole card is already the link to `href`, so this
             stays a span to avoid a duplicate link for screen readers. */}
-        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-blue">
-          <span>Explore</span>
-          <ArrowRight
-            className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
-            aria-hidden
-          />
-        </span>
+        {href ? (
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-blue">
+            <span>Explore</span>
+            <ArrowRight
+              className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
+              aria-hidden
+            />
+          </span>
+        ) : (
+          <span className="text-sm text-text-secondary">Talk to our team</span>
+        )}
         <div className="relative z-20 w-[8.75rem] shrink-0">
           <LeadDialog
             businessLine="loans"
@@ -98,11 +64,13 @@ function ServiceCard({ product }: { product: PublicFinancialProduct }) {
 
       {/* Stretched link last so it sits above the artwork and body, but below
           the z-20 Enquire action. */}
-      <Link
-        href={href}
-        aria-label={`Explore ${product.label}`}
-        className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
-      />
+      {href ? (
+        <Link
+          href={href}
+          aria-label={`Explore ${product.label}`}
+          className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+        />
+      ) : null}
     </article>
   );
 }
@@ -112,7 +80,7 @@ export function FinancialServicesCatalogue({
   facets,
   query,
 }: {
-  catalogue: PublicFinancialProductList;
+  catalogue: ServiceDirectoryPage;
   facets: CatalogueFacets;
   query: CatalogueQuery;
 }) {
@@ -132,8 +100,8 @@ export function FinancialServicesCatalogue({
             Explore financial services
           </h2>
           <p className="mt-4 text-lg text-text-secondary">
-            Search the products currently published by Dhanadhara. Open any service to review
-            configured providers and continue through an internal application or enquiry.
+            Explore our loans, insurance and credit card services. Compare available
+            provider options or enquire with our team for guidance.
           </p>
         </div>
       </div>
@@ -156,7 +124,7 @@ export function FinancialServicesCatalogue({
         ) : (
           <div className="rounded-2xl border border-dashed border-[var(--nav-border)] bg-surface px-6 py-14 text-center">
             <h3 className="font-heading text-xl font-semibold text-foreground">
-              No published services match these filters
+              No services match these filters
             </h3>
             <p className="mt-2 text-text-secondary">Try a broader search or another category.</p>
             {filtered ? (

@@ -105,7 +105,7 @@ export function ProductPage({
       {/* Header */}
       <section
         id="page-overview"
-        className="relative w-full scroll-mt-16 overflow-hidden bg-[var(--nav-bg)]"
+        className={cn("relative w-full scroll-mt-16 overflow-hidden", businessLine === "loans" ? "bg-brand-cta-tint" : "bg-surface-sky")}
       >
         {heroBackdrop ? (
           <>
@@ -128,10 +128,10 @@ export function ProductPage({
         <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <h1 className="max-w-4xl font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl lg:text-6xl">
+              <h1 className="max-w-4xl font-heading text-3xl font-semibold leading-tight tracking-tight text-brand-navy sm:text-5xl lg:text-6xl">
                 {title}
               </h1>
-              <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">
+              <p className="mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary sm:text-xl">
                 {intro}
               </p>
             </div>
@@ -503,10 +503,9 @@ export function ProductPage({
       {/* Closing CTA */}
       {ctaBanner ? (
         // Bold full-bleed navy band: page-closer for the Loans surface. Reuses
-        // the locked --nav-primary navy (same as the advisor card + banner) so
-        // no new color enters the blue-accent palette. Faint finance glyphs bleed
+        // the shared brand navy. Faint finance glyphs bleed
         // in from the edges on lg+ (CtaBandDoodles); center stays clear.
-        <section className="relative w-full overflow-hidden bg-[var(--nav-primary)]">
+        <section className="relative w-full overflow-hidden bg-brand-navy">
           <CtaBandDoodles />
           <div className="relative z-10 mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
             <h2 className="font-heading text-3xl font-semibold text-white sm:text-4xl">

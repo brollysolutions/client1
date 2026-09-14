@@ -22,13 +22,13 @@ export const metadata: Metadata = {
 
 export default function CookiesPage() {
   return (
-    <section className="w-full bg-[var(--nav-bg)]">
-      <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+    <section className="w-full bg-surface-sky px-4 py-10 sm:px-6 sm:py-14">
+      <div className="mx-auto max-w-5xl rounded-2xl border border-border bg-surface px-5 py-10 leading-relaxed sm:px-10 sm:py-12">
         <div className="max-w-3xl">
           <p className="font-geist text-sm font-semibold uppercase tracking-[0.16em] text-[var(--nav-primary)]">
             Privacy at a glance
           </p>
-          <h1 className="mt-3 font-heading text-4xl font-semibold text-[var(--nav-text)] sm:text-5xl">
+          <h1 className="mt-3 font-heading text-3xl font-semibold leading-tight tracking-tight text-brand-navy sm:text-5xl">
             Cookie Notice
           </h1>
           <p className="mt-6 text-lg leading-8 text-[var(--nav-text)]">

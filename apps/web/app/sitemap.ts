@@ -1,11 +1,14 @@
 import type { MetadataRoute } from "next";
 
 import { CALCULATOR_SLUGS } from "@/lib/calculators/registry";
+import { financialServiceHref } from "@/lib/products";
+import { getPublishedServiceProducts } from "@/lib/financial-catalog";
 import { SITE_URL } from "@/lib/site";
 
-// Public URLs for crawlers. The calculator suite is generated from the registry
-// so new calculators appear here automatically.
-export default function sitemap(): MetadataRoute.Sitemap {
+export const revalidate = 0;
+
+// Only currently published services belong in the sitemap.
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
     "",
     "/loans",
@@ -19,7 +22,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/cookies",
   ];
   const calculatorPaths = CALCULATOR_SLUGS.map((slug) => `/calculators/${slug}`);
-  return [...staticPaths, ...calculatorPaths].map((path) => ({
+  const products = await getPublishedServiceProducts();
+  const servicePaths = [...new Set(products.map((product) => financialServiceHref(product.slug)))];
+  return [...staticPaths, ...calculatorPaths, ...servicePaths].map((path) => ({
     url: `${SITE_URL}${path}`,
     changeFrequency: "monthly",
     priority: path === "" ? 1 : 0.7,
