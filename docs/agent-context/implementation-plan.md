@@ -60,6 +60,30 @@ default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
 
+**Implemented — system appearance and distinct public footer** (2026-09-14),
+on `feat/production-environment-evidence`. Public/auth always follow the device;
+dashboard Settings offers Light/Dark/System for all six roles, defaults to
+System and persists independently of public appearance. The old site-wide
+preference is intentionally not migrated. Header/menu theme controls are removed.
+The footer uses white transparent branding in both themes, clearer navigation
+and contact hierarchy, and a 40px mobile / 64px larger-screen gap from closing
+CTAs. Existing destinations, product publication rules and enquiry actions remain.
+
+Fresh verification: `pnpm lint`, `pnpm typecheck`, all 705 web unit tests,
+the env-free production build and all seven targeted Playwright cases pass.
+Browser checks cover all roles, keyboard radios, preference persistence and
+system changes; footer checks cover both themes at 320/768/1440px. Screenshots
+were inspected for branding, hierarchy and responsive behavior. Design/Apple,
+security and source review found no remaining change-owned defect in scope.
+The representative four-page SEO smoke check retains four existing failures
+(root slash canonical/sitemap matching and missing social images) and five
+warnings. A complete site SEO crawl and new Lighthouse measurements were not
+run; inherited release/performance gaps remain open. No API or contract changed.
+
+<!-- theme-footer-pr-links -->
+Next priority: inherited SEO/performance and release-evidence gaps. No merge or
+deployment is included in this change.
+
 **Implemented — dashboard themes, navigation and workflow refinement** (2026-09-14),
 on `feat/production-environment-evidence`. The approved 25-point brief now covers
 Light/Dark/System appearance, smooth shared sidebar branding, pale blue light

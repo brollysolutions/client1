@@ -10,14 +10,10 @@ import {
   FileText,
   Headset,
   LogOut,
-  Monitor,
-  Moon,
   Rocket,
   Settings,
   ShieldCheck,
-  Sun,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
 import { useAuth } from "@/components/auth/session-provider";
@@ -26,8 +22,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -39,13 +33,6 @@ import { cn } from "@/lib/utils";
 
 import { useLine } from "./line-provider";
 import { useMe } from "./me-provider";
-
-// Appearance is persisted by the root theme provider.
-const APPEARANCE_OPTIONS = [
-  { key: "light", label: "Light", icon: Sun },
-  { key: "dark", label: "Dark", icon: Moon },
-  { key: "system", label: "System", icon: Monitor },
-] as const;
 
 // Help and legal destinations retain the authenticated workspace.
 const HELP_LINKS = [
@@ -68,7 +55,6 @@ export function AccountMenu({
   onNavigate?: () => void;
 }) {
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
   const { clear } = useAuth();
   const { me } = useMe();
   const { activeLine } = useLine();
@@ -149,27 +135,6 @@ export function AccountMenu({
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
-
-          {/* Appearance */}
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <Sun />
-              <span className="flex flex-col">
-                <span>Appearance</span>
-                <span className="text-xs text-text-secondary">{theme === "dark" ? "Dark" : theme === "light" ? "Light" : "System"}</span>
-              </span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuRadioGroup value={theme ?? "system"} onValueChange={setTheme}>
-              {APPEARANCE_OPTIONS.map(({ key, label, icon: Icon }) => (
-                <DropdownMenuRadioItem key={key} value={key}>
-                  <Icon />
-                  {label}
-                </DropdownMenuRadioItem>
-              ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
 
           {/* Help */}
           <DropdownMenuSub>
