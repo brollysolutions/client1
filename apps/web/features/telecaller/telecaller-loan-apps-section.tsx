@@ -317,7 +317,7 @@ export function TelecallerLoanAppsSection({
             <div className="space-y-6 p-4 sm:p-5">
               {application.form_schema_snapshot && application.form_answers ? (
                 <details className="group rounded-xl border border-border bg-muted/15">
-                  <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue">
+                  <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                     <span className="inline-flex items-center gap-2">
                       <span aria-hidden="true" className="text-text-secondary transition-transform group-open:rotate-90">›</span>
                       View submitted application details

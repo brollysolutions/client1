@@ -96,7 +96,7 @@ export default async function ContactPage({
         <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <h1 className="max-w-3xl font-heading text-3xl font-semibold leading-tight tracking-tight text-brand-navy sm:text-5xl lg:text-6xl">
+              <h1 className="max-w-3xl font-heading text-3xl font-semibold leading-tight tracking-tight text-brand-heading sm:text-5xl lg:text-6xl">
                 Talk to a real person
               </h1>
               <p className="mt-5 max-w-2xl text-lg text-[var(--nav-text)] sm:text-xl">

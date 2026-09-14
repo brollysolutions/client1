@@ -98,7 +98,7 @@ function PendingBadge({ count }: { count: number }) {
   if (!count) return null;
   return (
     <span
-      className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning px-1.5 text-[11px] font-semibold tabular-nums text-white"
+      className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning px-1.5 text-[11px] font-semibold tabular-nums text-white dark:text-background"
       aria-label={`${count} awaiting review`}
     >
       {count}

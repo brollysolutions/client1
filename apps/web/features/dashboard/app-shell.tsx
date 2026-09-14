@@ -17,6 +17,7 @@ import { LineSwitcher } from "./line-switcher";
 import { MeProvider } from "./me-provider";
 import { NotificationBell } from "./notification-bell";
 import { NotificationsProvider } from "./notifications-provider";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { ProfileMenu } from "./profile-menu";
 import { hasFixedDesktopSidebar, isDesktopSidebarExpanded } from "./shell-state";
 
@@ -51,7 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <a
                   href="#dashboard-main-content"
-                  className="fixed left-4 top-4 z-[60] -translate-y-24 rounded-md bg-brand-navy px-4 py-2 text-sm font-semibold text-surface shadow-lg transition-transform duration-150 ease-out focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 motion-reduce:transition-none"
+                  className="fixed left-4 top-4 z-[60] -translate-y-24 rounded-md bg-brand-navy px-4 py-2 text-sm font-semibold text-white shadow-lg transition-transform duration-150 ease-out focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 motion-reduce:transition-none"
                 >
                   Skip to main content
                 </a>
@@ -71,31 +72,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <SheetContent
                   side="left"
                   className="font-geist h-dvh w-64 border-white/15 bg-dash-rail p-0 text-dash-foreground"
-                  closeButtonClassName="text-dash-foreground hover:bg-dash-rail-hover focus-visible:ring-brand-sky"
+                  closeButtonClassName="z-10 text-dash-foreground hover:bg-dash-rail-hover focus-visible:ring-brand-sky"
                   onCloseAutoFocus={(event) => {
                     event.preventDefault();
                     mobileTriggerRef.current?.focus();
                   }}
                 >
                   <SheetTitle className="sr-only">Workspace</SheetTitle>
-                  <AppSidebar showLabels onNavigate={() => setMobileOpen(false)} />
+                  <AppSidebar showLabels reserveCloseSpace onNavigate={() => setMobileOpen(false)} />
                 </SheetContent>
               </Sheet>
 
               <div className="min-w-0">
                 {/* Top bar */}
-                <header className="sticky top-0 z-20 flex min-h-16 items-center gap-0.5 border-b border-border bg-surface px-2 sm:gap-3 sm:px-4 lg:px-6">
+                <header className="sticky top-0 z-20 flex min-h-16 items-center gap-0.5 border-b border-border bg-background px-2 sm:gap-3 sm:px-4 lg:px-6">
                   <button
                     ref={mobileTriggerRef}
                     type="button"
                     aria-label="Open menu"
                     onClick={() => setMobileOpen(true)}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-brand-navy transition-[background-color,color,transform] duration-150 ease-out hover:bg-brand-cta-tint active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100 lg:hidden"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-brand-heading transition-[background-color,color,transform] duration-150 ease-out hover:bg-brand-cta-tint active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:active:scale-100 lg:hidden"
                   >
                     <Menu className="h-5 w-5" />
                   </button>
                   <Logo variant="symbol" tone="navy" href="/dashboard" className="h-11 w-8 lg:hidden" sizes="32px" />
                   <div className="flex-1" />
+                  <div className="hidden sm:block"><ThemeSwitcher /></div>
                   <NotificationBell />
                   <LineSwitcher />
                   <ProfileMenu />

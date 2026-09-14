@@ -36,7 +36,7 @@ export function ExternalListingLinks({
 
   return (
     <section className={className} aria-labelledby="listing-links-heading">
-      <h2 id="listing-links-heading" className="text-lg font-semibold text-slate-900">
+      <h2 id="listing-links-heading" className="text-lg font-semibold text-text-primary">
         See this property elsewhere
       </h2>
       <p className="mt-1 text-sm text-slate-600">
@@ -52,7 +52,7 @@ export function ExternalListingLinks({
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition hover:border-input hover:bg-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <Icon aria-hidden className="size-4" />
                 <span>

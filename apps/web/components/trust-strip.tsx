@@ -19,7 +19,7 @@ export function TrustStrip({ points }: { points: TrustPoint[] }) {
               key={point.label}
               className="flex flex-col items-center px-6 text-center transition duration-200 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
             >
-              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-white to-[var(--nav-tint)] text-brand-blue shadow-sm ring-2 ring-brand-blue/20">
+              <span className="flex h-14 w-14 items-center justify-center text-brand-link">
                 <point.icon className="h-6 w-6" aria-hidden />
               </span>
               <h3 className="mt-4 font-heading text-base font-semibold text-foreground">

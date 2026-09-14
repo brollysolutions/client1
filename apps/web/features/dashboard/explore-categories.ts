@@ -29,7 +29,7 @@ export const EXPLORE_CATEGORIES: ExploreCategory[] = [
     slug: "loans",
     label: "Loans",
     icon: Landmark,
-    illustration: "/illustrations/products/home-loan.svg",
+    illustration: "/images/services/personal-loan.webp",
     category: "loan",
     blurb: "Home, personal, business and gold loans.",
   },
@@ -37,7 +37,7 @@ export const EXPLORE_CATEGORIES: ExploreCategory[] = [
     slug: "insurance",
     label: "Insurance",
     icon: ShieldCheck,
-    illustration: "/illustrations/products/health-insurance.svg",
+    illustration: "/images/services/health-insurance.webp",
     category: "insurance",
     blurb: "Health, life, motor and term cover.",
   },
@@ -45,7 +45,7 @@ export const EXPLORE_CATEGORIES: ExploreCategory[] = [
     slug: "cards",
     label: "Credit Cards",
     icon: CreditCard,
-    illustration: "/illustrations/products/credit-cards.svg",
+    illustration: "/images/services/credit-cards.webp",
     category: "credit_card",
     blurb: "Cards matched to your profile and spend.",
   },
@@ -55,11 +55,7 @@ export function getExploreCategory(slug: string): ExploreCategory | undefined {
   return EXPLORE_CATEGORIES.find((c) => c.slug === slug);
 }
 
-// The "cards" category is a single flagship product line by design, so its
-// list view is always skipped in favor of going straight to a product --
-// unlike loans/insurance, which keep their list at any item count. There is
-// nothing to redirect to when the category has zero published products, so
-// that case still falls through to the empty state.
+// Skip the category only when exactly one published card product exists.
 export function shouldSkipCardsCategoryList(categorySlug: string, itemCount: number): boolean {
-  return categorySlug === "cards" && itemCount > 0;
+  return categorySlug === "cards" && itemCount === 1;
 }

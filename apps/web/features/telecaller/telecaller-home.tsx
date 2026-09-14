@@ -144,7 +144,7 @@ export function TelecallerHome() {
                     className="flex items-center justify-between gap-3 rounded-xl border border-border p-3 text-sm transition-colors hover:border-brand-cta"
                   >
                     <span className="flex items-center gap-2 font-medium text-text-primary">
-                      <DASHBOARD_ICONS.leads className="h-4 w-4 text-brand-cta" aria-hidden="true" />
+                      <DASHBOARD_ICONS.leads className="h-4 w-4 text-brand-link" aria-hidden="true" />
                       {item.name ?? item.mobile}
                     </span>
                     <span className="text-xs text-text-secondary">

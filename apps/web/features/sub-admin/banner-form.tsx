@@ -29,6 +29,7 @@ import {
 } from "@/lib/banner-properties";
 import { apiIssuesToFieldErrors, focusFirstInvalidField, integerError } from "@/lib/form-validation";
 import { getAdminProperties, type AdminProperty } from "@/lib/properties-api";
+import { DestinationInput } from "./destination-input";
 import { isSafeLocalHref } from "@/lib/safe-local-href";
 import { cn } from "@/lib/utils";
 
@@ -455,7 +456,7 @@ export function BannerForm({
             <div className="rounded-xl border border-border p-4">
               <Label>Business line</Label>
               {forcedLine(placement) ? (
-                <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[var(--nav-tint)] px-3 py-1 text-sm font-medium text-[var(--nav-primary)]">
+                <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-[var(--nav-tint)] px-3 py-1 text-sm font-medium text-brand-link">
                   {LINE_OPTIONS.find((option) => option.value === forcedLine(placement))?.label}
                   <span className="text-xs font-normal text-text-secondary">
                     set by this placement
@@ -477,7 +478,7 @@ export function BannerForm({
                       className={cn(
                         "rounded-full border px-4 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         businessLine === option.value
-                          ? "border-[var(--nav-primary)] bg-[var(--nav-tint)] text-[var(--nav-primary)]"
+                          ? "border-[var(--nav-primary)] bg-[var(--nav-tint)] text-brand-link"
                           : "border-border text-text-secondary hover:border-[var(--nav-primary)]/40",
                       )}
                     >
@@ -682,13 +683,16 @@ export function BannerForm({
                 </div>
                 <div>
                   <Label htmlFor="deep-link">Button destination</Label>
-                  <Input
+                  <DestinationInput
                     id="deep-link"
                     name="deep_link"
+                    dashboard={!isPublic}
+                    businessLine={businessLine}
+                    audienceRoles={bannerType === "personalized" ? audienceRules.user_types : undefined}
                     placeholder="/loans"
                     value={selectedProperty ? propertyCampaignHref(selectedProperty) : deepLink}
-                    onChange={(event) => {
-                      setDeepLink(event.target.value);
+                    onValueChange={(value) => {
+                      setDeepLink(value);
                       setFieldErrors((current) => {
                         const next = { ...current };
                         delete next.deepLink;
@@ -707,7 +711,7 @@ export function BannerForm({
               <p id="deep-link-help" className="-mt-2 text-xs text-text-secondary">
                 {selectedProperty
                   ? "Property enquiries always use the server-generated contact destination."
-                  : "A same-site path beginning with one slash. Without a valid label and destination, no button is rendered."}
+                  : "Type / to browse destinations, then choose a page or enter a same-site path. Without a valid label and destination, no button is rendered."}
               </p>
               <FieldError id="deep-link-error">{fieldErrors.deepLink}</FieldError>
             </div>
@@ -870,7 +874,7 @@ function StepIndicator({
               className={cn(
                 "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
                 state === "current"
-                  ? "border-[var(--nav-primary)] bg-[var(--nav-tint)] font-medium text-[var(--nav-primary)]"
+                  ? "border-[var(--nav-primary)] bg-[var(--nav-tint)] font-medium text-brand-link"
                   : "border-border text-text-secondary hover:border-[var(--nav-primary)]/40",
               )}
             >

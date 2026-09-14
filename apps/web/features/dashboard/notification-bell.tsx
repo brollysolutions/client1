@@ -57,7 +57,7 @@ export function NotificationBell() {
         <button
           type="button"
           aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
-          className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue sm:h-8 sm:w-8"
+          className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 sm:w-8"
         >
           <Bell className="h-5 w-5" />
           {count > 0 && (
@@ -97,7 +97,7 @@ export function NotificationBell() {
                 <CheckCheck className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted text-text-primary">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-text-primary">
               <Bell className="h-4 w-4" aria-hidden="true" />
             </span>
           </div>
@@ -137,7 +137,7 @@ export function NotificationBell() {
               const Icon = NOTIFICATION_TYPE_ICON[notification.type];
               const content = (
                 <>
-                  <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-text-primary">
+                  <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-text-primary">
                     <Icon className="h-4 w-4" aria-hidden="true" />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -161,7 +161,7 @@ export function NotificationBell() {
                   {notification.href && isSafeLocalHref(notification.href) ? (
                     <Link
                       href={notification.href}
-                      className="flex gap-3 bg-muted/40 px-4 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+                      className="flex gap-3 bg-muted/40 px-4 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                       onClick={() => setOpen(false)}
                     >
                       {content}
@@ -178,7 +178,7 @@ export function NotificationBell() {
         <Link
           href="/dashboard/notifications"
           onClick={() => setOpen(false)}
-          className="flex items-center justify-center gap-1.5 border-t border-border px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-blue"
+          className="flex items-center justify-center gap-1.5 border-t border-border px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
           View all notifications
           <ChevronRight className="h-4 w-4" aria-hidden="true" />

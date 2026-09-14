@@ -49,7 +49,7 @@ export function ContactInfo() {
         const body = (
           <>
             <Icon
-              className="mt-0.5 h-5 w-5 shrink-0 text-[var(--nav-primary)]"
+              className="mt-0.5 h-5 w-5 shrink-0 text-brand-link"
               aria-hidden
             />
             <div>
@@ -69,7 +69,7 @@ export function ContactInfo() {
           <a
             key={row.label}
             href={row.href}
-            className="group flex w-fit items-start gap-4 rounded-lg transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--nav-primary)] [&_p:first-of-type]:transition-colors hover:[&_p:first-of-type]:text-[var(--nav-primary)]"
+            className="group flex w-fit items-start gap-4 rounded-lg transition focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--nav-primary)] [&_p:first-of-type]:transition-colors hover:[&_p:first-of-type]:text-brand-link"
           >
             {body}
           </a>

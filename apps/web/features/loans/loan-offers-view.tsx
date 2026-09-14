@@ -177,7 +177,7 @@ export function LoanOffersView() {
       />
 
       <div className="flex items-start gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-text-secondary">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-blue" aria-hidden="true" />
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-link" aria-hidden="true" />
         <p>
           Terms are informational snapshots last verified by Dhanadhara. Final pricing,
           eligibility, documents, and approval come from the selected lender after review.
@@ -197,7 +197,7 @@ export function LoanOffersView() {
 
       {resolved.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-text-secondary">
             <Scale className="h-6 w-6" />
           </span>
           <h2 className="mt-5 text-lg font-semibold text-text-primary">Nothing to compare yet</h2>
@@ -206,7 +206,7 @@ export function LoanOffersView() {
           </p>
           <Link
             href="/dashboard/explore/loans"
-            className="mt-4 inline-block text-sm font-semibold text-brand-cta hover:underline"
+            className="mt-4 inline-block text-sm font-semibold text-brand-link hover:underline"
           >
             Explore loan offers
           </Link>
@@ -219,7 +219,7 @@ export function LoanOffersView() {
             <button
               type="button"
               onClick={compare.clear}
-              className="cursor-pointer text-sm text-text-secondary transition-colors hover:text-brand-cta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
+              className="cursor-pointer text-sm text-text-secondary transition-colors hover:text-brand-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Clear all
             </button>
@@ -279,7 +279,7 @@ export function LoanOffersView() {
                     Interest rate
                   </th>
                   {resolved.map((item) => (
-                    <td key={item.offerId} className="px-5 py-4 font-heading font-semibold text-brand-blue">
+                    <td key={item.offerId} className="px-5 py-4 font-heading font-semibold text-brand-link">
                       {item.offer.min_interest_rate !== null
                         ? `${item.offer.min_interest_rate}%${item.offer.max_interest_rate !== null ? ` - ${item.offer.max_interest_rate}%` : "+"}`
                         : "Ask us"}

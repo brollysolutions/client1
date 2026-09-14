@@ -46,7 +46,7 @@ export function AddToCompareButton({
         type="checkbox"
         checked={checked}
         onChange={toggle}
-        className="h-3.5 w-3.5 cursor-pointer rounded border-border text-brand-cta focus-visible:outline-none"
+        className="h-3.5 w-3.5 cursor-pointer rounded border-border text-brand-link focus-visible:outline-none"
       />
       <Scale className="h-3.5 w-3.5" aria-hidden="true" />
       Add to compare

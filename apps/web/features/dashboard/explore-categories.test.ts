@@ -56,9 +56,9 @@ describe("EXPLORE_CATEGORIES", () => {
 });
 
 describe("shouldSkipCardsCategoryList", () => {
-  it("skips the list for the cards category whenever it has at least one product", () => {
+  it("skips the list for the cards category only when exactly one published card product exists", () => {
     expect(shouldSkipCardsCategoryList("cards", 1)).toBe(true);
-    expect(shouldSkipCardsCategoryList("cards", 2)).toBe(true);
+    expect(shouldSkipCardsCategoryList("cards", 2)).toBe(false);
     expect(shouldSkipCardsCategoryList("cards", 0)).toBe(false);
     expect(shouldSkipCardsCategoryList("loans", 1)).toBe(false);
   });

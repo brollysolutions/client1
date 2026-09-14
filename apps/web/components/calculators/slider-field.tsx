@@ -96,7 +96,7 @@ export function SliderField({
           </Label>
           {info ? <InfoHint label={label} text={info} /> : null}
         </div>
-        <div className="flex items-center gap-1 rounded-md border border-[var(--nav-border)] bg-white px-2 py-1">
+        <div className="flex items-center gap-1 rounded-md border border-[var(--nav-border)] bg-card px-2 py-1">
           {prefix ? (
             <span className="text-sm text-text-secondary">{prefix}</span>
           ) : null}

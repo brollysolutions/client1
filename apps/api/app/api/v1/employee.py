@@ -21,6 +21,7 @@ from app.models.task import Task, TaskDocument, TaskFeedbackMedia, TaskStatus
 from app.schemas.employee import (
     EmployeeHomeResponse,
     EmployeeTaskRead,
+    EmployeeTaskReopen,
     EmployeeTaskUpdate,
     TaskDocumentCreate,
     TaskDocumentPresignRequest,
@@ -55,6 +56,7 @@ from app.services.employee import (
     list_task_documents,
     list_tasks_for_employee,
     presign_task_document_upload,
+    reopen_task,
     update_task,
 )
 from app.services.field_visibility import (
@@ -182,6 +184,29 @@ async def get_task(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found.")
     modes = await effective_modes(db, FieldTargetRole.EMPLOYEE)
     return _to_read(*row, modes)
+
+
+@router.post(
+    "/tasks/{task_id}/reopen", response_model=EmployeeTaskRead, response_model_exclude_unset=True
+)
+async def reopen_employee_task(
+    task_id: UUID,
+    payload: EmployeeTaskReopen,
+    current_user: CurrentUser = Depends(require_employee),
+    db: AsyncSession = Depends(get_db),
+) -> EmployeeTaskRead:
+    task = await get_task_for_update(db, task_id, _staff_profile_uuid(current_user))
+    if task is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Task not found.")
+    try:
+        task = await reopen_task(db, task=task, actor_uuid=current_user.id, reason=payload.reason)
+    except IllegalTransition as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Only a cancelled task can be reopened."
+        ) from exc
+    lead = await db.get(Lead, task.lead_uuid)
+    modes = await effective_modes(db, FieldTargetRole.EMPLOYEE)
+    return _to_read(task, lead.name if lead else None, lead.mobile if lead else "", modes)
 
 
 @router.patch(

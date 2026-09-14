@@ -24,7 +24,7 @@ export function PushSubscriptionCard() {
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-sky/25 text-brand-navy">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-brand-heading">
           <Bell className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">

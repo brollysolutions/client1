@@ -134,7 +134,7 @@ export function HealthInsuranceCalculator() {
           sub={`Comfortable band ${formatCompactINR(result.suggested)} to ${formatCompactINR(result.suggestedUpper)}`}
         />
 
-        <div className="rounded-xl border border-[var(--nav-border)] bg-white px-5 py-3">
+        <div className="rounded-xl border border-[var(--nav-border)] bg-card px-5 py-3">
           <Row
             label={`Base for a ${TIER_LABELS[state.tier]} city`}
             value={formatINR(result.baseCover)}
@@ -160,7 +160,7 @@ export function HealthInsuranceCalculator() {
         </div>
 
         {result.seniorSeparatePolicyAdvised ? (
-          <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
+          <div className="rounded-xl border border-[var(--nav-border)] bg-card p-5">
             <p className="font-heading text-base font-semibold text-[var(--nav-text)]">
               Consider a separate senior policy
             </p>

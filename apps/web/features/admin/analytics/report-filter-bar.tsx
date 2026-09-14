@@ -180,7 +180,7 @@ export function ReportFilterBar({
                 <button
                   type="button"
                   onClick={() => onChange({ ...value, agentProfileUuids: [] })}
-                  className="mb-1 w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-brand-cta hover:bg-muted"
+                  className="mb-1 w-full rounded-md px-2 py-1.5 text-left text-xs font-medium text-brand-link hover:bg-muted"
                 >
                   Clear selected agents
                 </button>

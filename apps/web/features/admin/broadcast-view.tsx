@@ -154,7 +154,7 @@ export function BroadcastView() {
         description="Send a notification to every matching user. Preview the audience first because a broadcast cannot be undone."
         actions={
           <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs text-text-secondary">
-            <Send className="h-4 w-4 text-brand-cta" aria-hidden="true" />
+            <Send className="h-4 w-4 text-brand-link" aria-hidden="true" />
             One-time notification
           </div>
         }

@@ -157,7 +157,7 @@ export function FileField({
           onDrop={handleDrop}
           className={cn(
             "group relative flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-dashed p-3 text-center transition-colors",
-            "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--nav-primary)]/50",
+            "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
             "disabled:pointer-events-none disabled:cursor-default disabled:opacity-50",
             displayError
               ? "border-destructive"
@@ -195,7 +195,7 @@ export function FileField({
               </>
             ) : (
               <span className="flex flex-col items-center gap-2">
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--nav-tint)] text-[var(--nav-primary)]">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full text-brand-link">
                   <FileText className="h-5 w-5" aria-hidden />
                 </span>
                 <span className="max-w-full truncate px-1 text-xs font-medium text-foreground">
@@ -208,14 +208,14 @@ export function FileField({
             )
           ) : (
             <>
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--nav-tint)] text-[var(--nav-primary)] transition-transform group-hover:scale-105">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--nav-tint)] text-brand-link transition-transform group-hover:scale-105">
                 {dragging ? (
                   <UploadCloud className="h-5 w-5" aria-hidden />
                 ) : (
                   <Icon className="h-5 w-5" aria-hidden />
                 )}
               </span>
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-[var(--nav-primary)]">
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-link">
                 <Plus className="h-3.5 w-3.5" aria-hidden />
                 Upload
               </span>

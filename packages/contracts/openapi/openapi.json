@@ -4303,6 +4303,7 @@
           "agent_lead_expired",
           "lead_assigned",
           "employee_work_assigned",
+          "employee_task_reopened",
           "lead_details_updated",
           "field_visibility_updated",
           "mobile_change_verified",
@@ -7692,6 +7693,21 @@
         "title": "EmployeeTaskRead",
         "type": "object"
       },
+      "EmployeeTaskReopen": {
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "EmployeeTaskReopen",
+        "type": "object"
+      },
       "EmployeeTaskUpdate": {
         "properties": {
           "notes": {
@@ -8618,6 +8634,70 @@
         ],
         "title": "InterestLevel",
         "type": "string"
+      },
+      "JourneyContactRead": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "agent",
+              "telecaller"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "code",
+          "role"
+        ],
+        "title": "JourneyContactRead",
+        "type": "object"
+      },
+      "JourneyContactsRead": {
+        "properties": {
+          "assigned_staff": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JourneyContactRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "business_line": {
+            "enum": [
+              "loans",
+              "real_estate"
+            ],
+            "title": "Business Line",
+            "type": "string"
+          },
+          "introducing_agent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JourneyContactRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "business_line"
+        ],
+        "title": "JourneyContactsRead",
+        "type": "object"
       },
       "LandAreaUnit": {
         "enum": [
@@ -27523,6 +27603,57 @@
         ]
       }
     },
+    "/api/v1/client/lead-details/{business_line}/contacts": {
+      "get": {
+        "operationId": "get_contacts_api_v1_client_lead_details__business_line__contacts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "business_line",
+            "required": true,
+            "schema": {
+              "enum": [
+                "loans",
+                "real_estate"
+              ],
+              "title": "Business Line",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JourneyContactsRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Get Contacts",
+        "tags": [
+          "client"
+        ]
+      }
+    },
     "/api/v1/content-blocks": {
       "get": {
         "operationId": "list_content_blocks_api_v1_content_blocks_get",
@@ -28556,6 +28687,64 @@
           }
         ],
         "summary": "Delete Task Feedback Media",
+        "tags": [
+          "employee"
+        ]
+      }
+    },
+    "/api/v1/employee/tasks/{task_id}/reopen": {
+      "post": {
+        "operationId": "reopen_employee_task_api_v1_employee_tasks__task_id__reopen_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeTaskReopen"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeTaskRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Reopen Employee Task",
         "tags": [
           "employee"
         ]

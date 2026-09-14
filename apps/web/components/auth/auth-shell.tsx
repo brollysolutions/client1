@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { ThemeSwitcher } from "@/components/theme-switcher";
+import { AuthSupport } from "./auth-support";
 import { Logo } from "@/components/logo";
 
 import { BrandPanel, type AuthScene } from "./brand-panel";
@@ -39,6 +41,7 @@ export function AuthShell({
             <div className="mb-6">
               <Logo className="w-48 sm:w-52" sizes="(min-width: 640px) 208px, 192px" />
             </div>
+            <div className="mb-5 flex items-center justify-end gap-2"><AuthSupport /><ThemeSwitcher /></div>
             {children}
             <AuthLegalLinks />
           </div>

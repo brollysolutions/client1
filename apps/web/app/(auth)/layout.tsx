@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { AuthProvider } from "@/components/auth/session-provider";
@@ -6,6 +7,8 @@ import { AuthProvider } from "@/components/auth/session-provider";
 // the (public) group) — each screen is its own split-screen surface.
 // AuthProvider is mounted here (not at the root) so the login/register screens
 // can read + set the session without the public site paying for a refresh call.
+export const metadata: Metadata = { robots: { index: false, follow: false } };
+
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>

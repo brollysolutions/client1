@@ -234,7 +234,7 @@ export function OfferForm({
           />
         </CampaignPreviewPanel>
         {initialOffer?.review_note ? (
-          <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+          <p className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
             <strong>Reviewer note:</strong> {initialOffer.review_note}
           </p>
         ) : null}

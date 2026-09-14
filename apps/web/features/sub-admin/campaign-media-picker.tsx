@@ -161,13 +161,13 @@ export function CampaignMediaPicker({
       >
         {loading ? (
           <div className="grid min-h-40 place-items-center">
-            <Loader2 className="h-5 w-5 animate-spin text-brand-blue" aria-hidden />
+            <Loader2 className="h-5 w-5 animate-spin text-brand-link" aria-hidden />
             <span className="sr-only">Loading artwork</span>
           </div>
         ) : error ? (
           <div
             role="alert"
-            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-error/30 bg-error/10 p-4 text-sm text-error"
           >
             <span>Artwork could not load. {error}</span>
             <Button
@@ -312,7 +312,7 @@ function ArtworkGroup({
                   ) : null}
                   {!asset.active ? <Badge variant="outline">Archived</Badge> : null}
                   {fits ? null : (
-                    <span className="inline-flex items-center gap-1 text-amber-700">
+                    <span className="inline-flex items-center gap-1 text-warning">
                       <AlertTriangle className="h-3 w-3" aria-hidden />
                       Crops to fit
                     </span>

@@ -71,7 +71,7 @@ export function CalculatorHeroArt({
     >
       <svg
         viewBox="0 0 240 180"
-        className="h-auto w-full max-w-[340px] text-brand-blue"
+        className="h-auto w-full max-w-[340px] text-brand-link"
         fill="none"
         stroke="currentColor"
         strokeWidth={3}

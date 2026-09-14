@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { RealEstateHomeSkeleton } from "./home-skeleton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
@@ -43,7 +44,7 @@ function BrowseCta() {
   return (
     <Link
       href="/dashboard/explore"
-      className="inline-flex items-center gap-2 rounded-lg bg-brand-cta px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-cta/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
+      className="inline-flex items-center gap-2 rounded-lg bg-brand-cta px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-cta/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       <DASHBOARD_ICONS.explore className="h-4 w-4" aria-hidden="true" />
       Browse properties
@@ -119,6 +120,8 @@ export function RealEstateHome() {
 
   const newEnquiries = enquiries.filter((enquiry) => enquiry.status === "new").length;
   const nextVisit = nextUpcomingVisit(siteVisits);
+
+  if ([enquiriesStatus, siteVisitsStatus].includes("loading")) return <RealEstateHomeSkeleton />;
 
   return (
     <DashboardPage>
@@ -236,7 +239,7 @@ export function RealEstateHome() {
           <h2 className="text-lg font-semibold text-text-primary">Browse by property type</h2>
           <Link
             href="/dashboard/explore"
-            className="rounded text-sm font-medium text-brand-cta hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta/40"
+            className="rounded text-sm font-medium text-brand-link hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           >
             View all
           </Link>

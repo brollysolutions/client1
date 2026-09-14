@@ -365,7 +365,7 @@ export function PropertySearchBar({
                 does not say what it controls. */}
             <SelectTrigger
               aria-label="Sort results"
-              className="h-14 w-full cursor-pointer rounded-xl border-border bg-card px-4 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-cta focus-visible:border-brand-cta focus-visible:ring-brand-cta/40 data-[size=default]:h-14 sm:w-[190px]"
+              className="h-14 w-full cursor-pointer rounded-xl border-border bg-card px-4 hover:border-brand-cta hover:bg-brand-cta-tint hover:text-brand-link focus-visible:border-brand-cta focus-visible:ring-ring/40 data-[size=default]:h-14 sm:w-[190px]"
             >
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
@@ -405,10 +405,10 @@ export function PropertySearchBar({
                 onClick={() => toggleCategory(category.key)}
                 aria-pressed={selected}
                 className={cn(
-                  "inline-flex h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta/40",
+                  "inline-flex h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
                   selected
-                    ? "border-brand-cta bg-brand-cta-tint text-brand-cta"
-                    : "border-border bg-card text-text-secondary hover:border-brand-cta hover:text-brand-cta",
+                    ? "border-brand-cta bg-brand-cta-tint text-brand-link"
+                    : "border-border bg-card text-text-secondary hover:border-brand-cta hover:text-brand-link",
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden="true" />
@@ -426,7 +426,7 @@ export function PropertySearchBar({
               key={chip.key}
               variant="outline"
               className={cn(
-                "h-8 gap-1.5 rounded-full border-brand-cta/40 bg-nav-tint px-3 text-sm font-normal text-brand-cta",
+                "h-8 gap-1.5 rounded-full border-brand-cta/40 bg-nav-tint px-3 text-sm font-normal text-brand-link",
               )}
             >
               {chip.label}
@@ -443,7 +443,7 @@ export function PropertySearchBar({
           <button
             type="button"
             onClick={clearAll}
-            className="cursor-pointer text-sm font-medium text-text-secondary underline-offset-2 hover:text-brand-cta hover:underline"
+            className="cursor-pointer text-sm font-medium text-text-secondary underline-offset-2 hover:text-brand-link hover:underline"
           >
             Clear all
           </button>

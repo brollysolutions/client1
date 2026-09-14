@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { REVIEW_WORKSPACE_CLASS } from "@/features/dashboard/workspace-dialog";
 import { Headset, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -81,6 +82,7 @@ const CATEGORY_OPTIONS = CATEGORIES.map((value) => ({ value, label: CATEGORY_LAB
 const DEFAULT_FILTERS: FilterBarValue = { ...EMPTY_FILTERS, status: "open" };
 
 export function SupportTicketsView() {
+  const triggerRef = React.useRef<HTMLElement | null>(null);
   const [filters, setFilters] = React.useState<FilterBarValue>(DEFAULT_FILTERS);
   const [sort, setSort] = React.useState<SortState>({ key: "created_at", dir: "desc" });
   const [activeId, setActiveId] = React.useState<string | null>(null);
@@ -121,6 +123,7 @@ export function SupportTicketsView() {
   const active = activeId ? items.find((ticket) => ticket.id === activeId) ?? null : null;
 
   function openTicket(ticket: SupportTicketAdmin) {
+    triggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setActiveId(ticket.id);
     setNote("");
     setNoteError(undefined);
@@ -261,10 +264,16 @@ export function SupportTicketsView() {
       )}
 
       <Dialog open={active !== null} onOpenChange={(open) => !open && setActiveId(null)}>
-        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+        <DialogContent className={REVIEW_WORKSPACE_CLASS}
+          onCloseAutoFocus={(event) => {
+            if (triggerRef.current?.isConnected) {
+              event.preventDefault();
+              triggerRef.current.focus();
+            }
+          }}>
           {active ? (
             <>
-              <DialogHeader>
+              <DialogHeader className="border-b border-border pb-4 pr-12 text-left">
                 <DialogTitle>{active.subject}</DialogTitle>
                 <DialogDescription>
                   {CATEGORY_LABEL[active.category]} · {active.requester_name ?? "Deleted account"}
@@ -272,7 +281,7 @@ export function SupportTicketsView() {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4">
+              <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain pr-1">
                 <div className="flex items-center justify-between gap-3">
                   <StatusBadge tone={STATUS_TONE[active.status] ?? "neutral"}>
                     {STATUS_STYLES[active.status].label}
@@ -314,7 +323,7 @@ export function SupportTicketsView() {
                 ) : null}
               </div>
 
-              <DialogFooter className="gap-2 sm:gap-2">
+              <DialogFooter className="border-t border-border pt-4 gap-2 sm:gap-2">
                 {TRANSITIONS[active.status].length === 0 ? (
                   <p className="text-sm text-text-secondary">This ticket is closed.</p>
                 ) : (

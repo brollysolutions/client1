@@ -12,10 +12,8 @@ current_user.id` (never caller-supplied), joined to the ClientProfile row for
 the specific line being asked about — the identity check the RLS claim can't
 express for the non-loans line.
 
-Anchored on the client's most recent LoanApplication / PropertyDeal, exactly
-as the tracker decision states: a lead with no application/deal yet has no
-"my officer"/"my agent" to show, and that is the real "not assigned yet"
-empty state, not an error.
+The newest owned live lead supplies contacts as soon as registration claims it.
+Application/deal history is a fallback when there is no live lead.
 
 Returns name + staff_code / agent_code only — never phone/email. Contact is
 platform-mediated through the support-ticket flow (docs/ai/plans/
@@ -25,16 +23,98 @@ create-plan-for-above-snuggly-sunbeam.md's Batch 6 decision).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import select
 
 import app.db.session as db_session
-from app.models.lead import Lead
+from app.models.lead import Lead, LeadStatus
 from app.models.loan import LoanApplication
-from app.models.profile import AgentProfile, ClientProfile, StaffProfile
+from app.models.profile import AgentProfile, ClientProfile, ProfileStatus, StaffProfile, StaffRole
 from app.models.property_deal import PropertyDeal
-from app.models.user import User
+from app.models.user import User, UserStatus
+from app.schemas.lead_details import JourneyContactRead, JourneyContactsRead
+
+
+async def get_journey_contacts(
+    auth_user_uuid: UUID, business_line: Literal["loans", "real_estate"]
+) -> JourneyContactsRead:
+    """Resolve the server identity's same-line team, including before application.
+
+    As with the existing contact lookups, explicit identity and line predicates
+    protect the independently scoped session used for dual-line Clients.
+    No contact numbers, email addresses or profile UUIDs leave this service.
+    """
+    result = JourneyContactsRead(business_line=business_line)
+    async with db_session.AsyncSessionLocal() as db:
+        ownership = (
+            ClientProfile.auth_user_uuid == auth_user_uuid,
+            ClientProfile.business_line == business_line,
+            ClientProfile.status == ProfileStatus.ACTIVE,
+            Lead.business_line == business_line,
+        )
+        lead = await db.scalar(
+            select(Lead)
+            .join(ClientProfile, ClientProfile.id == Lead.client_profile_uuid)
+            .where(*ownership, Lead.status != LeadStatus.CLOSED)
+            .order_by(Lead.updated_at.desc(), Lead.id)
+            .limit(1)
+        )
+        if lead is None:
+            record = LoanApplication if business_line == "loans" else PropertyDeal
+            lead = await db.scalar(
+                select(Lead)
+                .join(record, record.lead_uuid == Lead.id)
+                .join(ClientProfile, ClientProfile.id == record.client_profile_uuid)
+                .where(*ownership, record.business_line == business_line)
+                .order_by(record.opened_at.desc(), record.id)
+                .limit(1)
+            )
+        if lead is None:
+            return result
+        if lead.assigned_telecaller_profile_uuid is not None:
+            row = (
+                await db.execute(
+                    select(User.first_name, User.last_name, StaffProfile.staff_code)
+                    .join(StaffProfile, StaffProfile.auth_user_uuid == User.id)
+                    .where(
+                        StaffProfile.id == lead.assigned_telecaller_profile_uuid,
+                        StaffProfile.role == StaffRole.TELECALLER,
+                        StaffProfile.status == ProfileStatus.ACTIVE,
+                        StaffProfile.business_line.in_((business_line, "both")),
+                        User.status == UserStatus.ACTIVE,
+                    )
+                )
+            ).first()
+            if row:
+                result.assigned_staff = JourneyContactRead(
+                    name=f"{row[0]} {row[1]}".strip(), code=row[2], role="telecaller"
+                )
+        attributed = lead.agent_expired_at is None and (
+            lead.expires_at is None
+            or lead.expires_at > datetime.now(UTC)
+            or lead.status in (LeadStatus.CONVERTED, LeadStatus.CLOSED)
+        )
+        if lead.origin_agent_profile_uuid is not None and attributed:
+            row = (
+                await db.execute(
+                    select(User.first_name, User.last_name, AgentProfile.agent_code)
+                    .join(AgentProfile, AgentProfile.auth_user_uuid == User.id)
+                    .where(
+                        AgentProfile.id == lead.origin_agent_profile_uuid,
+                        AgentProfile.business_line == business_line,
+                        AgentProfile.status == ProfileStatus.ACTIVE,
+                        User.status == UserStatus.ACTIVE,
+                    )
+                )
+            ).first()
+            if row:
+                result.introducing_agent = JourneyContactRead(
+                    name=f"{row[0]} {row[1]}".strip(), code=row[2], role="agent"
+                )
+    return result
 
 
 @dataclass
@@ -50,46 +130,12 @@ class AgentContact:
 
 
 async def get_my_loan_officer(auth_user_uuid: UUID) -> StaffContact | None:
-    async with db_session.AsyncSessionLocal() as db:
-        stmt = (
-            select(User.first_name, User.last_name, StaffProfile.staff_code)
-            .select_from(LoanApplication)
-            .join(ClientProfile, ClientProfile.id == LoanApplication.client_profile_uuid)
-            .join(Lead, Lead.id == LoanApplication.lead_uuid)
-            .join(StaffProfile, StaffProfile.id == Lead.assigned_telecaller_profile_uuid)
-            .join(User, User.id == StaffProfile.auth_user_uuid)
-            .where(
-                ClientProfile.auth_user_uuid == auth_user_uuid,
-                ClientProfile.business_line == "loans",
-            )
-            .order_by(LoanApplication.opened_at.desc())
-            .limit(1)
-        )
-        row = (await db.execute(stmt)).first()
-        if row is None:
-            return None
-        first_name, last_name, staff_code = row
-        return StaffContact(name=f"{first_name} {last_name}".strip(), staff_code=staff_code)
+    contacts = await get_journey_contacts(auth_user_uuid, "loans")
+    staff = contacts.assigned_staff
+    return StaffContact(name=staff.name, staff_code=staff.code) if staff else None
 
 
 async def get_my_agent(auth_user_uuid: UUID) -> AgentContact | None:
-    async with db_session.AsyncSessionLocal() as db:
-        stmt = (
-            select(User.first_name, User.last_name, AgentProfile.agent_code)
-            .select_from(PropertyDeal)
-            .join(ClientProfile, ClientProfile.id == PropertyDeal.client_profile_uuid)
-            .join(Lead, Lead.id == PropertyDeal.lead_uuid)
-            .join(AgentProfile, AgentProfile.id == Lead.origin_agent_profile_uuid)
-            .join(User, User.id == AgentProfile.auth_user_uuid)
-            .where(
-                ClientProfile.auth_user_uuid == auth_user_uuid,
-                ClientProfile.business_line == "real_estate",
-            )
-            .order_by(PropertyDeal.opened_at.desc())
-            .limit(1)
-        )
-        row = (await db.execute(stmt)).first()
-        if row is None:
-            return None
-        first_name, last_name, agent_code = row
-        return AgentContact(name=f"{first_name} {last_name}".strip(), agent_code=agent_code)
+    contacts = await get_journey_contacts(auth_user_uuid, "real_estate")
+    agent = contacts.introducing_agent
+    return AgentContact(name=agent.name, agent_code=agent.code) if agent else None

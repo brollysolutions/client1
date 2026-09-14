@@ -12,7 +12,7 @@ import { type EnquiryStatus } from "@/lib/enquiries";
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLE: Record<EnquiryStatus, string> = {
-  new: "bg-brand-cta-tint text-brand-cta",
+  new: "bg-brand-cta-tint text-brand-link",
   contacted: "bg-warning/10 text-warning",
   closed: "bg-success/10 text-success",
 };
@@ -53,7 +53,7 @@ export function EnquiriesView() {
         <FetchError status={errorStatus} message={error} onRetry={retry} />
       ) : enquiries.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-secondary">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl text-text-secondary">
             <MessageSquare className="h-6 w-6" />
           </span>
           <h2 className="mt-5 text-lg font-semibold text-text-primary">No enquiries yet</h2>

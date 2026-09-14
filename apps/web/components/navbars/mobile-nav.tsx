@@ -30,7 +30,7 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
         <Button
           variant="ghost"
           size="icon"
-          className="text-[var(--nav-text)] hover:bg-[var(--nav-tint)] hover:text-[var(--nav-primary)] xl:hidden"
+          className="text-[var(--nav-text)] hover:bg-[var(--nav-tint)] hover:text-brand-link xl:hidden"
           aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
@@ -59,8 +59,8 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
                 <summary
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex cursor-pointer list-none items-center justify-between rounded-md px-3 py-2 text-base font-geist font-medium text-text-primary marker:content-none hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
-                    isActive && "text-[var(--nav-primary)]",
+                    "flex cursor-pointer list-none items-center justify-between rounded-md px-3 py-2 text-base font-geist font-medium text-text-primary marker:content-none hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+                    isActive && "text-brand-link",
                   )}
                 >
                   {item.label}
@@ -89,10 +89,10 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
                             <Link
                               href={child.href}
                               onClick={close}
-                              className="group/item flex items-center gap-3 rounded-md py-2 pl-6 pr-3 text-base font-geist font-medium text-text-primary hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                              className="group/item flex items-center gap-3 rounded-md py-2 pl-6 pr-3 text-base font-geist font-medium text-text-primary hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                             >
                               <child.icon
-                                className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover/item:text-[var(--nav-primary)]"
+                                className="h-4 w-4 shrink-0 text-[var(--nav-text)] transition-colors group-hover/item:text-brand-link"
                                 aria-hidden
                               />
                               {child.label}
@@ -105,7 +105,7 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
                   <Link
                     href={item.menu.overview.href}
                     onClick={close}
-                    className="mt-1 flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-geist font-medium text-[var(--nav-primary)] hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                    className="mt-1 flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-geist font-medium text-brand-link hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                   >
                     {item.menu.overview.label}
                     <ArrowRight className="h-4 w-4" aria-hidden />
@@ -119,8 +119,8 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
                 onClick={close}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "rounded-md px-3 py-2 text-base font-geist font-medium text-text-primary hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nav-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
-                  isActive && "bg-[var(--nav-tint)] text-[var(--nav-primary)]",
+                  "rounded-md px-3 py-2 text-base font-geist font-medium text-text-primary hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+                  isActive && "bg-[var(--nav-tint)] text-brand-link",
                 )}
               >
                 {item.label}
@@ -135,7 +135,7 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
           <Button
             asChild
             size="lg"
-            className="font-geist bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
+            className="font-geist bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring"
             onClick={close}
           >
             <Link href="/register">Register</Link>
@@ -143,7 +143,7 @@ export function MobileNav({ items }: { items: readonly NavItem[] }) {
           <Button
             asChild
             size="lg"
-            className="font-geist bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-[var(--nav-primary)]"
+            className="font-geist bg-[var(--nav-primary)] text-white hover:bg-[var(--nav-primary-hover)] focus-visible:ring-ring"
             onClick={close}
           >
             <Link href="/contact" className="inline-flex items-center justify-center gap-2">

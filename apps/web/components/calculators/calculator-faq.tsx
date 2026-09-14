@@ -9,7 +9,7 @@ import type { CalculatorFaq as Faq } from "@/lib/calculators/types";
 // .faq-details rule in globals.css (progressive enhancement).
 export function CalculatorFaq({ items }: { items: Faq[] }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-[var(--nav-border)] bg-card shadow-sm">
       {items.map((item, index) => (
         <details
           key={item.q}
@@ -23,7 +23,7 @@ export function CalculatorFaq({ items }: { items: Faq[] }) {
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 font-heading text-base font-semibold text-[var(--nav-text)] transition-colors duration-200 marker:content-none hover:bg-[var(--nav-tint)]/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--nav-primary)]">
             {item.q}
             <ChevronDown
-              className="h-5 w-5 shrink-0 text-[var(--nav-primary)] transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-180 motion-reduce:transition-none"
+              className="h-5 w-5 shrink-0 text-brand-link transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-180 motion-reduce:transition-none"
               aria-hidden
             />
           </summary>

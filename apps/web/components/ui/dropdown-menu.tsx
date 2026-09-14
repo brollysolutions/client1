@@ -11,6 +11,11 @@ const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
 const DropdownMenuSub = DropdownMenuPrimitive.Sub;
+const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
+
+function DropdownMenuRadioItem({ className, children, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
+  return <DropdownMenuPrimitive.RadioItem className={cn("relative flex min-h-11 cursor-pointer select-none items-center rounded-lg py-2 pl-8 pr-3 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", className)} {...props}><span className="absolute left-2"><DropdownMenuPrimitive.ItemIndicator><Check className="h-4 w-4" aria-hidden="true" /></DropdownMenuPrimitive.ItemIndicator></span>{children}</DropdownMenuPrimitive.RadioItem>;
+}
 
 function DropdownMenuContent({
   className,
@@ -143,6 +148,8 @@ function DropdownMenuCheckboxItem({
 }
 
 export {
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,

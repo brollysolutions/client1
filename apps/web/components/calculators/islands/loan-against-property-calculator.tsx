@@ -110,7 +110,7 @@ export function LoanAgainstPropertyCalculator() {
           <ResultCard label="Monthly EMI" value={formatINR(schedule.emi)} />
           <ResultCard label="Total interest" value={formatCompactINR(schedule.totalInterest)} />
         </div>
-        <div className="rounded-xl border border-[var(--nav-border)] bg-white p-5">
+        <div className="rounded-xl border border-[var(--nav-border)] bg-card p-5">
           <DonutChart principal={maxLoan} interest={schedule.totalInterest} />
         </div>
         <ExportShareBar buildExport={() => scheduleExport(schedule, "Loan against property schedule")} filename="lap-schedule.csv" />

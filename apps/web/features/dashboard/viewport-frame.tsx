@@ -62,7 +62,7 @@ export function ViewportFrame({
 
   return (
     <div ref={outerRef} className={cn("w-full", className)}>
-      <div style={{ width: framedWidth || undefined }} className="mx-auto overflow-hidden bg-white">
+      <div style={{ width: framedWidth || undefined }} className="mx-auto overflow-hidden bg-card">
         <div
           style={{ height: contentHeight ? contentHeight * scale : undefined }}
           className="relative w-full"

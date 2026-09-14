@@ -85,7 +85,7 @@ function InvitePasswordView<Preview extends { first_name: string | null }>({
 
       {state === "valid" && preview ? (
         <>
-          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-cta-tint text-brand-cta">
+          <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-brand-link">
             <LockKeyhole className="h-6 w-6" aria-hidden="true" />
           </span>
           <div className="mb-5 space-y-2">
@@ -117,7 +117,7 @@ function InvitePasswordView<Preview extends { first_name: string | null }>({
 
       {state === "done" || state === "invalid" ? (
         <div className="text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-cta-tint text-brand-cta">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center text-brand-link">
             {state === "done" ? (
               <CheckCircle2 className="h-7 w-7" aria-hidden="true" />
             ) : (

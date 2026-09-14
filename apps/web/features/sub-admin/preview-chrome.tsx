@@ -80,7 +80,7 @@ export function DashboardPreviewChrome({ children }: { children: React.ReactNode
               key={label}
               className={`block truncate rounded-lg px-3 py-2 text-sm ${
                 index === 0
-                  ? "bg-brand-cta-tint font-medium text-brand-navy"
+                  ? "bg-brand-cta-tint font-medium text-brand-heading"
                   : "text-dash-foreground"
               }`}
             >
