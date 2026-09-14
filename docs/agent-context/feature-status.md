@@ -22,7 +22,7 @@ The representative four-page SEO smoke check retains four existing failures
 warnings. A complete site SEO crawl and new Lighthouse measurements were not
 run; inherited release/performance gaps remain open. No API or contract changed.
 
-<!-- theme-footer-pr-links -->
+Reviews: [upstream](https://github.com/brollysolutions/client1/pull/301) and [origin](https://github.com/vamshisaideep9/client1/pull/7).
 Next priority: inherited SEO/performance and release-evidence gaps. No merge or
 deployment is included in this change.
 
