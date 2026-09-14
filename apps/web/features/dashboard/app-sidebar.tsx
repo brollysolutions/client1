@@ -49,6 +49,19 @@ export function AppSidebar({
   const { activeLine } = useLine();
   const { count: bookmarkCount } = useBookmarks();
   const { session } = useAuth();
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const toggleRef = React.useRef<HTMLButtonElement>(null);
+  const restoreToggleFocus = React.useRef(false);
+  const toggleSidebar = () => {
+    restoreToggleFocus.current = true;
+    onToggle?.();
+  };
+  React.useEffect(() => {
+    if (restoreToggleFocus.current) {
+      toggleRef.current?.focus();
+      restoreToggleFocus.current = false;
+    }
+  }, [expanded]);
 
   // Labeled = the mobile drawer, or the desktop rail when the user expands it.
   const labeled = showLabels || expanded;
@@ -60,7 +73,7 @@ export function AppSidebar({
     (session?.role === "client" || session?.businessLine === "both"
       ? activeLine
       : (session?.businessLine ?? activeLine));
-  const activeText = screenLine === "loans" ? "text-loans-accent" : "text-realestate-accent";
+  const activeText = "bg-brand-cta-tint text-brand-navy focus-visible:ring-brand-navy";
 
   const sections = session
     ? getNavigationSections({
@@ -71,32 +84,65 @@ export function AppSidebar({
       })
     : [];
 
+  React.useEffect(() => {
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    // Direct links can select an item below the fold in the longer staff menus.
+    // Move only the menu, so revealing it never scrolls the workspace itself.
+    const revealActive = () => {
+      const selected = scroller.querySelectorAll<HTMLElement>('[aria-current="page"]');
+      const active = selected.item(selected.length - 1);
+      if (!active) return;
+      const bounds = scroller.getBoundingClientRect();
+      const item = active.getBoundingClientRect();
+      // Leave room for the focus ring and round outward: fractional logo
+      // heights can otherwise leave the last quarter-pixel of a link clipped.
+      if (item.top < bounds.top + 4) scroller.scrollTop += Math.floor(item.top - bounds.top - 4);
+      else if (item.bottom > bounds.bottom - 4) scroller.scrollTop += Math.ceil(item.bottom - bounds.bottom + 4);
+    };
+    revealActive();
+    // Account data and viewport changes can resize the menu after it mounts.
+    const observer = new ResizeObserver(revealActive);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, [pathname, labeled, screenLine, session?.role]);
+
   return (
     <TooltipProvider delayDuration={0}>
       <nav
         aria-label="Workspace"
         className={cn(
-          "flex h-full w-full flex-col gap-1.5 overflow-hidden border-r border-dash-border bg-dash-rail py-4",
-          labeled ? "px-3" : "px-2",
+          "flex h-full min-h-0 w-full flex-col gap-1.5 overflow-hidden border-r border-white/15 bg-dash-rail pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-dash-foreground",
+          labeled ? "px-3" : "px-1",
         )}
       >
-        <Logo
-          variant={labeled ? "horizontal" : "symbol"}
-          href="/dashboard"
-          onClick={onNavigate}
-          sizes={showLabels ? "160px" : labeled ? "192px" : "40px"}
-          className={cn("mx-auto mb-3", labeled && "w-48 sm:w-48", showLabels && "ml-0 mr-auto w-40 sm:w-40")}
-        />
-        {onToggle && <RailToggle expanded={expanded} onToggle={onToggle} />}
+        <div className={cn("mb-3 shrink-0", labeled ? "flex min-h-12 items-center justify-between gap-1" : "flex justify-center")}>
+          <Logo
+            tone="white"
+            variant={labeled ? "horizontal" : "symbol"}
+            href="/dashboard"
+            onClick={onNavigate}
+            sizes={labeled ? (showLabels || onToggle ? "160px" : "192px") : "40px"}
+            className={cn(
+              labeled && (showLabels || onToggle ? "mr-auto w-40 sm:w-40" : "mx-auto w-48 sm:w-48"),
+            )}
+          />
+          {onToggle && labeled && <RailToggle buttonRef={toggleRef} expanded={expanded} onToggle={toggleSidebar} />}
+        </div>
+        {onToggle && !labeled && <RailToggle buttonRef={toggleRef} expanded={expanded} onToggle={toggleSidebar} />}
 
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          ref={scrollRef}
+          data-sidebar-scroll
+          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain py-1"
+        >
           {sections.map((section, sectionIndex) => (
             <div
               key={section.key}
-              className={cn(sectionIndex > 0 && "mt-3 border-t border-dash-border pt-3")}
+              className={cn(sectionIndex > 0 && "mt-3 border-t border-white/15 pt-3")}
             >
               {labeled && section.label ? (
-                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                <p className="mb-2 px-3 text-xs font-medium text-dash-muted">
                   {section.label}
                 </p>
               ) : null}
@@ -149,30 +195,30 @@ export function AppSidebar({
 
 // Desktop collapse/expand control. Collapsed, it's a centered toggle button in the
 // icon slot; expanded, the toggle sits at the top with the label list below.
-function RailToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
+function RailToggle({ expanded, onToggle, buttonRef }: { expanded: boolean; onToggle: () => void; buttonRef: React.Ref<HTMLButtonElement> }) {
   if (expanded) {
     return (
-      <div className="mb-2 mt-1 flex items-center px-1">
         <button
+          ref={buttonRef}
           type="button"
           onClick={onToggle}
           aria-label="Collapse sidebar"
           aria-expanded={true}
-          className="ml-auto grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-lg text-text-secondary transition-[background-color,color,transform] duration-150 ease-out hover:bg-brand-cta-tint/60 hover:text-sky-500 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100"
+          className="group/toggle ml-auto grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-lg text-dash-foreground transition-[background-color,color,transform] duration-150 ease-out hover:bg-dash-rail-hover hover:text-brand-sky active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-inset motion-reduce:transition-none motion-reduce:active:scale-100"
         >
-          <PanelLeft className="h-5 w-5" aria-hidden="true" />
+          <PanelLeft className="h-5 w-5 transition-transform duration-150 group-hover/toggle:-translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none" aria-hidden="true" />
         </button>
-      </div>
     );
   }
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={onToggle}
       aria-label="Expand sidebar"
       aria-expanded={false}
-      className="mx-auto mb-2 mt-1 grid h-12 w-12 cursor-pointer place-items-center rounded-xl text-text-secondary transition-[background-color,color,transform] duration-150 ease-out hover:bg-brand-cta-tint/60 hover:text-sky-500 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100"
+      className="mx-auto mb-2 mt-1 grid h-12 w-12 shrink-0 cursor-pointer place-items-center rounded-xl text-dash-foreground transition-[background-color,color,transform] duration-150 ease-out hover:bg-dash-rail-hover hover:text-brand-sky active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-inset motion-reduce:transition-none motion-reduce:active:scale-100"
     >
       <PanelLeft className="h-5 w-5" aria-hidden="true" />
     </button>
@@ -204,18 +250,17 @@ function SidebarLink({
       aria-current={active ? "page" : undefined}
       onClick={onNavigate}
       className={cn(
-        "group/link relative flex items-center gap-3 rounded-lg text-sm font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100",
-        labeled ? "px-3 py-2.5" : "h-12 w-12 justify-center",
+        "group/link relative flex items-center gap-3 rounded-lg text-sm font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-inset motion-reduce:transition-none motion-reduce:active:scale-100",
+        labeled ? "min-h-11 px-3 py-2.5" : "mx-auto h-12 w-12 justify-center",
         // Hover keeps the semantic icon stable and adds a subtle tint plus the
         // left indicator. Active stays blue with a solid bar.
-        active ? activeText : "text-text-secondary hover:text-sky-500",
-        !active && "hover:bg-brand-cta-tint/60",
+        active ? activeText : "text-dash-foreground hover:bg-dash-rail-hover hover:text-brand-sky",
       )}
     >
       <span
         aria-hidden="true"
         className={cn(
-          "absolute top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-brand-cta transition-opacity duration-150 motion-reduce:transition-none",
+          "absolute top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-brand-sky transition-opacity duration-150 motion-reduce:transition-none",
           labeled ? "left-0" : "-left-1",
           active ? "opacity-100" : "opacity-0 group-hover/link:opacity-100",
         )}
@@ -232,8 +277,8 @@ function SidebarLink({
         ) : null}
       </span>
       {labeled && (
-        <span className="flex flex-1 items-center justify-between gap-2">
-          <span className="whitespace-nowrap">{label}</span>
+        <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+          <span className="break-words">{label}</span>
           {badge ? (
             <span className="rounded-full bg-brand-cta-tint px-1.5 py-0.5 text-xs font-semibold text-brand-cta">
               {badge}
@@ -291,14 +336,14 @@ function SidebarExplore({
         aria-current={active ? "page" : undefined}
         onClick={onNavigate}
         className={cn(
-          "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none motion-reduce:active:scale-100",
-          active ? activeText : "text-text-secondary hover:text-sky-500",
+          "relative flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-inset motion-reduce:transition-none motion-reduce:active:scale-100",
+          active ? activeText : "text-dash-foreground hover:bg-dash-rail-hover hover:text-brand-sky",
         )}
       >
         <span
           aria-hidden="true"
           className={cn(
-            "absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-brand-cta transition-opacity duration-150 motion-reduce:transition-none",
+            "absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-brand-sky transition-opacity duration-150 motion-reduce:transition-none",
             active ? "opacity-100" : "opacity-0 group-hover/explore:opacity-100",
           )}
         />
@@ -307,7 +352,7 @@ function SidebarExplore({
         <ChevronDown
           aria-hidden="true"
           className={cn(
-            "ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-hover/explore:rotate-180 motion-reduce:transition-none motion-reduce:group-hover/explore:rotate-0",
+            "ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-hover/explore:rotate-180 group-focus-within/explore:rotate-180 motion-reduce:transition-none motion-reduce:group-hover/explore:rotate-0",
             active && "rotate-180",
           )}
         />
@@ -316,11 +361,11 @@ function SidebarExplore({
       <div
         className={cn(
           "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
-          active ? "grid-rows-[1fr]" : "grid-rows-[0fr] group-hover/explore:grid-rows-[1fr]",
+          active ? "grid-rows-[1fr]" : "grid-rows-[0fr] group-hover/explore:grid-rows-[1fr] group-focus-within/explore:grid-rows-[1fr]",
         )}
       >
         <div className="overflow-hidden">
-          <div className="ml-[1.375rem] mt-1 flex flex-col gap-1 border-l border-dash-border pl-3">
+          <div className="ml-[1.375rem] mt-1 flex flex-col gap-1 border-l border-white/15 pl-3">
             {categories.map(({ slug, label: subLabel, icon: SubIcon }) => {
               // Prefix match so a loans category stays highlighted while the
               // user is on one of its product pages
@@ -335,8 +380,8 @@ function SidebarExplore({
                   aria-current={subActive ? "page" : undefined}
                   onClick={onNavigate}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-[background-color,color] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none",
-                    subActive ? activeText : "text-text-secondary hover:text-sky-500",
+                    "flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-[background-color,color] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-sky focus-visible:ring-inset motion-reduce:transition-none",
+                    subActive ? activeText : "text-dash-foreground hover:bg-dash-rail-hover hover:text-brand-sky",
                   )}
                 >
                   <SubIcon className="h-4 w-4 shrink-0" aria-hidden="true" />

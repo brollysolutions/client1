@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Clock, IndianRupee } from "lucide-react";
 
-import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardPageSkeleton } from "@/features/dashboard/dashboard-page-skeleton";
 import { DataTable, DataTablePrimaryCell } from "@/features/dashboard/data-table";
 import { ListEmptyState } from "@/features/dashboard/list-states";
 import { StatusBadge, type StatusTone } from "@/features/dashboard/status-badge";
@@ -116,13 +116,7 @@ export function SubAdminHome() {
   }, [reloadKey]);
 
   if (status === "loading") {
-    return (
-      <DashboardPage className="space-y-5">
-        <Skeleton className="h-9 w-48 rounded-lg" />
-        <Skeleton className="h-40 rounded-2xl" />
-        <Skeleton className="h-40 rounded-2xl" />
-      </DashboardPage>
-    );
+    return <DashboardPageSkeleton overview />;
   }
 
   if (status === "error" || !home) {

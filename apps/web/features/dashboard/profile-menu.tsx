@@ -83,7 +83,7 @@ export function ProfileMenu() {
 
         <DropdownMenuContent
           align="end"
-          className="w-72 bg-dash-rail"
+          className="w-72 bg-surface"
           onMouseEnter={openNow}
           onMouseLeave={closeSoon}
         >

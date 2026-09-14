@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2, Lock, Smartphone, UserRound } from "lucide-react";
+import { ArrowLeft, Lock, Smartphone, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -12,6 +12,7 @@ import {
   AUTH_SUBMIT_CLASS,
 } from "@/components/auth/auth-styles";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthPageSkeleton } from "@/components/auth/auth-page-skeleton";
 import { MobileInput } from "@/components/auth/mobile-input";
 import { OtpForm } from "@/components/auth/otp-form";
 import { SetPasswordForm } from "@/components/auth/set-password-form";
@@ -141,11 +142,7 @@ type Details = {
 };
 
 function RegisterPageFallback() {
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-    </div>
-  );
+  return <AuthPageSkeleton />;
 }
 
 export default function RegisterPage() {
@@ -591,6 +588,9 @@ function RegisterPageContent() {
             </Button>
           </form>
 
+          <p className="mt-5 text-sm leading-relaxed text-text-secondary">
+            Review our Terms of Use and Privacy Policy before creating an account.
+          </p>
           <p className="mt-6 text-center text-sm text-text-secondary">
             Already have an account?{" "}
             <Link

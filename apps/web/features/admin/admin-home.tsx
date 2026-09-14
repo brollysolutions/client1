@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Clock } from "lucide-react";
 
-import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardPageSkeleton } from "@/features/dashboard/dashboard-page-skeleton";
 import { DASHBOARD_ICONS } from "@/features/dashboard/dashboard-icons";
 import {
   DashboardHeader,
@@ -41,13 +41,7 @@ export function AdminHome() {
   const { home, status, error, errorStatus, retry } = useAdminHome();
 
   if (status === "loading") {
-    return (
-      <DashboardPage className="space-y-5">
-        <Skeleton className="h-9 w-48 rounded-lg" />
-        <Skeleton className="h-40 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
-      </DashboardPage>
-    );
+    return <DashboardPageSkeleton overview />;
   }
 
   if (status === "error" || !home) {

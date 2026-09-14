@@ -4,6 +4,13 @@ import mobileProperty from "./mobile-property.json" with { type: "json" };
 const HOST = "127.0.0.1";
 const PORT = 4311;
 const UPDATED_AT = "2026-08-30T00:00:00Z";
+// Opt-in layout fixtures. Default remains the empty CMS/fallback scenario.
+const publishedBanners = process.argv.includes("--published-banners");
+const bannerFixtures = [
+  { id: "40000000-0000-4000-8000-000000000001", title: "Explore financial options", subtitle: "Synthetic published campaign with unchanged bundled artwork.", image_url: "/banner-templates/financial_services/personal-loan.webp", cta_label: "Explore loans", deep_link: "/loans", rera_verified: false },
+  { id: "40000000-0000-4000-8000-000000000002", title: "Find a home that fits", subtitle: "Synthetic property campaign for responsive verification.", image_url: "/banner-templates/properties/villas.webp", cta_label: "Explore properties", deep_link: "/real-estate", rera_verified: true },
+  { id: "40000000-0000-4000-8000-000000000003", title: "Guidance for your next step", subtitle: "A published campaign without artwork still has a complete text layout and a reachable action.", image_url: null, cta_label: "Contact us", deep_link: "/contact", rera_verified: false },
+];
 
 const PRODUCT_ROWS = [
   ["10000000-0000-4000-8000-000000000001", "personal-loan", "Personal Loan", "loan"],
@@ -91,7 +98,7 @@ const server = createServer((request, response) => {
     return;
   }
   if (url.pathname === "/api/v1/public/banners") {
-    json(response, 200, { banners: [] });
+    json(response, 200, { banners: publishedBanners && url.searchParams.get("placement") !== "homepage_ad" ? bannerFixtures : [] });
     return;
   }
   if (url.pathname === "/api/v1/public/properties") {

@@ -328,6 +328,11 @@ export function FinancialProductWorkspace({
                     <FieldError id="product-workspace-public-error" className="mt-2">
                       {fieldErrors.publicVisible}
                     </FieldError>
+                    <p className="mt-3 text-sm text-text-secondary">
+                      Public pages show products only when both Active and Visible on Financial Services
+                      are selected. Deactivating hides the product immediately on the next page load;
+                      activating restores it if publication is enabled.
+                    </p>
                     <FieldError id="product-workspace-featured-error" className="mt-2">
                       {fieldErrors.featured}
                     </FieldError>

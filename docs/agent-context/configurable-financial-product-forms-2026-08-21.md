@@ -8,6 +8,43 @@ Authority: **Authoritative for the product catalogue, product-specific intake
 fields, Admin-to-Client configuration behavior, and the implementation shape
 explicitly approved when the user asked to start implementation.**
 
+## 2026-09-14 lifecycle amendment
+
+The user subsequently requested that Admin activation/deactivation change the
+public Financial Services directory, and requested product deletion. Public
+navigation, directory cards, detail pages and sitemap entries now follow active,
+explicitly published API products; a static marketing entry cannot recreate an
+inactive, unpublished or deleted product. Existing publication configuration is
+preserved, so both activation and public visibility are required.
+
+Platform Admin may permanently delete unused products after confirmation.
+Applications, service enquiries and configured provider offers prevent deletion;
+deactivation remains available for those products. Audit history and submitted
+form snapshots are retained. Only disposable bank availability overrides cascade.
+This dated amendment supersedes the earlier no-delete direction for unused
+financial products; it does not change retention of financial records.
+
+## 2026-09-13 catalogue extension
+
+The user subsequently requested application fields and settings in Admin for
+every public financial service. This supersedes the OD/DOD exclusion below:
+retain the 16 approved configured products, including Equipment Financing,
+and add OD/DOD as the seventeenth. The public navbar's 16 services then all
+have an Admin configuration. Existing saved configurations remain authoritative.
+
+The derived OD/DOD starter form collects date of birth, business name and
+constitution, years in business, location/PIN code, annual turnover, OD/DOD
+facility selection, requested facility limit and funding purpose. Preferred
+tenure is optional and shown only for DOD. It uses the existing loan workflow
+and allowlisted types; identity remains server-resolved. The new row is active
+for dashboard intake and starts unpublished on the public catalogue, with
+descriptive copy ready for Admin publication. No provider, rate, eligibility
+claim or availability is seeded. An existing row with the same slug is retained
+without changes, and rollback retains the row to protect configuration/history.
+
+School Funding continues to mean educational-institution finance. Its public
+overview is aligned with that existing intake rather than a school-fee loan.
+
 ## 1. Supplied direction
 
 The user requires every product configured by Admin to be reflected in the

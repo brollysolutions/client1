@@ -199,6 +199,7 @@ export function PropertyFilterBody({
         >
           <Slider
             value={priceDraft}
+            thumbLabels={["Minimum budget in lakhs", "Maximum budget in lakhs"]}
             min={priceRange.min}
             max={priceRange.max}
             step={1}
@@ -217,6 +218,7 @@ export function PropertyFilterBody({
         >
           <Slider
             value={areaDraft}
+            thumbLabels={["Minimum area in square feet", "Maximum area in square feet"]}
             min={areaRange.min}
             max={areaRange.max}
             step={50}

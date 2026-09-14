@@ -9,8 +9,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-brand-navy text-surface hover:bg-brand-navy/90",
-        cta: "bg-cta-hover text-surface hover:brightness-90",
+        default: "bg-brand-navy text-surface hover:bg-brand-cta-hover",
+        cta: "bg-cta text-surface hover:bg-cta-hover",
         outline: "border border-border bg-surface text-text-primary hover:bg-background",
         ghost: "text-text-primary hover:bg-background",
         ghostOnNavy: "text-brand-aqua hover:bg-white/10 hover:text-surface",
@@ -18,10 +18,10 @@ const buttonVariants = cva(
         destructive: "bg-error text-surface hover:bg-error/90",
       },
       size: {
-        default: "h-9 px-4 py-2",
+        default: "h-10 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10",
       },
     },
     defaultVariants: {

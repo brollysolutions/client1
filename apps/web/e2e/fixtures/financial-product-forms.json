@@ -1,0 +1,2767 @@
+[
+  {
+    "name": "personal-loan",
+    "label": "Personal Loan",
+    "category": "loan",
+    "display_order": 1,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "employment_and_finance",
+          "title": "Employment & Finance",
+          "description": null,
+          "fields": [
+            {
+              "key": "current_location",
+              "label": "Current Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "current_pincode",
+              "label": "Current PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "employment_type",
+              "label": "Employment Type",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "salaried",
+                  "label": "Salaried"
+                },
+                {
+                  "value": "self_employed",
+                  "label": "Self-employed"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "net_monthly_salary",
+              "label": "Net Monthly Salary",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "work_experience_years",
+              "label": "Total Work Experience (Years)",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Loan Amount",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "business-loan",
+    "label": "Business Loan",
+    "category": "loan",
+    "display_order": 2,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "business_details",
+          "title": "Business Details",
+          "description": null,
+          "fields": [
+            {
+              "key": "business_name",
+              "label": "Business or Trade Name",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_constitution",
+              "label": "Business Constitution",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "proprietorship",
+                  "label": "Proprietorship"
+                },
+                {
+                  "value": "partnership",
+                  "label": "Partnership"
+                },
+                {
+                  "value": "llp",
+                  "label": "Limited Liability Partnership"
+                },
+                {
+                  "value": "private_limited",
+                  "label": "Private Limited Company"
+                },
+                {
+                  "value": "public_limited",
+                  "label": "Public Limited Company"
+                },
+                {
+                  "value": "trust_society",
+                  "label": "Trust or Society"
+                },
+                {
+                  "value": "other",
+                  "label": "Other"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_age_years",
+              "label": "Years in Business",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_location",
+              "label": "Business Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_pincode",
+              "label": "Business PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "income_and_funding",
+          "title": "Income & Funding",
+          "description": null,
+          "fields": [
+            {
+              "key": "latest_itr_income",
+              "label": "Latest Financial Year ITR Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "previous_itr_income",
+              "label": "Previous Financial Year ITR Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Loan Amount",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "loan_purpose",
+              "label": "Purpose of Loan",
+              "input_type": "textarea",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "home-loan",
+    "label": "Home Loan",
+    "category": "loan",
+    "display_order": 3,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "income_details",
+          "title": "Income Details",
+          "description": null,
+          "fields": [
+            {
+              "key": "income_source",
+              "label": "Primary Income Source",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "salaried",
+                  "label": "Salaried"
+                },
+                {
+                  "value": "self_employed",
+                  "label": "Self-employed"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "net_monthly_income",
+              "label": "Net Monthly Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "salaried"
+              }
+            },
+            {
+              "key": "net_annual_income",
+              "label": "Net Annual Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "self_employed"
+              }
+            },
+            {
+              "key": "income_documents",
+              "label": "Available Income Documents",
+              "input_type": "multi_select",
+              "required": true,
+              "options": [
+                {
+                  "value": "salary_slips",
+                  "label": "Salary Slips"
+                },
+                {
+                  "value": "form_16",
+                  "label": "Form 16"
+                },
+                {
+                  "value": "itr",
+                  "label": "Income Tax Returns"
+                },
+                {
+                  "value": "bank_statements",
+                  "label": "Bank Statements"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "property_and_finance",
+          "title": "Property & Finance",
+          "description": null,
+          "fields": [
+            {
+              "key": "property_stage",
+              "label": "Property Purchase Stage",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "under_construction",
+                  "label": "Under Construction"
+                },
+                {
+                  "value": "ready_to_move",
+                  "label": "Ready to Move"
+                },
+                {
+                  "value": "resale",
+                  "label": "Resale"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "property_value",
+              "label": "Estimated Property Value",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "property_location",
+              "label": "Property Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "property_pincode",
+              "label": "Property PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Loan Amount",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "loan-against-property",
+    "label": "Loan Against Property",
+    "category": "loan",
+    "display_order": 4,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "income_details",
+          "title": "Income Details",
+          "description": null,
+          "fields": [
+            {
+              "key": "income_source",
+              "label": "Primary Income Source",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "salaried",
+                  "label": "Salaried"
+                },
+                {
+                  "value": "self_employed",
+                  "label": "Self-employed"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "net_monthly_income",
+              "label": "Net Monthly Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "salaried"
+              }
+            },
+            {
+              "key": "net_annual_income",
+              "label": "Net Annual Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "self_employed"
+              }
+            },
+            {
+              "key": "income_documents",
+              "label": "Available Income Documents",
+              "input_type": "multi_select",
+              "required": true,
+              "options": [
+                {
+                  "value": "salary_slips",
+                  "label": "Salary Slips"
+                },
+                {
+                  "value": "form_16",
+                  "label": "Form 16"
+                },
+                {
+                  "value": "itr",
+                  "label": "Income Tax Returns"
+                },
+                {
+                  "value": "bank_statements",
+                  "label": "Bank Statements"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "property_and_finance",
+          "title": "Property & Finance",
+          "description": null,
+          "fields": [
+            {
+              "key": "property_category",
+              "label": "Property Category",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "residential",
+                  "label": "Residential"
+                },
+                {
+                  "value": "commercial",
+                  "label": "Commercial"
+                },
+                {
+                  "value": "industrial",
+                  "label": "Industrial"
+                },
+                {
+                  "value": "land",
+                  "label": "Land"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "ownership_status",
+              "label": "Ownership Status",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "self_owned",
+                  "label": "Self-owned"
+                },
+                {
+                  "value": "jointly_owned",
+                  "label": "Jointly Owned"
+                },
+                {
+                  "value": "family_owned",
+                  "label": "Family-owned"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "property_value",
+              "label": "Estimated Market Value",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "property_location",
+              "label": "Property Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "property_pincode",
+              "label": "Property PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Loan Amount",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "loan_purpose",
+              "label": "Purpose of Loan",
+              "input_type": "textarea",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "car-loan",
+    "label": "Car Loan",
+    "category": "loan",
+    "display_order": 5,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "income_details",
+          "title": "Income Details",
+          "description": null,
+          "fields": [
+            {
+              "key": "income_source",
+              "label": "Primary Income Source",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "salaried",
+                  "label": "Salaried"
+                },
+                {
+                  "value": "self_employed",
+                  "label": "Self-employed"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "net_monthly_income",
+              "label": "Net Monthly Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "salaried"
+              }
+            },
+            {
+              "key": "net_annual_income",
+              "label": "Net Annual Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "self_employed"
+              }
+            }
+          ]
+        },
+        {
+          "key": "vehicle_and_finance",
+          "title": "Vehicle & Finance",
+          "description": null,
+          "fields": [
+            {
+              "key": "vehicle_condition",
+              "label": "Vehicle Condition",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "new",
+                  "label": "New"
+                },
+                {
+                  "value": "used",
+                  "label": "Used"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "manufacturer",
+              "label": "Car Manufacturer",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "model_variant",
+              "label": "Model and Variant",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "vehicle_price",
+              "label": "On-road or Purchase Price",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "registration_location",
+              "label": "Registration Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "registration_pincode",
+              "label": "Registration PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Loan Amount",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "education-loan",
+    "label": "Education Loan",
+    "category": "loan",
+    "display_order": 6,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "education_details",
+          "title": "Education Details",
+          "description": null,
+          "fields": [
+            {
+              "key": "course_name",
+              "label": "Course or Programme",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "institution_name",
+              "label": "Institution or University",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "country_of_study",
+              "label": "Country of Study",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "admission_status",
+              "label": "Admission Status",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "planning",
+                  "label": "Planning to Apply"
+                },
+                {
+                  "value": "applied",
+                  "label": "Applied"
+                },
+                {
+                  "value": "offer_received",
+                  "label": "Offer Received"
+                },
+                {
+                  "value": "admitted",
+                  "label": "Admitted"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "education_cost",
+              "label": "Total Education Cost",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Loan Amount",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "co_applicant_details",
+          "title": "Co-applicant Details",
+          "description": null,
+          "fields": [
+            {
+              "key": "co_applicant_name",
+              "label": "Co-applicant Full Name",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "co_applicant_mobile",
+              "label": "Co-applicant Mobile Number",
+              "input_type": "phone",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "co_applicant_date_of_birth",
+              "label": "Co-applicant Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "co_applicant_relationship",
+              "label": "Relationship to Applicant",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "co_applicant_income_source",
+              "label": "Co-applicant Income Source",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "salaried",
+                  "label": "Salaried"
+                },
+                {
+                  "value": "self_employed",
+                  "label": "Self-employed"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "co_applicant_monthly_income",
+              "label": "Co-applicant Net Monthly Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "co_applicant_income_source",
+                "equals": "salaried"
+              }
+            },
+            {
+              "key": "co_applicant_annual_income",
+              "label": "Co-applicant Net Annual Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "co_applicant_income_source",
+                "equals": "self_employed"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "vehicle-loan",
+    "label": "Commercial Vehicle & Two-Wheeler Loan",
+    "category": "loan",
+    "display_order": 7,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "income_details",
+          "title": "Income Details",
+          "description": null,
+          "fields": [
+            {
+              "key": "income_source",
+              "label": "Primary Income Source",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "salaried",
+                  "label": "Salaried"
+                },
+                {
+                  "value": "self_employed",
+                  "label": "Self-employed"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "net_monthly_income",
+              "label": "Net Monthly Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "salaried"
+              }
+            },
+            {
+              "key": "net_annual_income",
+              "label": "Net Annual Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "self_employed"
+              }
+            }
+          ]
+        },
+        {
+          "key": "vehicle_and_finance",
+          "title": "Vehicle & Finance",
+          "description": null,
+          "fields": [
+            {
+              "key": "vehicle_type",
+              "label": "Vehicle Type",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "two_wheeler",
+                  "label": "Two-wheeler"
+                },
+                {
+                  "value": "commercial_vehicle",
+                  "label": "Commercial Vehicle"
+                },
+                {
+                  "value": "passenger_vehicle",
+                  "label": "Passenger Vehicle"
+                },
+                {
+                  "value": "other",
+                  "label": "Other"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "vehicle_use",
+              "label": "Intended Use",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "personal",
+                  "label": "Personal"
+                },
+                {
+                  "value": "commercial",
+                  "label": "Commercial"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "vehicle_condition",
+              "label": "Vehicle Condition",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "new",
+                  "label": "New"
+                },
+                {
+                  "value": "used",
+                  "label": "Used"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "manufacturer",
+              "label": "Vehicle Manufacturer",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "model",
+              "label": "Vehicle Model",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "vehicle_price",
+              "label": "Quoted Vehicle Price",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "current_location",
+              "label": "Current Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "current_pincode",
+              "label": "Current PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Loan Amount",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "equipment-financing",
+    "label": "Equipment Financing",
+    "category": "loan",
+    "display_order": 8,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "business_and_income",
+          "title": "Business & Income",
+          "description": null,
+          "fields": [
+            {
+              "key": "business_name",
+              "label": "Business or Organization Name",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_constitution",
+              "label": "Business Constitution",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "proprietorship",
+                  "label": "Proprietorship"
+                },
+                {
+                  "value": "partnership",
+                  "label": "Partnership"
+                },
+                {
+                  "value": "llp",
+                  "label": "Limited Liability Partnership"
+                },
+                {
+                  "value": "private_limited",
+                  "label": "Private Limited Company"
+                },
+                {
+                  "value": "public_limited",
+                  "label": "Public Limited Company"
+                },
+                {
+                  "value": "trust_society",
+                  "label": "Trust or Society"
+                },
+                {
+                  "value": "other",
+                  "label": "Other"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_age_years",
+              "label": "Years in Operation",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "income_source",
+              "label": "Primary Income Source",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "salaried",
+                  "label": "Salaried"
+                },
+                {
+                  "value": "self_employed",
+                  "label": "Self-employed"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "net_monthly_income",
+              "label": "Net Monthly Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "salaried"
+              }
+            },
+            {
+              "key": "net_annual_income",
+              "label": "Net Annual Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "self_employed"
+              }
+            }
+          ]
+        },
+        {
+          "key": "equipment_and_finance",
+          "title": "Equipment & Finance",
+          "description": null,
+          "fields": [
+            {
+              "key": "equipment_category",
+              "label": "Equipment Category",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "manufacturer",
+              "label": "Equipment Manufacturer",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "model",
+              "label": "Equipment Model",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "equipment_price",
+              "label": "Supplier Quotation Price",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_location",
+              "label": "Business Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_pincode",
+              "label": "Business PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Finance Amount",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "school-funding",
+    "label": "Educational Institution Funding",
+    "category": "loan",
+    "display_order": 9,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "institution_details",
+          "title": "Institution Details",
+          "description": null,
+          "fields": [
+            {
+              "key": "authorized_representative_name",
+              "label": "Authorized Representative Name",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "authorized_representative_mobile",
+              "label": "Authorized Representative Mobile",
+              "input_type": "phone",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "institution_name",
+              "label": "School or Institution Name",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "managing_organization",
+              "label": "Managing Organization, Trust, or Society",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "registration_type",
+              "label": "Registration or Affiliation Type",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "registration_number",
+              "label": "Registration or Affiliation Number",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "institution_age_years",
+              "label": "Years in Operation",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "institution_location",
+              "label": "Institution Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "institution_pincode",
+              "label": "Institution PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "funding_details",
+          "title": "Funding Details",
+          "description": null,
+          "fields": [
+            {
+              "key": "funding_purpose",
+              "label": "Funding Purpose",
+              "input_type": "textarea",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Funding Amount",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "secured-loans",
+    "label": "Loan Against Financial Assets",
+    "category": "loan",
+    "display_order": 10,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "collateral_and_finance",
+          "title": "Collateral & Finance",
+          "description": null,
+          "fields": [
+            {
+              "key": "current_location",
+              "label": "Current Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "current_pincode",
+              "label": "Current PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "asset_type",
+              "label": "Collateral Asset Type",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "fixed_deposit",
+                  "label": "Fixed Deposit"
+                },
+                {
+                  "value": "bond",
+                  "label": "Bond"
+                },
+                {
+                  "value": "security",
+                  "label": "Listed Security"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "issuer_name",
+              "label": "Issuer or Financial Institution",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "face_value",
+              "label": "Face Value",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "asset_type",
+                "equals": "bond"
+              }
+            },
+            {
+              "key": "market_value",
+              "label": "Current Market Value",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "asset_type",
+                "equals": "security"
+              }
+            },
+            {
+              "key": "deposit_value",
+              "label": "Fixed Deposit Value",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "asset_type",
+                "equals": "fixed_deposit"
+              }
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Loan Amount",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "credit-cards",
+    "label": "Credit Cards",
+    "category": "credit_card",
+    "display_order": 11,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "income_and_preferences",
+          "title": "Income & Preferences",
+          "description": null,
+          "fields": [
+            {
+              "key": "income_source",
+              "label": "Primary Income Source",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "salaried",
+                  "label": "Salaried"
+                },
+                {
+                  "value": "self_employed",
+                  "label": "Self-employed"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "net_monthly_income",
+              "label": "Net Monthly Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "salaried"
+              }
+            },
+            {
+              "key": "net_annual_income",
+              "label": "Net Annual Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": {
+                "field_key": "income_source",
+                "equals": "self_employed"
+              }
+            },
+            {
+              "key": "occupation_or_business",
+              "label": "Employer, Occupation, or Business Name",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "current_location",
+              "label": "Current Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "current_pincode",
+              "label": "Current PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "preferred_benefits",
+              "label": "Preferred Card Benefits",
+              "input_type": "multi_select",
+              "required": false,
+              "options": [
+                {
+                  "value": "cashback",
+                  "label": "Cashback"
+                },
+                {
+                  "value": "travel",
+                  "label": "Travel Rewards"
+                },
+                {
+                  "value": "fuel",
+                  "label": "Fuel Benefits"
+                },
+                {
+                  "value": "shopping",
+                  "label": "Shopping Rewards"
+                },
+                {
+                  "value": "lounge",
+                  "label": "Airport Lounge Access"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "life-insurance",
+    "label": "Life & Term Insurance",
+    "category": "insurance",
+    "display_order": 12,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "coverage_details",
+          "title": "Income & Coverage",
+          "description": null,
+          "fields": [
+            {
+              "key": "insurance_type",
+              "label": "Insurance Type",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "term",
+                  "label": "Term Insurance"
+                },
+                {
+                  "value": "life",
+                  "label": "Life Insurance"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "income_source",
+              "label": "Income Source",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "salaried",
+                  "label": "Salaried"
+                },
+                {
+                  "value": "self_employed",
+                  "label": "Self-employed"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "occupation",
+              "label": "Occupation",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "net_annual_income",
+              "label": "Net Annual Income",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "cover_term_years",
+              "label": "Preferred Cover Term (Years)",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "coverage_amount",
+              "label": "Desired Sum Assured",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "annual_premium_budget",
+              "label": "Annual Premium Budget",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "health-insurance",
+    "label": "Health Insurance",
+    "category": "insurance",
+    "display_order": 13,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "coverage_details",
+          "title": "Coverage Details",
+          "description": null,
+          "fields": [
+            {
+              "key": "coverage_type",
+              "label": "Coverage Type",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "individual",
+                  "label": "Individual"
+                },
+                {
+                  "value": "family_floater",
+                  "label": "Family Floater"
+                },
+                {
+                  "value": "senior_citizen",
+                  "label": "Senior Citizen"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "members_to_cover",
+              "label": "Members to Cover",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "current_location",
+              "label": "Current Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "current_pincode",
+              "label": "Current PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "coverage_amount",
+              "label": "Desired Sum Insured",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "property-insurance",
+    "label": "Property Insurance",
+    "category": "insurance",
+    "display_order": 14,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "property_and_coverage",
+          "title": "Property & Coverage",
+          "description": null,
+          "fields": [
+            {
+              "key": "property_use",
+              "label": "Property Use",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "residential",
+                  "label": "Residential"
+                },
+                {
+                  "value": "commercial",
+                  "label": "Commercial"
+                },
+                {
+                  "value": "industrial",
+                  "label": "Industrial"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "occupancy_status",
+              "label": "Ownership or Occupancy",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "owner_occupied",
+                  "label": "Owner Occupied"
+                },
+                {
+                  "value": "tenant_occupied",
+                  "label": "Tenant Occupied"
+                },
+                {
+                  "value": "vacant",
+                  "label": "Vacant"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "property_age_years",
+              "label": "Property Age (Years)",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "property_value",
+              "label": "Estimated Reinstatement Value",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "property_location",
+              "label": "Property Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "property_pincode",
+              "label": "Property PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "coverage_amount",
+              "label": "Desired Sum Insured",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "travel-insurance",
+    "label": "Travel Insurance",
+    "category": "insurance",
+    "display_order": 15,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "trip_and_coverage",
+          "title": "Trip & Coverage",
+          "description": null,
+          "fields": [
+            {
+              "key": "traveller_count",
+              "label": "Number of Travellers",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "trip_type",
+              "label": "Trip Type",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "single_trip",
+                  "label": "Single Trip"
+                },
+                {
+                  "value": "multi_trip",
+                  "label": "Annual Multi-trip"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "departure_location",
+              "label": "Departure Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "destination_countries",
+              "label": "Destination Country or Countries",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "departure_date",
+              "label": "Departure Date",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "return_date",
+              "label": "Return Date",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "travel_purpose",
+              "label": "Travel Purpose",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "leisure",
+                  "label": "Leisure"
+                },
+                {
+                  "value": "business",
+                  "label": "Business"
+                },
+                {
+                  "value": "study",
+                  "label": "Study"
+                },
+                {
+                  "value": "medical",
+                  "label": "Medical"
+                },
+                {
+                  "value": "other",
+                  "label": "Other"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "primary_travel_mode",
+              "label": "Primary Travel Mode",
+              "input_type": "select",
+              "required": false,
+              "options": [
+                {
+                  "value": "air",
+                  "label": "Air"
+                },
+                {
+                  "value": "rail",
+                  "label": "Rail"
+                },
+                {
+                  "value": "road",
+                  "label": "Road"
+                },
+                {
+                  "value": "sea",
+                  "label": "Sea"
+                },
+                {
+                  "value": "mixed",
+                  "label": "Multiple Modes"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "coverage_amount",
+              "label": "Desired Sum Insured",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "project-funding",
+    "label": "Real Estate Project Finance",
+    "category": "loan",
+    "display_order": 16,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "developer_details",
+          "title": "Developer Details",
+          "description": null,
+          "fields": [
+            {
+              "key": "authorized_representative_name",
+              "label": "Authorized Representative Name",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "authorized_representative_mobile",
+              "label": "Authorized Representative Mobile",
+              "input_type": "phone",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "authorized_representative_date_of_birth",
+              "label": "Representative Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "developer_legal_name",
+              "label": "Developer Legal Name",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_constitution",
+              "label": "Business Constitution",
+              "input_type": "select",
+              "required": true,
+              "options": [
+                {
+                  "value": "proprietorship",
+                  "label": "Proprietorship"
+                },
+                {
+                  "value": "partnership",
+                  "label": "Partnership"
+                },
+                {
+                  "value": "llp",
+                  "label": "Limited Liability Partnership"
+                },
+                {
+                  "value": "private_limited",
+                  "label": "Private Limited Company"
+                },
+                {
+                  "value": "public_limited",
+                  "label": "Public Limited Company"
+                },
+                {
+                  "value": "trust_society",
+                  "label": "Trust or Society"
+                },
+                {
+                  "value": "other",
+                  "label": "Other"
+                }
+              ],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_age_years",
+              "label": "Years in Operation",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "rera_registration",
+              "label": "RERA Registration Number",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "completed_projects",
+              "label": "Completed Projects",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "ongoing_projects",
+              "label": "Ongoing Projects",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "project_and_funding",
+          "title": "Project & Funding",
+          "description": null,
+          "fields": [
+            {
+              "key": "project_name",
+              "label": "Current Project Name",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "project_stage",
+              "label": "Current Project Stage",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "project_value",
+              "label": "Total Project Cost",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Funding Amount",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "project_location",
+              "label": "Project Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "project_pincode",
+              "label": "Project PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "od-and-dod",
+    "label": "OD and DOD",
+    "category": "loan",
+    "display_order": 17,
+    "form_schema": {
+      "sections": [
+        {
+          "key": "applicant_details",
+          "title": "Applicant Details",
+          "description": "Full name and registered mobile number are securely filled from the account.",
+          "fields": [
+            {
+              "key": "date_of_birth",
+              "label": "Date of Birth",
+              "input_type": "date",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ]
+        },
+        {
+          "key": "business_details",
+          "title": "Business Details",
+          "fields": [
+            {
+              "key": "business_name",
+              "label": "Business or Trade Name",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_constitution",
+              "label": "Business Constitution",
+              "input_type": "select",
+              "options": [
+                {
+                  "value": "proprietorship",
+                  "label": "Proprietorship"
+                },
+                {
+                  "value": "partnership",
+                  "label": "Partnership"
+                },
+                {
+                  "value": "llp",
+                  "label": "Limited Liability Partnership"
+                },
+                {
+                  "value": "private_limited",
+                  "label": "Private Limited Company"
+                },
+                {
+                  "value": "public_limited",
+                  "label": "Public Limited Company"
+                },
+                {
+                  "value": "trust_society",
+                  "label": "Trust or Society"
+                },
+                {
+                  "value": "other",
+                  "label": "Other"
+                }
+              ],
+              "required": true,
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_age_years",
+              "label": "Years in Business",
+              "input_type": "integer",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_location",
+              "label": "Business Location",
+              "input_type": "text",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "business_pincode",
+              "label": "Business PIN Code",
+              "input_type": "pincode",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "annual_turnover",
+              "label": "Annual Business Turnover",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            }
+          ],
+          "description": null
+        },
+        {
+          "key": "facility_details",
+          "title": "Overdraft & Funding",
+          "fields": [
+            {
+              "key": "facility_type",
+              "label": "Facility Type",
+              "input_type": "select",
+              "options": [
+                {
+                  "value": "overdraft",
+                  "label": "Overdraft (OD)"
+                },
+                {
+                  "value": "drop_line_overdraft",
+                  "label": "Drop-line Overdraft (DOD)"
+                }
+              ],
+              "required": true,
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "requested_amount",
+              "label": "Requested Facility Limit",
+              "input_type": "currency",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "funding_purpose",
+              "label": "Purpose of Funding",
+              "input_type": "textarea",
+              "required": true,
+              "options": [],
+              "placeholder": null,
+              "help_text": null,
+              "condition": null
+            },
+            {
+              "key": "preferred_tenure_months",
+              "label": "Preferred Tenure in Months",
+              "input_type": "integer",
+              "required": false,
+              "condition": {
+                "field_key": "facility_type",
+                "equals": "drop_line_overdraft"
+              },
+              "options": [],
+              "placeholder": null,
+              "help_text": null
+            }
+          ],
+          "description": null
+        }
+      ]
+    }
+  }
+]

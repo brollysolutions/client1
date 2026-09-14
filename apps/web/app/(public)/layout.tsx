@@ -3,8 +3,14 @@ import type { ReactNode } from "react";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { getPublishedServiceProducts } from "@/lib/financial-catalog";
 
-export default function PublicLayout({ children }: { children: ReactNode }) {
+// Site navigation shares Admin-controlled publication state. Individual CMS
+// fetches retain their caches; the complete public page must not freeze links.
+export const dynamic = "force-dynamic";
+
+export default async function PublicLayout({ children }: { children: ReactNode }) {
+  const products = (await getPublishedServiceProducts()).map(({ slug, label, category }) => ({ slug, label, category }));
   return (
     <>
       <a
@@ -14,11 +20,11 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         Skip to main content
       </a>
       <AnnouncementBanner />
-      <SiteHeader />
+      <SiteHeader products={products} />
       <main id="main-content" tabIndex={-1}>
         {children}
       </main>
-      <SiteFooter />
+      <SiteFooter products={products} />
     </>
   );
 }

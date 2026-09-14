@@ -22,7 +22,7 @@ export function CalculatorCard({
     <Link
       href={`/calculators/${def.slug}`}
       className={cn(
-        "group flex h-full flex-col rounded-2xl border border-[var(--nav-border)] bg-white transition duration-200 hover:-translate-y-1 hover:border-[var(--nav-primary)]/30 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+        "group flex h-full flex-col rounded-2xl border border-[var(--nav-border)] bg-white transition-[border-color,box-shadow] duration-150 hover:border-brand-cta hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 motion-reduce:transition-none",
         compact ? "p-5" : "p-6",
       )}
     >

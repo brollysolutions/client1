@@ -17,6 +17,7 @@ import {
 } from "@/lib/financial-catalogue-navigation";
 import {
   CATALOGUE_CATEGORIES,
+  CATALOGUE_ANCHOR,
   CATEGORY_PILL_LABEL,
   catalogueHref,
   type CatalogueCategory,
@@ -26,7 +27,7 @@ import { cn } from "@/lib/utils";
 // Sticky discovery bar for the public Financial Services catalogue.
 //
 // Filtering stays server-driven: /loans reads `q` and `category` from
-// searchParams and re-fetches the catalogue API, so the URL remains the single
+// searchParams and filters the service directory with published metadata, so the URL remains the single
 // source of truth (deep links, pagination, and SEO all keep working). This
 // island owns only the input's local text plus the debounce, which is what
 // lets the results update as you type instead of behind a submit button.
@@ -38,7 +39,7 @@ import { cn } from "@/lib/utils";
 const DEBOUNCE_MS = 300;
 
 const PILL_BASE =
-  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--nav-bg)] motion-reduce:transition-none";
+  "inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-lg border px-3.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface motion-reduce:transition-none";
 
 /** Focus shortcut. Matches the "/" convention used by developer tooling and
  *  is ignored while the reader is typing anywhere else on the page. */
@@ -67,7 +68,7 @@ export function FinancialServicesFilters({
   /** Per-category counts for the pills, already narrowed by `q`. */
   facets: CatalogueFacets;
   /** True when `q` or `category` is set, so the count can say "matches"
-   *  instead of overstating the published total. */
+   *  instead of announcing the unfiltered directory total. */
   filtered: boolean;
 }) {
   const router = useRouter();
@@ -93,6 +94,13 @@ export function FinancialServicesFilters({
 
   React.useEffect(() => {
     const scrollY = consumeCatalogueScroll(window.sessionStorage);
+    const target = document.getElementById(window.location.hash.slice(1));
+    // App Router can consume a cross-page hash while the route skeleton is
+    // mounted. Finish that jump once the actual service cards have streamed.
+    if (target?.closest(`#${CATALOGUE_ANCHOR}`)) {
+      const frame = window.requestAnimationFrame(() => target.scrollIntoView({ block: "start", behavior: "instant" }));
+      return () => window.cancelAnimationFrame(frame);
+    }
     if (scrollY === null) return;
     const frame = window.requestAnimationFrame(() => window.scrollTo({ top: scrollY }));
     return () => window.cancelAnimationFrame(frame);
@@ -188,25 +196,23 @@ export function FinancialServicesFilters({
     <form
       action="/loans"
       role="search"
-      aria-busy={!interactive}
+      aria-busy={!interactive || pending}
       onSubmit={(event) => {
         event.preventDefault();
         apply(text);
       }}
-      // A blue-tinted glass rail rather than a white panel: it reads as its own
-      // surface against the beige section while staying see-through, and the
-      // downward shadow keeps results from appearing to touch it once stuck.
-      className="sticky top-16 z-30 mt-8 border-y border-brand-blue/10 bg-gradient-to-b from-[var(--nav-tint)]/85 via-[var(--nav-tint)]/45 to-[var(--nav-bg)]/85 shadow-[0_14px_28px_-24px_rgba(41,54,129,0.55)] backdrop-blur-xl sm:mt-10"
+      // Solid white chrome keeps search and categories legible over the results.
+      className="sticky top-16 z-30 mt-8 border-y border-border bg-surface shadow-sm sm:mt-10"
     >
       {/* Preserves the active category when the form falls back to a plain
           GET submission (no JS). With JS, onSubmit takes over first. */}
       <input type="hidden" name="category" value={category ?? ""} />
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:gap-6 lg:px-8">
-        <div className="group/search relative lg:w-[25rem] lg:shrink-0">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-6 lg:px-8">
+        <div className="group/search relative min-w-0 lg:w-[25rem] lg:shrink-0">
           <span
             aria-hidden
-            className="pointer-events-none absolute left-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-brand-blue/12 text-brand-blue transition-colors duration-200 group-focus-within/search:bg-brand-blue group-focus-within/search:text-surface motion-reduce:transition-none"
+            className="pointer-events-none absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg bg-brand-cta-tint text-brand-navy transition-colors duration-150 group-focus-within/search:bg-brand-navy group-focus-within/search:text-surface motion-reduce:transition-none"
           >
             <Search className="h-4 w-4" />
           </span>
@@ -221,7 +227,7 @@ export function FinancialServicesFilters({
             aria-label="Search financial services"
             aria-keyshortcuts={FOCUS_KEY}
             placeholder="Search personal loan, insurance, cards..."
-            className="h-11 w-full rounded-full bg-surface/45 pl-[3.25rem] pr-12 text-sm text-foreground ring-1 ring-inset ring-brand-blue/20 transition-[box-shadow,background-color] placeholder:text-text-secondary hover:bg-surface/65 hover:ring-brand-blue/35 focus:outline-none focus-visible:bg-surface/90 focus-visible:shadow-[0_0_0_4px_rgba(2,132,199,0.14)] focus-visible:ring-2 focus-visible:ring-brand-blue motion-reduce:transition-none lg:h-12 [&::-webkit-search-cancel-button]:appearance-none"
+            className="h-12 w-full rounded-xl border border-input bg-surface pl-12 pr-12 text-base text-brand-navy shadow-xs transition-[border-color,box-shadow] duration-150 placeholder:text-text-secondary hover:border-brand-blue focus:outline-none focus-visible:border-brand-blue focus-visible:ring-2 focus-visible:ring-brand-blue/30 motion-reduce:transition-none [&::-webkit-search-cancel-button]:appearance-none"
           />
           {text ? (
             <button
@@ -236,7 +242,7 @@ export function FinancialServicesFilters({
           ) : (
             <kbd
               aria-hidden
-              className="pointer-events-none absolute right-3 top-1/2 hidden h-6 min-w-6 -translate-y-1/2 items-center justify-center rounded-md bg-surface/70 px-1.5 font-geist text-xs font-medium text-text-secondary ring-1 ring-inset ring-brand-blue/15 group-focus-within/search:opacity-0 lg:inline-flex"
+              className="pointer-events-none absolute right-3 top-1/2 hidden h-6 min-w-6 -translate-y-1/2 items-center justify-center rounded-md border border-border bg-surface-sky px-1.5 font-geist text-xs font-medium text-text-secondary group-focus-within/search:opacity-0 lg:inline-flex"
             >
               {FOCUS_KEY}
             </kbd>
@@ -276,11 +282,11 @@ export function FinancialServicesFilters({
                   className={cn(
                     PILL_BASE,
                     active
-                      ? "bg-brand-blue text-surface shadow-[0_6px_14px_-6px_rgba(2,132,199,0.75)]"
-                      : "bg-surface/50 text-text-secondary ring-1 ring-inset ring-brand-blue/15",
+                      ? "border-brand-navy bg-brand-navy text-surface"
+                      : "border-border bg-surface-sky text-brand-navy",
                     !active &&
                       !empty &&
-                      "hover:bg-surface/80 hover:text-brand-blue hover:ring-brand-blue/40",
+                      "hover:border-brand-blue hover:bg-brand-cta-tint",
                     empty && "cursor-default opacity-45",
                   )}
                 >
@@ -288,7 +294,7 @@ export function FinancialServicesFilters({
                   <span
                     className={cn(
                       "tabular-nums text-xs font-semibold",
-                      active ? "text-surface/75" : "text-text-secondary/70",
+                      active ? "text-dash-foreground" : "text-text-secondary",
                     )}
                   >
                     {count}

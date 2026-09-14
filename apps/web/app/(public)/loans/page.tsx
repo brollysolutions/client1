@@ -5,23 +5,21 @@ import { FinancialServicesCatalogue } from "@/components/financial-services-cata
 import { ProductPage } from "@/components/product-page";
 import { TrustStrip } from "@/components/trust-strip";
 import { faqPageJsonLd, LOAN_FAQ_ITEMS } from "@/lib/faq";
-import { getCatalogueFacets, getPublicFinancialProducts } from "@/lib/financial-catalog";
+import { getPublishedServiceProducts } from "@/lib/financial-catalog";
+import { buildServiceDirectory } from "@/lib/service-directory";
 import { parseCatalogueCategory } from "@/lib/financial-catalogue-url";
 import { getHeroBanners } from "@/lib/public-banners";
 import { LOAN_JOURNEY, LOAN_TRUST } from "@/lib/products";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
-// First server-side data fetch on this page. Matches /real-estate's ISR
-// window: CMS-authored content is human-paced, not real-time, so a five
-// minute regeneration keeps the page from needing a redeploy to show a new
-// offer without adding meaningful load (at most ~12 requests/hour from the
-// web container, regardless of visitor volume).
-export const revalidate = 300;
+// Product visibility follows Admin changes on the next request. Banner fetches
+// retain their own cache window independently of the live catalogue.
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Curated Loans, Credit Cards & Insurance",
   description:
-    "Search Dhanadhara's Admin-curated financial services, compare verified provider snapshots, and apply or enquire through an internal guided journey.",
+    "Explore loans, credit cards and insurance services, compare available provider options, and enquire with the Dhanadhara team.",
   keywords: [
     "personal loan",
     "business loan",
@@ -45,7 +43,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Curated Financial Services in One Place",
     description:
-      "Explore published services and provider options, then apply or enquire without an external lender redirect.",
+      "Explore our services and available provider options, then apply or enquire without an external lender redirect.",
     type: "website",
   },
 };
@@ -82,14 +80,11 @@ export default async function LoansPage({ searchParams }: { searchParams: LoansS
   const category = parseCatalogueCategory(one(params.category));
   const requestedPage = Number(one(params.page) ?? "1");
   const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const [banners, catalogue, facets] = await Promise.all([
+  const [banners, published] = await Promise.all([
     getHeroBanners("financial_services"),
-    getPublicFinancialProducts({ q, category, page, pageSize: 12 }),
-    // Counts for the filter pills. Narrowed by the text query but not by the
-    // category the reader is currently standing in, so each pill shows what
-    // picking it would actually return.
-    getCatalogueFacets(q),
+    getPublishedServiceProducts(),
   ]);
+  const { catalogue, facets } = buildServiceDirectory(published, { q, category, page });
 
   return (
     <>

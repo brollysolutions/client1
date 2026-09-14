@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { DashboardHeader, DashboardPage } from "@/features/dashboard/dashboard-ui";
+import { DashboardRedirect } from "@/features/dashboard/dashboard-redirect";
 import { ExploreArtCard } from "@/features/dashboard/explore-cards";
 import {
   EXPLORE_CATEGORIES,
@@ -10,7 +11,7 @@ import {
   shouldSkipCardsCategoryList,
 } from "@/features/dashboard/explore-categories";
 import { CategoryBrowser } from "@/features/real-estate/category-browser";
-import { getPublicFinancialProducts } from "@/lib/financial-catalog";
+import { getPublicFinancialProducts, type PublicFinancialProductList } from "@/lib/financial-catalog";
 import { catalogueIllustration } from "@/lib/products";
 import { getRECategory, RE_CATEGORIES } from "@/lib/real-estate";
 
@@ -34,6 +35,15 @@ export default async function ExploreCategoryPage({
 
   const label = reCategory?.label ?? loansCategory!.label;
   const blurb = reCategory?.blurb ?? loansCategory!.blurb;
+  const catalogue = loansCategory
+    ? await getPublicFinancialProducts({ category: loansCategory.category, pageSize: 100 })
+    : null;
+
+  if (loansCategory && catalogue && shouldSkipCardsCategoryList(loansCategory.slug, catalogue.items.length)) {
+    // A streamed server redirect clears the page while its destination loads.
+    // Retain the same replacement navigation with a visible loading region.
+    return <DashboardRedirect href={`/dashboard/explore/${loansCategory.slug}/${catalogue.items[0].slug}`} label="Opening credit cards" />;
+  }
 
   return (
     <DashboardPage>
@@ -54,7 +64,7 @@ export default async function ExploreCategoryPage({
           header={<DashboardHeader title={label} description={blurb} />}
         />
       ) : (
-        <LoansCategoryProducts category={loansCategory!} label={label} blurb={blurb} />
+        <LoansCategoryProducts category={loansCategory!} catalogue={catalogue!} label={label} blurb={blurb} />
       )}
     </DashboardPage>
   );
@@ -64,21 +74,17 @@ export default async function ExploreCategoryPage({
 // category from the anonymous public financial-products catalogue (same
 // source /loans reads). pageSize is generous since a category realistically
 // holds a handful of products, not paginated volume.
-async function LoansCategoryProducts({
+function LoansCategoryProducts({
   category,
+  catalogue,
   label,
   blurb,
 }: {
   category: NonNullable<ReturnType<typeof getExploreCategory>>;
+  catalogue: PublicFinancialProductList;
   label: string;
   blurb: string;
 }) {
-  const catalogue = await getPublicFinancialProducts({ category: category.category, pageSize: 100 });
-
-  if (shouldSkipCardsCategoryList(category.slug, catalogue.items.length)) {
-    redirect(`/dashboard/explore/${category.slug}/${catalogue.items[0].slug}`);
-  }
-
   return (
     <>
       <DashboardHeader title={label} description={blurb} />

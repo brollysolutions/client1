@@ -179,12 +179,14 @@ from app.services.loan_config import (
     DuplicateBankName,
     DuplicateLoanTypeName,
     InvalidProductForm,
+    LoanTypeInUse,
     LoanTypeNotFound,
     bank_application_counts,
     bank_offer_counts,
     create_bank,
     create_loan_type,
     delete_bank,
+    delete_loan_type,
     list_availability_entries,
     list_banks,
     list_loan_types,
@@ -1294,6 +1296,26 @@ async def update_admin_loan_type(
         application_counts.get(loan_type.id, 0),
         enquiry_counts.get(loan_type.id, 0),
     )
+
+
+@router.delete("/loan-types/{loan_type_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_admin_loan_type(
+    loan_type_id: UUID,
+    current_user: CurrentUser = Depends(require_platform_admin),
+    db: AsyncSession = Depends(get_db),
+) -> Response:
+    try:
+        await delete_loan_type(
+            db, loan_type_id, actor_uuid=current_user.id, actor_role=current_user.role
+        )
+    except LoanTypeNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Financial product not found.") from exc
+    except LoanTypeInUse as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This product has applications, enquiries or provider offers. Deactivate it instead.",
+        ) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/banks", response_model=AdminBankListResponse)

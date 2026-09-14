@@ -8,10 +8,16 @@ const css = readFileSync(
   "utf8",
 );
 
-function tokenHex(name: string): string {
-  const match = css.match(new RegExp(`${name}:\\s*(#[0-9a-fA-F]{6})`));
-  if (!match) throw new Error(`Missing six-digit color token: ${name}`);
-  return match[1];
+function tokenHex(name: string, seen = new Set<string>()): string {
+  if (seen.has(name)) throw new Error(`Circular color alias: ${name}`);
+  seen.add(name);
+  const match = css.match(new RegExp(`${name}:\\s*([^;]+)`));
+  if (!match) throw new Error(`Missing color token: ${name}`);
+  const value = match[1].trim();
+  const alias = value.match(/^var\((--[\w-]+)\)$/);
+  if (alias) return tokenHex(alias[1], seen);
+  if (!/^#[0-9a-fA-F]{6}$/.test(value)) throw new Error(`Unsupported color token: ${name}`);
+  return value;
 }
 
 function relativeLuminance(hex: string): number {
@@ -35,6 +41,15 @@ function contrastRatio(first: string, second: string): number {
 }
 
 describe("shared normal-text color contrast", () => {
+  it("uses one pale sky surface and one navy action across all page families", () => {
+    for (const name of ["--background", "--nav-bg", "--nav-tint", "--color-brand-cta-tint", "--color-surface-silver", "--color-loans-soft", "--color-realestate-soft", "--secondary", "--muted"]) {
+      expect(tokenHex(name), name).toBe(tokenHex("--color-surface-sky"));
+    }
+    for (const name of ["--primary", "--nav-primary", "--color-brand-cta", "--color-cta", "--color-brand-blue", "--color-loans-accent", "--color-realestate-accent", "--color-dash-rail"]) {
+      expect(tokenHex(name), name).toBe(tokenHex("--color-brand-navy"));
+    }
+  });
+
   it.each([
     "--color-brand-blue",
     "--color-brand-cta",
@@ -46,9 +61,24 @@ describe("shared normal-text color contrast", () => {
     "--color-loans-accent",
     "--color-realestate-accent",
     "--nav-primary",
-  ])("keeps %s at WCAG AA on white and cream", (token) => {
+  ])("keeps %s at WCAG AA on white and sky", (token) => {
     const foreground = tokenHex(token);
     expect(contrastRatio(foreground, "#ffffff")).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(foreground, "#f3f3ee")).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(foreground, tokenHex("--background"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each(["--color-dash-foreground", "--color-dash-muted", "--color-brand-sky"])("keeps %s legible on navy navigation", (token) => {
+    expect(contrastRatio(tokenHex(token), tokenHex("--color-dash-rail"))).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(tokenHex(token), tokenHex("--color-dash-rail-hover"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("keeps editing boundaries and focus distinct on white", () => {
+    for (const token of ["--input", "--ring"]) {
+      expect(contrastRatio(tokenHex(token), tokenHex("--card"))).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("keeps inactive tab labels legible on the muted sky surface", () => {
+    expect(contrastRatio(tokenHex("--color-text-secondary"), tokenHex("--muted"))).toBeGreaterThanOrEqual(4.5);
   });
 });

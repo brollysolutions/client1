@@ -13,12 +13,9 @@ Two things this file exists to pin down:
    admin-run test would still pass. test_availability_select_visible_to_every_role
    below is the guard against that regression.
 
-2. loan_types/banks have NO DELETE grant and NO writable `name` column
-   (loan_types) — enforced at the privilege layer, the same posture as
-   audit_log/loan_txn_history/offers. A privilege violation raises
-   `InsufficientPrivilegeError` from asyncpg, not a "0 rows" RLS-style
-   silence, so these are asserted with `pytest.raises`, mirroring
-   test_offers_rls.py's WITH CHECK negative tests.
+2. Product/provider deletion requires platform Admin at the RLS layer. Historical
+   references remain protected by foreign keys. Product slugs are immutable via
+   the column grant; audit/history writes retain their existing restrictions.
 
 Requires the Docker stack with migrations applied; auto-skips without Redis.
 """
@@ -283,19 +280,32 @@ async def test_loan_type_name_column_not_grantable_even_for_admin(client: AsyncC
 
 
 @pytest.mark.asyncio
-async def test_delete_loan_type_rejected_even_for_admin(client: AsyncClient) -> None:
-    """No DELETE grant exists on loan_types for any role — pins the no-DELETE
-    decision at the privilege layer, not just the missing router path."""
+@pytest.mark.parametrize(
+    "role,scope,deleted",
+    [
+        ("admin", "true", 1),
+        ("admin", "false", 0),
+        ("sub_admin", "true", 0),
+        ("client", "false", 0),
+        ("agent", "false", 0),
+        ("employee", "false", 0),
+        ("telecaller", "false", 0),
+        ("", "false", 0),
+    ],
+)
+async def test_delete_loan_type_requires_platform_admin(
+    client: AsyncClient, role: str, scope: str, deleted: int
+) -> None:
     _, loan_type_id = await _seed_bank_and_loan_type()
 
     engine = _engine()
     try:
         async with engine.begin() as conn:
-            await _set_ctx(conn, **ADMIN_CTX)
-            with pytest.raises(Exception):  # noqa: B017
-                await conn.execute(
-                    text("DELETE FROM loan_types WHERE id = :id"), {"id": loan_type_id}
-                )
+            await _set_ctx(conn, role=role, platform_scope=scope)
+            result = await conn.execute(
+                text("DELETE FROM loan_types WHERE id = :id"), {"id": loan_type_id}
+            )
+            assert result.rowcount == deleted
     finally:
         await engine.dispose()
 

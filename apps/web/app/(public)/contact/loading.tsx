@@ -1,14 +1,15 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingRegion } from "@/components/ui/loading-region";
 
 // Route-level skeleton for /contact, shaped like the real page (two-column hero
-// with an illustration slot on lg+, flat card-less form beside flat icon rows)
+// with an illustration slot on lg+, white form card beside contact details)
 // so the swap to content doesn't jump. Overrides the generic (public) group
 // loading fallback. SiteHeader/SiteFooter persist via the (public) layout.
 export default function ContactLoading() {
   return (
-    <div aria-hidden>
+    <LoadingRegion label="Loading contact page">
       {/* Hero: copy left, illustration slot right (lg+ only) */}
-      <section className="w-full bg-[var(--nav-bg)]">
+      <section className="w-full bg-brand-cta-tint">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="grid items-center gap-8 lg:grid-cols-[1fr_auto]">
             <div>
@@ -23,12 +24,11 @@ export default function ContactLoading() {
         </div>
       </section>
 
-      {/* Form + contact details: both columns flat on the cream band */}
+      {/* Match the form card and contact-details column. */}
       <section className="w-full border-t border-[var(--nav-border)] bg-[var(--nav-bg)]">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-20">
-            {/* message form (no card) */}
-            <div>
+          <div className="grid items-start gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+            <div className="rounded-2xl border border-border bg-surface p-5 sm:p-8">
               <Skeleton className="h-8 w-1/2 max-w-xs" />
               <Skeleton className="mt-2 h-5 w-3/4 max-w-sm" />
               <div className="mt-8 grid gap-5">
@@ -73,6 +73,6 @@ export default function ContactLoading() {
           </div>
         </div>
       </section>
-    </div>
+    </LoadingRegion>
   );
 }

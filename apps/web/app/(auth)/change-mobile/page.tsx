@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Loader2, Smartphone } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -10,6 +10,7 @@ import {
   AUTH_SUBMIT_CLASS,
 } from "@/components/auth/auth-styles";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { FormSkeleton } from "@/components/form-skeleton";
 import { MobileInput } from "@/components/auth/mobile-input";
 import { OtpForm } from "@/components/auth/otp-form";
 import { PasswordField } from "@/components/auth/password-field";
@@ -101,9 +102,7 @@ export default function ChangeMobilePage() {
         panelTitle="Protecting your account."
         panelSubtitle="We verify the replacement number before support reviews any identity change."
       >
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-7 w-7 animate-spin text-brand-cta" />
-        </div>
+        <FormSkeleton fields={2} label="Loading account recovery" />
       </AuthShell>
     );
   }

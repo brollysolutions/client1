@@ -4,5 +4,5 @@ import { ProductPageSkeleton } from "@/components/product-page-skeleton";
 // services card grid, so the streaming fallback matches the page shape rather
 // than the generic group skeleton.
 export default function LoansLoading() {
-  return <ProductPageSkeleton />;
+  return <ProductPageSkeleton catalogue />;
 }
