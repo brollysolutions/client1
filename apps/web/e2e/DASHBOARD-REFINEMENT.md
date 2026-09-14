@@ -4,7 +4,7 @@ Source baseline: `b2b501cb2a223d40c8f357ff931a4158889af4e8`.
 Task branch: `feat/production-environment-evidence`.
 Implementation date: 14 September 2026. Draft review retains the verification gaps below.
 
-Review: <!-- DASHBOARD_REFINEMENT_PRS -->.
+Review: [Upstream PR #300](https://github.com/brollysolutions/client1/pull/300) and [origin PR #6](https://github.com/vamshisaideep9/client1/pull/6).
 
 The approved scope covers six dashboard roles, Loans and Real Estate, public
 pages and authentication. Existing navy branding remains; Light, Dark and
@@ -76,6 +76,21 @@ The monolithic `./scripts/verify.sh --ci` does not have a passing result.
 Equivalent available checks were run separately in env-free snapshots because
 the native Windows API environment has the existing greenlet import failure.
 The Linux API and migration gate must run on the final commit before release.
+
+Remaining API commands, from `apps/api` in an isolated Linux test environment:
+
+```sh
+python -m pytest -q
+python -m pytest -q app/tests/test_client_contacts_api.py app/tests/test_employee_api.py app/tests/test_provider_logos.py app/tests/system/test_expire_agent_leads.py --tb=short
+```
+
+The first command produced the partial result above; the second did not start
+because fresh service provisioning failed. The browser command, from
+`apps/web` with `PLAYWRIGHT_BASE_URL=http://localhost:3401`, was:
+
+```sh
+pnpm test:e2e e2e/dashboard-refinement.spec.ts e2e/sidebar-chrome.spec.ts e2e/dashboard-theme-visual.spec.ts --workers=1 --reporter=line,json
+```
 
 Lighthouse 13.4.1 desktop reports are retained for both new guides:
 

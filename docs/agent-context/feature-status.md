@@ -35,7 +35,7 @@ and cache warmup during visual review; Linux cold-image behavior remains pending
 
 Security, design/accessibility and source review found no remaining
 change-owned correctness defect in the reviewed scope. These environment gaps
-are retained in the draft reviews: <!-- DASHBOARD_REFINEMENT_PRS -->.
+are retained in the draft reviews: [Upstream PR #300](https://github.com/brollysolutions/client1/pull/300) and [origin PR #6](https://github.com/vamshisaideep9/client1/pull/6).
 See `apps/web/e2e/DASHBOARD-REFINEMENT.md` for the request map and detailed evidence.
 Existing requirement coverage remains unchanged. Next priority: the final Linux
 API/migration gate, cold-image verification, mobile performance evidence and
