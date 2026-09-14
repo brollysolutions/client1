@@ -4,5 +4,5 @@ import { ProductPageSkeleton } from "@/components/product-page-skeleton";
 // + a services card grid, so the streaming fallback matches the page shape
 // rather than the generic group skeleton.
 export default function RealEstateLoading() {
-  return <ProductPageSkeleton />;
+  return <ProductPageSkeleton heroClassName="bg-surface-sky" />;
 }

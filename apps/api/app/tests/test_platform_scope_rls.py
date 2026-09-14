@@ -105,6 +105,7 @@ _ALL_PLATFORM_SCOPE_POLICIES = {
     ("banks", "banks_delete"),
     ("loan_types", "loan_types_insert"),
     ("loan_types", "loan_types_update"),
+    ("loan_types", "loan_types_delete"),  # f3b5d7e9a1c2: unused products, platform Admin only
     ("bank_loan_type_availability", "bank_loan_type_availability_insert"),
     ("bank_loan_type_availability", "bank_loan_type_availability_update"),
     ("financial_product_provider_offers", "provider_offers_select"),

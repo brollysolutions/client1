@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CheckCircle2, Link2Off, Loader2 } from "lucide-react";
+import { CheckCircle2, Link2Off } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { InvitationSkeleton } from "@/components/invitation-skeleton";
 import { getContactInvitation } from "@/lib/contact-invitations";
 
 type State = "loading" | "valid" | "invalid";
@@ -23,14 +24,7 @@ export function ContactInvitationView({ token }: { token: string }) {
   }, [token]);
 
   if (state === "loading") {
-    return (
-      <div className="flex min-h-[55vh] items-center justify-center">
-        <Loader2
-          className="h-7 w-7 animate-spin text-brand-blue"
-          aria-label="Checking invitation"
-        />
-      </div>
-    );
+    return <InvitationSkeleton />;
   }
 
   const valid = state === "valid";
@@ -61,4 +55,3 @@ export function ContactInvitationView({ token }: { token: string }) {
     </section>
   );
 }
-

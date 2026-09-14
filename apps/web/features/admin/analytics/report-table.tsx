@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Inbox, Loader2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Inbox } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ListLoadingState } from "@/features/dashboard/list-states";
 import { ListPagination, useListPagination } from "@/features/dashboard/list-pagination";
 import { cn } from "@/lib/utils";
 import type { SortDir } from "@/lib/reports-api";
@@ -52,8 +53,8 @@ export function ReportTable<Row>({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center rounded-2xl border border-border bg-card py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+        <ListLoadingState />
       </div>
     );
   }

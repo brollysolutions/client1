@@ -9,7 +9,7 @@ import {
   FINANCIAL_SERVICES_OVERVIEW,
 } from "@/components/navbars/financial-services-menu";
 import { PROPERTIES_MENU } from "@/components/navbars/properties-menu";
-import { LOAN_PRODUCTS } from "@/lib/products";
+import { financialServiceHref, findFinancialService, LOAN_PRODUCTS } from "@/lib/products";
 
 const PUBLIC_DIR = join(fileURLToPath(new URL("../..", import.meta.url)), "public");
 
@@ -24,23 +24,22 @@ function allGroups() {
 }
 
 describe("FINANCIAL_SERVICES_MENU", () => {
-  it("every item href resolves to a real product anchor", () => {
+  it("every item href resolves to a dedicated public service page", () => {
     for (const group of allGroups()) {
       for (const item of group.items) {
-        const id = item.href.replace("/loans#", "");
-        expect(item.href.startsWith("/loans#")).toBe(true);
-        expect(LOAN_PRODUCTS.some((p) => p.id === id)).toBe(true);
+        expect(item.href).toMatch(/^\/loans\/[a-z0-9-]+$/);
+        expect(findFinancialService(item.href.replace("/loans/", ""))).toBeDefined();
       }
     }
   });
 
   it("every product appears in the menu exactly once", () => {
     const menuIds = allGroups().flatMap((group) =>
-      group.items.map((item) => item.href.replace("/loans#", "")),
+      group.items.map((item) => item.href),
     );
     expect(menuIds.length).toBe(LOAN_PRODUCTS.length);
     expect(new Set(menuIds).size).toBe(LOAN_PRODUCTS.length);
-    expect(new Set(menuIds)).toEqual(new Set(LOAN_PRODUCTS.map((p) => p.id)));
+    expect(new Set(menuIds)).toEqual(new Set(LOAN_PRODUCTS.map((p) => financialServiceHref(p.id))));
   });
 
   it("has the approved 2-column structure: Loans alone, Insurance + Credit Cards stacked", () => {
@@ -72,12 +71,10 @@ describe("FINANCIAL_SERVICES_MENU", () => {
     }
   });
 
-  it("gives every item a miniature illustration that exists on disk", () => {
+  it("keeps service photography out of the icon-only menu data", () => {
     for (const group of allGroups()) {
       for (const item of group.items) {
-        expect(item.illustration, `${item.label} has no illustration`).toBeTruthy();
-        const path = join(PUBLIC_DIR, item.illustration!.replace(/^\//, ""));
-        expect(existsSync(path), `missing thumbnail: ${item.illustration}`).toBe(true);
+        expect(item).not.toHaveProperty("illustration");
       }
     }
   });
@@ -85,8 +82,7 @@ describe("FINANCIAL_SERVICES_MENU", () => {
   it("uses each product's navLabel (falling back to label)", () => {
     for (const group of allGroups()) {
       for (const item of group.items) {
-        const id = item.href.replace("/loans#", "");
-        const product = LOAN_PRODUCTS.find((p) => p.id === id);
+        const product = findFinancialService(item.href.replace("/loans/", ""));
         expect(item.label).toBe(product?.navLabel ?? product?.label);
       }
     }

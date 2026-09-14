@@ -621,11 +621,17 @@ async def test_admin_created_insurance_product_uses_enquiry_workflow(client: Asy
 
 
 @pytest.mark.asyncio
-async def test_delete_loan_type_not_allowed(client: AsyncClient) -> None:
+async def test_delete_unused_loan_type_is_audited(client: AsyncClient) -> None:
     headers = await _admin_headers(client)
     loan_type = await _create_loan_type(client, headers)
     res = await client.delete(f"/api/v1/admin/loan-types/{loan_type['id']}", headers=headers)
-    assert res.status_code == 405
+    assert res.status_code == 204, res.text
+    listed = await client.get("/api/v1/admin/loan-types", headers=headers)
+    assert loan_type["id"] not in {row["id"] for row in listed.json()["loan_types"]}
+    audit = await _audit_row("loan_type_deleted", loan_type["id"])
+    assert audit is not None
+    assert audit["entity_type"] == "loan_type"
+    assert await _audit_row("loan_type_created", loan_type["id"]) is not None
 
 
 @pytest.mark.asyncio

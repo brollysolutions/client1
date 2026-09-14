@@ -41,8 +41,8 @@ export type Product = {
   description: string;
   group: ProductGroup;
   icon: LucideIcon;
-  // Optional card-size spot illustration (public/illustrations/products/*.svg).
-  // When set, the card renders the illustration band; otherwise it falls back
+  // Optional service artwork. When set, the card renders an image band;
+  // otherwise it falls back
   // to the lucide icon tile. Loans opt in; real estate uses the fallback.
   illustration?: string;
   /** Retired product id kept as an extra in-page anchor so old /loans#<id>
@@ -87,7 +87,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "A personal loan for planned expenses, from medical bills to a big purchase.",
     group: "loans",
     icon: Wallet,
-    illustration: "/illustrations/products/personal-loan.svg",
+    illustration: "/images/services/personal-loan.webp",
   },
   {
     id: "business-loan",
@@ -97,7 +97,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "A business loan for working capital, new equipment, or your next stage of growth.",
     group: "loans",
     icon: Briefcase,
-    illustration: "/illustrations/products/business-loan.svg",
+    illustration: "/images/services/business-loan.webp",
   },
   {
     id: "home-loan",
@@ -107,7 +107,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "A home loan to buy, build, or transfer a house or flat, secured against the property.",
     group: "loans",
     icon: Home,
-    illustration: "/illustrations/products/home-loan.svg",
+    illustration: "/images/services/home-loan.webp",
     legacyAnchorId: "property-loan",
   },
   {
@@ -118,7 +118,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "Unlock funds against a property you already own, while you keep living in or using it.",
     group: "loans",
     icon: Landmark,
-    illustration: "/illustrations/products/loan-against-property.svg",
+    illustration: "/images/services/loan-against-property.webp",
   },
   {
     id: "car-loan",
@@ -127,7 +127,7 @@ export const LOAN_PRODUCTS: Product[] = [
     description: "A car loan for a new or used private car, with quick approval.",
     group: "loans",
     icon: Car,
-    illustration: "/illustrations/products/car-loan.svg",
+    illustration: "/images/services/car-loan.webp",
   },
   {
     id: "vehicle-loan",
@@ -137,7 +137,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "A vehicle loan for a two-wheeler or commercial vehicle, from bikes to trucks.",
     group: "loans",
     icon: Truck,
-    illustration: "/illustrations/products/vehicle-loan.svg",
+    illustration: "/images/services/vehicle-loan.webp",
   },
   {
     id: "education-loan",
@@ -147,17 +147,17 @@ export const LOAN_PRODUCTS: Product[] = [
       "An education loan for tuition, living costs, and studies in India or abroad.",
     group: "loans",
     icon: GraduationCap,
-    illustration: "/illustrations/products/education-loan.svg",
+    illustration: "/images/services/education-loan.webp",
   },
   {
     id: "school-funding",
     label: "School Funding",
     navLabel: "School Funding",
     description:
-      "Funding for school admission fees and annual costs, repaid over the school year.",
+      "Funding for educational institutions, their operations, facilities and expansion plans.",
     group: "loans",
     icon: School,
-    illustration: "/illustrations/products/school-funding.svg",
+    illustration: "/images/services/school-funding.webp",
   },
   {
     id: "secured-loans",
@@ -167,7 +167,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "Borrow against gold, fixed deposits, or other assets you pledge as security.",
     group: "loans",
     icon: Lock,
-    illustration: "/illustrations/products/secured-loans.svg",
+    illustration: "/images/services/secured-loans.webp",
   },
   {
     id: "od-and-dod",
@@ -177,7 +177,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "Overdraft and drop-line overdraft facilities that give your business flexible, on-demand funds.",
     group: "loans",
     icon: LineChart,
-    illustration: "/illustrations/products/od-and-dod.svg",
+    illustration: "/images/services/od-and-dod.webp",
   },
   {
     id: "project-funding",
@@ -187,7 +187,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "Funding for construction and development projects, released against project milestones.",
     group: "loans",
     icon: HardHat,
-    illustration: "/illustrations/products/project-funding.svg",
+    illustration: "/images/services/project-funding.webp",
   },
   {
     id: "life-insurance",
@@ -197,7 +197,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "Life cover that protects your family's finances if something happens to you.",
     group: "insurance",
     icon: HeartPulse,
-    illustration: "/illustrations/products/life-insurance.svg",
+    illustration: "/images/services/life-insurance.webp",
     // Not "legacyAnchorId: insurance" — that id belongs to the insurance BAND
     // (LOAN_PRODUCT_BANDS below), which already preserves the old
     // /loans#insurance anchor at the section level. Duplicating it here would
@@ -211,7 +211,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "Health cover for hospital bills and treatment, for you and your family.",
     group: "insurance",
     icon: Stethoscope,
-    illustration: "/illustrations/products/health-insurance.svg",
+    illustration: "/images/services/health-insurance.webp",
   },
   {
     id: "property-insurance",
@@ -221,7 +221,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "Cover for your home or property against fire, theft, and other listed risks.",
     group: "insurance",
     icon: ShieldCheck,
-    illustration: "/illustrations/products/property-insurance.svg",
+    illustration: "/images/services/property-insurance.webp",
   },
   {
     id: "travel-insurance",
@@ -231,7 +231,7 @@ export const LOAN_PRODUCTS: Product[] = [
       "Cover for trip cancellations, medical emergencies, and lost baggage while you travel.",
     group: "insurance",
     icon: Plane,
-    illustration: "/illustrations/products/travel-insurance.svg",
+    illustration: "/images/services/travel-insurance.webp",
   },
   {
     id: "credit-cards",
@@ -241,25 +241,37 @@ export const LOAN_PRODUCTS: Product[] = [
       "Compare credit cards, check what fits your spending, and apply online.",
     group: "credit-cards",
     icon: CreditCard,
-    illustration: "/illustrations/products/credit-cards.svg",
+    illustration: "/images/services/credit-cards.webp",
   },
 ];
 
 // Slugs that Admin publishes in the /loans catalogue but that are not marketing
 // products in LOAN_PRODUCTS (so they are intentionally absent from the navbar
 // mega-menu and the 11/4/1 band split those tests lock). Listing them here
-// keeps public/illustrations/products/*.svg with a single owner, and keeps the
+// keeps service artwork with a single owner, and keeps the
 // public catalogue from dropping a published service to the bare icon fallback.
 const EXTRA_CATALOGUE_ILLUSTRATIONS: Record<string, string> = {
-  "equipment-financing": "/illustrations/products/equipment-financing.svg",
+  "equipment-financing": "/images/services/equipment-financing.webp",
 };
 
-/** Resolves the spot illustration for an Admin-published catalogue slug.
+/** Keep the established provider URL for credit cards while the marketing
+ *  catalogue and its legacy anchor retain the plural service id. */
+export function financialServiceHref(id: string): string {
+  return `/loans/${id === "credit-cards" ? "credit-card" : id}`;
+}
+
+export function findFinancialService(slug: string): Product | undefined {
+  const id = slug === "credit-card" ? "credit-cards" : slug;
+  return LOAN_PRODUCTS.find((service) => service.id === id);
+}
+
+/** Resolves service artwork for an Admin-published catalogue slug.
  *  Returns undefined when no art exists yet, which is a designed state on the
  *  card rather than a missing image. */
 export function catalogueIllustration(slug: string): string | undefined {
+  const serviceId = slug === "credit-card" ? "credit-cards" : slug;
   return (
-    LOAN_PRODUCTS.find((product) => product.id === slug)?.illustration ??
+    LOAN_PRODUCTS.find((product) => product.id === serviceId)?.illustration ??
     EXTRA_CATALOGUE_ILLUSTRATIONS[slug]
   );
 }

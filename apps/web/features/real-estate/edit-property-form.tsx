@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2 } from "lucide-react";
+import { FormSkeleton } from "@/components/form-skeleton";
 
 import { Button } from "@/components/ui/button";
 import { getSubmission, type Submission } from "@/lib/property-submissions-api";
@@ -44,8 +44,8 @@ export function EditPropertyForm({
   }
   if (!submission) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-label="Loading listing" />
+      <div className="mx-auto w-full max-w-3xl py-6">
+        <FormSkeleton fields={6} label="Loading listing" />
       </div>
     );
   }

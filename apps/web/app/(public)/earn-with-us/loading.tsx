@@ -1,10 +1,11 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingRegion } from "@/components/ui/loading-region";
 
 // Mirrors /earn-with-us (hero + earning tracks). Two-column hero with two CTAs
 // and an illustration slot on lg+, then a card row and a two-track row.
 export default function EarnWithUsLoading() {
   return (
-    <div aria-hidden className="w-full bg-[var(--nav-bg)]">
+    <LoadingRegion label="Loading partner information" className="w-full bg-[var(--nav-bg)]">
       {/* Hero */}
       <section className="w-full">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
@@ -45,6 +46,6 @@ export default function EarnWithUsLoading() {
           </div>
         </div>
       </section>
-    </div>
+    </LoadingRegion>
   );
 }

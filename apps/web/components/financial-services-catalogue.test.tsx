@@ -12,28 +12,22 @@ vi.mock("next/navigation", () => ({
 import { FinancialServicesCatalogue } from "@/components/financial-services-catalogue";
 import { HomeCalculators } from "@/components/home-calculators";
 import { LineSplit } from "@/components/line-split";
-import type { CatalogueFacets, PublicFinancialProduct } from "@/lib/financial-catalog";
+import type { CatalogueFacets } from "@/lib/financial-catalog";
+import type { ServiceDirectoryItem } from "@/lib/service-directory";
 
 // The fixtures are all `category: "loan"`, so the loan facet carries the total.
 function facets(total: number): CatalogueFacets {
   return { all: total, loan: total, credit_card: 0, insurance: 0 };
 }
 
-function product(index: number): PublicFinancialProduct {
+function product(index: number): ServiceDirectoryItem {
   return {
     id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
     slug: index === 1 ? "personal-loan" : `configured-service-${index}`,
+    detailHref: index === 1 ? "/loans/personal-loan" : `/loans/configured-service-${index}`,
     label: `Configured Service ${index}`,
     category: "loan",
     summary: `Summary ${index}`,
-    description: `Description ${index}`,
-    highlights: [],
-    eligibility: [],
-    documents: [],
-    faq: [],
-    homepage_featured: true,
-    provider_count: index,
-    updated_at: "2026-08-22T00:00:00Z",
   };
 }
 
@@ -75,7 +69,8 @@ describe("Financial Services public discovery", () => {
 
     // Seats flush under the 64px sticky SiteHeader and below its z-40.
     expect(markup).toMatch(/class="[^"]*sticky top-16 z-30[^"]*"/);
-    // No opaque white panel behind the bar.
+    // The updated toolbar uses the shared white surface token.
+    expect(markup).toMatch(/class="[^"]*sticky top-16[^"]*bg-surface[^"]*"/);
     expect(markup).not.toMatch(/class="[^"]*sticky top-16[^"]*bg-card[^"]*"/);
     // The aggregate "N service(s)" total is announced to assistive tech but
     // no longer shown visibly next to the bar.
@@ -92,8 +87,8 @@ describe("Financial Services public discovery", () => {
       <FinancialServicesCatalogue
         catalogue={{
           items: [
-            { ...product(1), slug: "equipment-financing", provider_count: 0 },
-            { ...product(2), slug: "not-a-real-service", provider_count: 0 },
+            { ...product(1), slug: "equipment-financing" },
+            { ...product(2), slug: "not-a-real-service" },
           ],
           total: 2,
           page: 1,
@@ -104,14 +99,21 @@ describe("Financial Services public discovery", () => {
       />,
     );
 
-    // equipment-financing is Admin-published but is not a marketing product,
-    // so it resolves through the catalogue-only illustration map.
-    expect(markup).toContain("equipment-financing.svg");
+    expect(markup).toContain("equipment-financing.webp");
+    expect(markup).toContain("logo-horizontal.png");
     // Cards carry no category tag badge (the pill's own "backdrop-blur-sm"
     // class is otherwise unused) and no provider-count text at all, zero or
     // otherwise.
     expect(markup).not.toContain("backdrop-blur-sm");
     expect(markup).not.toContain("0 provider");
+  });
+
+  it("keeps enquiry-only service cards usable without linking to unpublished provider details", () => {
+    const markup = renderToStaticMarkup(<FinancialServicesCatalogue catalogue={{ items: [{ id: "school-funding", slug: "school-funding", label: "School Funding", summary: "School costs", category: "loan" }], total: 1, page: 1, page_size: 24 }} facets={facets(1)} query={{}} />);
+    expect(markup).toContain('id="school-funding"');
+    expect(markup).toContain("Enquire now");
+    expect(markup).toContain("Talk to our team");
+    expect(markup).not.toContain('href="/loans/school-funding"');
   });
 
   it("places the restored Loans and Properties bands before the calculator section", () => {

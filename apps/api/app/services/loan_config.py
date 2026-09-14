@@ -14,9 +14,8 @@ matrix. `set_bank_availability` UPSERTs every entry the admin submits
 purpose: it is pure config, and the admin console's checkbox grid always
 submits the complete current loan-type vector for a bank, true and false
 cells alike, so there is no sparse-omission case that needs a delete to
-resolve). A loan type that no longer exists can't be un-submitted because
-loan types are never hard-deleted either (§ no-DELETE, migration
-678f7a77e812) — only deactivated, which this table doesn't need to react to.
+resolve). Deleting an unused product cascades only its disposable availability
+configuration. Applications, enquiries and provider offers prevent deletion.
 """
 
 from __future__ import annotations
@@ -71,6 +70,10 @@ class DuplicateBankName(Exception):
 class LoanTypeNotFound(Exception):
     """Raised when a loan_type id doesn't resolve — 404, never 403 (the caller
     is already require_admin-gated, so a miss here is a genuine absence)."""
+
+
+class LoanTypeInUse(Exception):
+    """Financial history or configured provider offers still reference a product."""
 
 
 class InvalidProductForm(Exception):
@@ -262,6 +265,49 @@ async def update_loan_type(
     await db.commit()
     await db.refresh(loan_type)
     return loan_type
+
+
+async def delete_loan_type(
+    db: AsyncSession,
+    loan_type_id: UUID,
+    *,
+    actor_uuid: UUID | None,
+    actor_role: str | None,
+) -> None:
+    """Delete unused products, preserving every submitted or configured reference.
+
+    The parent row lock serializes deletion with FK inserts and configuration
+    updates. Existing restrictive FKs remain the final protection against races.
+    Only availability overrides cascade; audit records have no parent FK.
+    """
+    product = await db.scalar(select(LoanType).where(LoanType.id == loan_type_id).with_for_update())
+    if product is None:
+        raise LoanTypeNotFound
+
+    for reference in (
+        LoanApplication.loan_type_id,
+        FinancialServiceEnquiry.product_id,
+        FinancialProductProviderOffer.loan_type_id,
+    ):
+        if await db.scalar(select(select(reference).where(reference == loan_type_id).exists())):
+            raise LoanTypeInUse
+
+    await record_audit(
+        db,
+        action=AuditAction.LOAN_TYPE_DELETED,
+        entity_type="loan_type",
+        entity_uuid=product.id,
+        actor_uuid=actor_uuid,
+        actor_role=actor_role,
+        business_line="loans",
+        detail={"name": product.name, "label": product.label, "form_version": product.form_version},
+    )
+    await db.delete(product)
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise LoanTypeInUse from exc
 
 
 # ---------------------------------------------------------------------------

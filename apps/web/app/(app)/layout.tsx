@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import { AuthProvider, useAuth } from "@/components/auth/session-provider";
 import { AppShell } from "@/features/dashboard/app-shell";
+import { AppShellSkeleton } from "@/features/dashboard/dashboard-page-skeleton";
 
 // Client-side route guard for the authenticated app surface. This is a UX gate
 // only, not the security boundary: the real access control is Postgres RLS plus
@@ -23,11 +23,7 @@ function AppGuard({ children }: { children: React.ReactNode }) {
   }, [isLoading, isAuthenticated, router]);
 
   if (isLoading || !isAuthenticated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-brand-navy" />
-      </div>
-    );
+    return <AppShellSkeleton />;
   }
 
   return <>{children}</>;

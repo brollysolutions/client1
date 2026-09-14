@@ -47,6 +47,10 @@ export async function listAdminBanks(): Promise<ApiResponse<AdminBank[]>> {
   return { ok: true, status: res.status, data: res.data.banks };
 }
 
+export async function deleteLoanType(id: string): Promise<ApiResponse<null>> {
+  return apiRequest<null>(`/api/v1/admin/loan-types/${id}`, { method: "DELETE" });
+}
+
 export async function createBank(
   payload: Schemas["BankCreate"],
 ): Promise<ApiResponse<AdminBank>> {

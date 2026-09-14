@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2 } from "lucide-react";
+import { DashboardPageSkeleton } from "@/features/dashboard/dashboard-page-skeleton";
 import { useParams, useRouter } from "next/navigation";
 
 import { useAuth } from "@/components/auth/session-provider";
@@ -19,9 +19,7 @@ export default function CorrectApprovedPropertyPage() {
 
   if (isLoading || !allowed) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-brand-navy" aria-hidden="true" />
-      </div>
+      <DashboardPageSkeleton />
     );
   }
 

@@ -43,7 +43,7 @@ function queryString(values: Record<string, string | number | boolean | undefine
 
 export async function getPublicFinancialProducts(
   query: ProductCatalogueQuery = {},
-  revalidate = 60,
+  revalidate = 0,
 ): Promise<PublicFinancialProductList> {
   const suffix = queryString({
     q: query.q,
@@ -59,6 +59,21 @@ export async function getPublicFinancialProducts(
   return response.ok
     ? response.data
     : { items: [], total: 0, page: query.page ?? 1, page_size: query.pageSize ?? 12 };
+}
+
+/** Published metadata for the public service directory. Fetch subsequent pages
+ *  only when needed, so configured services beyond the first API page survive.
+ *  An unavailable page never creates a provider/application link. */
+export async function getPublishedServiceProducts(): Promise<PublicFinancialProduct[]> {
+  const pageSize = 100;
+  const first = await getPublicFinancialProducts({ pageSize });
+  const products = [...first.items];
+  for (let page = 2; page <= Math.ceil(first.total / pageSize); page += 1) {
+    const next = await getPublicFinancialProducts({ page, pageSize });
+    if (!next.items.length) break;
+    products.push(...next.items);
+  }
+  return products;
 }
 
 export type CatalogueFacets = {
@@ -92,9 +107,13 @@ export async function getPublicFinancialProduct(
 ): Promise<PublicFinancialProduct | null> {
   const response = await serverFetchJson<PublicFinancialProduct>(
     `/api/v1/public/financial-products/${encodeURIComponent(slug)}`,
-    { revalidate: 60 },
+    { revalidate: 0, expectedStatuses: [404] },
   );
-  return response.ok ? response.data : null;
+  if (response.ok) return response.data;
+  if (response.status === 404) return null;
+  // An outage is not evidence that Admin unpublished the product. Let the
+  // route error boundary offer a retry instead of emitting a false not-found.
+  throw new Error("Financial services are temporarily unavailable. Please try again.");
 }
 
 export async function getPublicProviderOffers(
@@ -113,7 +132,7 @@ export async function getPublicProviderOffers(
   });
   const response = await serverFetchJson<PublicProviderOfferList>(
     `/api/v1/public/financial-products/${encodeURIComponent(slug)}/providers${suffix}`,
-    { revalidate: 60 },
+    { revalidate: 0, expectedStatuses: [404] },
   );
   return response.ok
     ? response.data
