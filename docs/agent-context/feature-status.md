@@ -33,7 +33,7 @@ local public-data timeout warnings. Existing dark auth text-link contrast and
 broader release/performance gaps remain outside this footer/header change.
 No API, contract, migration, dependency or production configuration changed.
 
-<!-- auth-footer-pr-links -->
+Reviews: [upstream](https://github.com/brollysolutions/client1/pull/302) and [origin](https://github.com/vamshisaideep9/client1/pull/8).
 Next priority: inherited SEO/accessibility, performance and release-evidence
 gaps. No PR merge or production deployment is included.
 
