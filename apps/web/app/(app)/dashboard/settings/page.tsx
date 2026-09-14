@@ -23,6 +23,7 @@ import { useMe } from "@/features/dashboard/me-provider";
 import { PushSubscriptionCard } from "@/features/push-notifications/push-subscription-card";
 import { JourneyDetailsCard } from "@/features/settings/journey-details-card";
 import { PersonalizationSettingsCard } from "@/features/settings/personalization-settings-card";
+import { AppearanceSettingsCard } from "@/features/settings/appearance-settings-card";
 import { updateProfile, type Me } from "@/lib/auth";
 import {
   apiIssuesToFieldErrors,
@@ -83,6 +84,7 @@ export default function SettingsPage() {
 
       {session?.role === "client" ? <JourneyDetailsCard /> : null}
 
+      <AppearanceSettingsCard />
       <PushSubscriptionCard />
 
       {session?.role === "client" || session?.role === "agent" ? (

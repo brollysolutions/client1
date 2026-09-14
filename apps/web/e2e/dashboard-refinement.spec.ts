@@ -27,7 +27,8 @@ async function expectWindow(page: Page) {
   return dialog;
 }
 
-test("system theme follows the device and explicit choices persist across public, auth and dashboard pages", async ({ page, baseURL }) => {
+test("system appearance stays independent of dashboard Settings choices", async ({ page, baseURL }) => {
+  await page.addInitScript(() => localStorage.setItem("dhanadhara:theme", "light"));
   await page.emulateMedia({ colorScheme: "dark" });
   await page.goto("/help-center", { waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveClass(/dark/);
@@ -35,28 +36,71 @@ test("system theme follows the device and explicit choices persist across public
   await expect(announcement).toHaveCSS("background-color", "rgb(243, 187, 27)");
   await expect(announcement).toHaveCSS("color", "rgb(41, 54, 129)");
   await expect(announcement.getByRole("button", { name: "Dismiss announcement" })).toHaveCSS("color", "rgb(41, 54, 129)");
-  await page.getByRole("button", { name: "Change appearance" }).click();
-  await page.getByRole("menuitemradio", { name: "Light", exact: true }).click();
-  await expect(page.locator("html")).toHaveClass(/light/);
-  await expect(announcement).toHaveCSS("color", "rgb(41, 54, 129)");
+  await expect(page.getByRole("button", { name: "Change appearance" })).toHaveCount(0);
   await page.goto("/login", { waitUntil: "domcontentloaded" });
-  await expect(page.locator("html")).toHaveClass(/light/);
+  await expect(page.locator("html")).toHaveClass(/dark/);
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
-  await page.getByRole("button", { name: "Change appearance" }).click();
-  await page.getByRole("menuitemradio", { name: "Dark", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Change appearance" })).toHaveCount(0);
   await signIn(page, baseURL!, "client");
-  await page.goto("/dashboard/help-center", { waitUntil: "domcontentloaded" });
+  await page.goto("/dashboard/settings", { waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveClass(/dark/);
   await expect(page.locator("#dashboard-main-content")).toBeVisible();
-  await page.reload();
+  await expect(page.getByRole("radio", { name: /System/ })).toBeChecked();
+  await page.getByRole("radio", { name: /^Light/ }).check();
+  await expect(page.locator("html")).toHaveClass(/light/);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("radio", { name: /^Light/ })).toBeChecked();
+  await expect(page.locator("html")).toHaveClass(/light/);
+  await page.goto("/help-center", { waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveClass(/dark/);
-  await page.getByRole("button", { name: "Change appearance" }).click();
-  await page.getByRole("menuitemradio", { name: "System", exact: true }).click();
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await page.goto("/dashboard/settings", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveClass(/light/);
+  await page.getByRole("radio", { name: /^Light/ }).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("radio", { name: /^Dark/ })).toBeChecked();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await page.getByRole("radio", { name: /^System/ }).check();
   await page.emulateMedia({ colorScheme: "light" });
   await expect(page.locator("html")).toHaveClass(/light/);
   await page.emulateMedia({ colorScheme: "dark" });
   await expect(page.locator("html")).toHaveClass(/dark/);
-  expect(await page.evaluate(() => localStorage.getItem("dhanadhara:theme"))).toBe("system");
+  expect(await page.evaluate(() => localStorage.getItem("dhanadhara:dashboard-theme"))).toBe("system");
+});
+
+for (const role of ["admin", "sub_admin", "agent", "telecaller", "employee"] as const) {
+  test(`${role}: appearance choices are available in Settings`, async ({ page, baseURL }) => {
+    await signIn(page, baseURL!, role);
+    await page.goto("/dashboard/settings", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("radio", { name: /^System/ })).toBeChecked();
+    await page.getByRole("radio", { name: /^Dark/ }).check();
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await expect(page.getByRole("button", { name: "Change appearance" })).toHaveCount(0);
+  });
+}
+
+test("footer branding stays white and closing CTA stays separate in both system themes", async ({ page }, testInfo) => {
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme });
+    for (const width of [320, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/earn-with-us", { waitUntil: "domcontentloaded" });
+      const footer = page.getByRole("contentinfo");
+      await footer.scrollIntoViewIfNeeded();
+      const logo = footer.getByRole("link", { name: "Dhanadhara home" });
+      await expect(logo).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await expect(logo.locator("img")).toHaveCSS("filter", "brightness(0) invert(1)");
+      const gap = await footer.evaluate((element) => element.getBoundingClientRect().top - document.querySelector("main")!.getBoundingClientRect().bottom);
+      expect(gap).toBeGreaterThanOrEqual(40);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      if (width < 1024) {
+        await footer.locator("summary").filter({ hasText: "Company" }).click();
+        await expect(footer.getByRole("link", { name: "Help Center" })).toBeVisible();
+      }
+      await footer.screenshot({ path: testInfo.outputPath(`footer-${colorScheme}-${width}.png`) });
+    }
+  }
 });
 
 test("dashboard legal and help pages retain their shell on a narrow viewport", async ({ page, baseURL }, testInfo) => {
