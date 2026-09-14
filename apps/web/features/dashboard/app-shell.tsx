@@ -17,7 +17,6 @@ import { LineSwitcher } from "./line-switcher";
 import { MeProvider } from "./me-provider";
 import { NotificationBell } from "./notification-bell";
 import { NotificationsProvider } from "./notifications-provider";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import { ProfileMenu } from "./profile-menu";
 import { hasFixedDesktopSidebar, isDesktopSidebarExpanded } from "./shell-state";
 
@@ -97,7 +96,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </button>
                   <Logo variant="symbol" tone="navy" href="/dashboard" className="h-11 w-8 lg:hidden" sizes="32px" />
                   <div className="flex-1" />
-                  <div className="hidden sm:block"><ThemeSwitcher /></div>
                   <NotificationBell />
                   <LineSwitcher />
                   <ProfileMenu />
