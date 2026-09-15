@@ -17,7 +17,7 @@ defects. The existing public-data timeout and Windows standalone tracing build
 warnings remain. Other browser engines were not exercised. Requirement coverage
 and release status are unchanged.
 
-<!-- sidebar-brand-pr-links -->
+Reviews: [upstream](https://github.com/brollysolutions/client1/pull/304) and [origin](https://github.com/vamshisaideep9/client1/pull/10).
 Next priority: verify real storage uploads and close existing release/performance
 evidence gaps.
 

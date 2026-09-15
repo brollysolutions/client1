@@ -76,7 +76,7 @@ no change-owned defects. Existing build-time public-data timeout and Windows
 standalone tracing warnings remain; other browser engines were not exercised.
 No API, contract, authorization or release-coverage change is included.
 
-<!-- sidebar-brand-pr-links -->
+Reviews: [upstream](https://github.com/brollysolutions/client1/pull/304) and [origin](https://github.com/vamshisaideep9/client1/pull/10).
 Next priority: verify real storage uploads and close the existing release and
 performance evidence gaps.
 
