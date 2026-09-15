@@ -119,10 +119,10 @@ export function AppSidebar({
           labeled ? "px-3" : "px-1",
         )}
       >
-        <div className={cn("relative mb-3 flex h-14 shrink-0 items-start border-b border-white/15", reserveCloseSpace && "pr-11")} data-sidebar-brand>
-          <Link href="/dashboard" prefetch={false} onClick={onNavigate} aria-label="Dhanadhara dashboard" className="relative flex h-11 min-w-0 flex-1 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-sky">
+        <div className={cn("relative mb-3 flex shrink-0 border-b border-white/15", labeled ? "h-14 items-start" : "flex-col items-center gap-1 pb-3", reserveCloseSpace && "pr-11")} data-sidebar-brand>
+          <Link href="/dashboard" prefetch={false} onClick={onNavigate} aria-label="Dhanadhara dashboard" className={cn("relative flex h-11 min-w-0 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-sky", labeled ? "flex-1" : "w-11 shrink-0")}>
             <Image src={BRAND_ASSETS.horizontal.src} width={960} height={176} alt="" loading="eager" sizes="192px" className={cn("absolute h-auto w-48 max-w-full object-contain brightness-0 invert transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none", labeled ? "scale-100 opacity-100" : "scale-95 opacity-0")} />
-            <Image src="/brand/icon-192.png" width={192} height={192} alt="" unoptimized loading="eager" className={cn("absolute h-10 w-10 rounded-lg object-contain transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none", labeled ? "scale-95 opacity-0" : "scale-100 opacity-100")} />
+            <Image src={BRAND_ASSETS.symbol.src} width={BRAND_ASSETS.symbol.width} height={BRAND_ASSETS.symbol.height} alt="" unoptimized loading="eager" className={cn("absolute h-10 w-10 object-contain brightness-0 invert transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none", labeled ? "scale-95 opacity-0" : "scale-100 opacity-100")} />
           </Link>
           {onToggle && <button ref={toggleRef} type="button" onClick={toggleSidebar} aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"} aria-expanded={expanded} className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-dash-foreground hover:bg-dash-rail-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-sky"><PanelLeft className="h-5 w-5" aria-hidden="true" /></button>}
         </div>

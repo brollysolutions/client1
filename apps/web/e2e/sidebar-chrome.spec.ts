@@ -24,7 +24,8 @@ for (const role of ["client", "admin", "sub_admin", "agent", "employee", "teleca
       await expect(logo.locator("img")).toHaveCount(2);
       const expandedLogo = await logo.boundingBox();
       const toggle = await collapse.boundingBox();
-      expect(toggle!.y).toBeGreaterThanOrEqual(expandedLogo!.y + expandedLogo!.height);
+      expect(expandedLogo!.x + expandedLogo!.width).toBeLessThanOrEqual(toggle!.x + 1);
+      expect(Math.abs(toggle!.y - expandedLogo!.y)).toBeLessThan(2);
       expect(toggle!.width).toBeGreaterThanOrEqual(44);
       await page.screenshot({ path: testInfo.outputPath("client-expanded.png"), animations: "disabled" });
       await collapse.focus();
