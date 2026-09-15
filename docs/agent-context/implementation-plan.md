@@ -60,6 +60,26 @@ default, not permission to skip the pre-implementation announcement.
 
 ## Prioritized active backlog
 
+**Implemented — collapsed sidebar branding** (2026-09-15), on
+`feat/auth-actions-footer`. The collapsed Client rail shows the original
+transparent DD symbol in white, centered above the 44px expand control.
+Expanded branding, mobile drawers, role navigation and existing motion remain
+intact. The older expanded-sidebar test now matches the established horizontal
+logo/control layout.
+
+Fresh verification: lint, typecheck, 706 unit tests across 108 files, the env-free
+production build and seven targeted Chromium sidebar journeys pass. Browser
+checks cover all six roles, desktop at 1365/1440px, mobile at 320/390/768px,
+keyboard focus restoration and reduced motion. Screenshots of collapsed,
+expanded and mobile states were inspected; design/Apple and source review found
+no change-owned defects. Existing build-time public-data timeout and Windows
+standalone tracing warnings remain; other browser engines were not exercised.
+No API, contract, authorization or release-coverage change is included.
+
+<!-- sidebar-brand-pr-links -->
+Next priority: verify real storage uploads and close the existing release and
+performance evidence gaps.
+
 **Implemented — dashboard interaction and detail repairs** (2026-09-14), on
 `feat/auth-actions-footer`. Campaign approval tabs wrap and identify the active
 panel; opening a notification updates its read state, badge and unread preview;

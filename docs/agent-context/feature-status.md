@@ -2,6 +2,25 @@
 
 Status: **Derived living implementation ledger**
 
+**Implemented — collapsed sidebar branding** (2026-09-15), on
+`feat/auth-actions-footer`. The collapsed Client rail uses the original
+transparent DD symbol in white, centered above the expand control. Expanded
+branding and mobile drawers retain their existing layout, with keyboard focus,
+role navigation and motion preserved.
+
+Fresh verification: lint, typecheck, all 706 unit tests in 108 files, the env-free
+production build and seven targeted Chromium journeys pass. Browser evidence
+covers all six roles, 1365/1440px desktop and 320/390/768px mobile layouts,
+keyboard focus restoration and reduced motion. Collapsed, expanded and mobile
+screenshots were inspected; design/Apple and source review found no change-owned
+defects. The existing public-data timeout and Windows standalone tracing build
+warnings remain. Other browser engines were not exercised. Requirement coverage
+and release status are unchanged.
+
+<!-- sidebar-brand-pr-links -->
+Next priority: verify real storage uploads and close existing release/performance
+evidence gaps.
+
 **Implemented — dashboard interaction and detail repairs** (2026-09-14), on
 `feat/auth-actions-footer`. Campaign approval tabs wrap and identify the active
 panel; opening a notification updates its read state, badge and unread preview;
