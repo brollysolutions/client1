@@ -146,7 +146,7 @@ test("property prices and complete detail windows fit mobile and desktop", async
   }
 });
 
-test("sidebar logo and panel toggle sit side by side in both states", async ({ page, baseURL }, testInfo) => {
+test("collapsed sidebar shows a white symbol above its toggle and expands beside the full logo", async ({ page, baseURL }, testInfo) => {
   await signIn(page, baseURL!, "client");
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/dashboard");
@@ -159,8 +159,15 @@ test("sidebar logo and panel toggle sit side by side in both states", async ({ p
     await expect.poll(() => visibleLogo.evaluate((image) => (image as HTMLImageElement).naturalWidth), { timeout: 30_000 }).toBeGreaterThan(0);
     const logo = (await brand.getByRole("link").boundingBox())!;
     const button = (await toggle.boundingBox())!;
-    expect(logo.x + logo.width).toBeLessThanOrEqual(button.x + 1);
-    expect(Math.abs(logo.y - button.y)).toBeLessThan(2);
+    await expect(visibleLogo).toHaveCSS("filter", "brightness(0) invert(1)");
+    if (name === "Expand sidebar") {
+      await expect(visibleLogo).toHaveAttribute("src", "/brand/symbol.png");
+      expect(button.y).toBeGreaterThan(logo.y + logo.height);
+      expect(Math.abs(logo.x + logo.width / 2 - button.x - button.width / 2)).toBeLessThan(2);
+    } else {
+      expect(logo.x + logo.width).toBeLessThanOrEqual(button.x + 1);
+      expect(Math.abs(logo.y - button.y)).toBeLessThan(2);
+    }
     await page.screenshot({ path: testInfo.outputPath(`${name.replaceAll(" ", "-")}.png`) });
     await toggle.click();
   }
